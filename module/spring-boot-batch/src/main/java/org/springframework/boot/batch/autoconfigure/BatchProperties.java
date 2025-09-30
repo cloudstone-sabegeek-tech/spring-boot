@@ -17,8 +17,6 @@
 package org.springframework.boot.batch.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.sql.init.DatabaseInitializationMode;
-import org.springframework.transaction.annotation.Isolation;
 
 /**
  * Configuration properties for Spring Batch.
@@ -35,14 +33,8 @@ public class BatchProperties {
 
 	private final Job job = new Job();
 
-	private final Jdbc jdbc = new Jdbc();
-
 	public Job getJob() {
 		return this.job;
-	}
-
-	public Jdbc getJdbc() {
-		return this.jdbc;
 	}
 
 	public static class Job {
@@ -59,92 +51,6 @@ public class BatchProperties {
 
 		public void setName(String name) {
 			this.name = name;
-		}
-
-	}
-
-	public static class Jdbc {
-
-		private static final String DEFAULT_SCHEMA_LOCATION = "classpath:org/springframework/"
-				+ "batch/core/schema-@@platform@@.sql";
-
-		/**
-		 * Whether to validate the transaction state.
-		 */
-		private boolean validateTransactionState = true;
-
-		/**
-		 * Transaction isolation level to use when creating job meta-data for new jobs.
-		 */
-		private Isolation isolationLevelForCreate;
-
-		/**
-		 * Path to the SQL file to use to initialize the database schema.
-		 */
-		private String schema = DEFAULT_SCHEMA_LOCATION;
-
-		/**
-		 * Platform to use in initialization scripts if the @@platform@@ placeholder is
-		 * used. Auto-detected by default.
-		 */
-		private String platform;
-
-		/**
-		 * Table prefix for all the batch meta-data tables.
-		 */
-		private String tablePrefix;
-
-		/**
-		 * Database schema initialization mode.
-		 */
-		private DatabaseInitializationMode initializeSchema = DatabaseInitializationMode.EMBEDDED;
-
-		public boolean isValidateTransactionState() {
-			return this.validateTransactionState;
-		}
-
-		public void setValidateTransactionState(boolean validateTransactionState) {
-			this.validateTransactionState = validateTransactionState;
-		}
-
-		public Isolation getIsolationLevelForCreate() {
-			return this.isolationLevelForCreate;
-		}
-
-		public void setIsolationLevelForCreate(Isolation isolationLevelForCreate) {
-			this.isolationLevelForCreate = isolationLevelForCreate;
-		}
-
-		public String getSchema() {
-			return this.schema;
-		}
-
-		public void setSchema(String schema) {
-			this.schema = schema;
-		}
-
-		public String getPlatform() {
-			return this.platform;
-		}
-
-		public void setPlatform(String platform) {
-			this.platform = platform;
-		}
-
-		public String getTablePrefix() {
-			return this.tablePrefix;
-		}
-
-		public void setTablePrefix(String tablePrefix) {
-			this.tablePrefix = tablePrefix;
-		}
-
-		public DatabaseInitializationMode getInitializeSchema() {
-			return this.initializeSchema;
-		}
-
-		public void setInitializeSchema(DatabaseInitializationMode initializeSchema) {
-			this.initializeSchema = initializeSchema;
 		}
 
 	}

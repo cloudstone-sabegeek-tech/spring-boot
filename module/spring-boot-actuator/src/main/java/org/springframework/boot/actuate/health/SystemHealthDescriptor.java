@@ -21,6 +21,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.actuate.endpoint.ApiVersion;
 import org.springframework.boot.health.contributor.Status;
@@ -33,16 +34,16 @@ import org.springframework.boot.health.contributor.Status;
  */
 public final class SystemHealthDescriptor extends CompositeHealthDescriptor {
 
-	private final Set<String> groups;
+	private final @Nullable Set<String> groups;
 
-	SystemHealthDescriptor(ApiVersion apiVersion, Status status, Map<String, HealthDescriptor> components,
-			Set<String> groups) {
+	SystemHealthDescriptor(ApiVersion apiVersion, Status status, @Nullable Map<String, HealthDescriptor> components,
+			@Nullable Set<String> groups) {
 		super(apiVersion, status, components);
 		this.groups = groups;
 	}
 
 	@JsonInclude(Include.NON_EMPTY)
-	public Set<String> getGroups() {
+	public @Nullable Set<String> getGroups() {
 		return this.groups;
 	}
 

@@ -24,6 +24,7 @@ import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import org.bson.codecs.Codec;
 import org.bson.codecs.configuration.CodecRegistry;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -32,8 +33,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoProperties.Gridfs;
 import org.springframework.boot.mongodb.autoconfigure.MongoConnectionDetails;
-import org.springframework.boot.mongodb.autoconfigure.MongoConnectionDetails.GridFs;
 import org.springframework.boot.mongodb.autoconfigure.MongoProperties;
 import org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -50,6 +51,7 @@ import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.gridfs.ReactiveGridFsOperations;
 import org.springframework.data.mongodb.gridfs.ReactiveGridFsTemplate;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
@@ -70,64 +72,58 @@ import org.springframework.util.StringUtils;
 @AutoConfiguration(after = MongoReactiveAutoConfiguration.class)
 @ConditionalOnClass({ MongoClient.class, ReactiveMongoTemplate.class })
 @ConditionalOnBean(MongoClient.class)
-@EnableConfigurationProperties(MongoProperties.class)
+@EnableConfigurationProperties({ MongoProperties.class, DataMongoProperties.class })
 @Import(MongoDataConfiguration.class)
-public class MongoReactiveDataAutoConfiguration {
-
-	private final MongoConnectionDetails connectionDetails;
-
-	MongoReactiveDataAutoConfiguration(MongoConnectionDetails connectionDetails) {
-		this.connectionDetails = connectionDetails;
-	}
+public final class MongoReactiveDataAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(ReactiveMongoDatabaseFactory.class)
-	public SimpleReactiveMongoDatabaseFactory reactiveMongoDatabaseFactory(MongoClient mongo,
-			MongoProperties properties) {
+	SimpleReactiveMongoDatabaseFactory reactiveMongoDatabaseFactory(MongoProperties properties, MongoClient mongo,
+			MongoConnectionDetails connectionDetails) {
 		String database = properties.getDatabase();
 		if (database == null) {
-			database = this.connectionDetails.getConnectionString().getDatabase();
+			database = connectionDetails.getConnectionString().getDatabase();
 		}
+		Assert.hasText(database, "Database name must not be empty");
 		return new SimpleReactiveMongoDatabaseFactory(mongo, database);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean(ReactiveMongoOperations.class)
-	public ReactiveMongoTemplate reactiveMongoTemplate(ReactiveMongoDatabaseFactory reactiveMongoDatabaseFactory,
+	ReactiveMongoTemplate reactiveMongoTemplate(ReactiveMongoDatabaseFactory reactiveMongoDatabaseFactory,
 			MongoConverter converter) {
 		return new ReactiveMongoTemplate(reactiveMongoDatabaseFactory, converter);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean(DataBufferFactory.class)
-	public DefaultDataBufferFactory dataBufferFactory() {
+	DefaultDataBufferFactory dataBufferFactory() {
 		return new DefaultDataBufferFactory();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean(ReactiveGridFsOperations.class)
-	public ReactiveGridFsTemplate reactiveGridFsTemplate(ReactiveMongoDatabaseFactory reactiveMongoDatabaseFactory,
-			MappingMongoConverter mappingMongoConverter, DataBufferFactory dataBufferFactory) {
+	ReactiveGridFsTemplate reactiveGridFsTemplate(DataMongoProperties dataProperties,
+			ReactiveMongoDatabaseFactory reactiveMongoDatabaseFactory, MappingMongoConverter mappingMongoConverter,
+			DataBufferFactory dataBufferFactory) {
 		return new ReactiveGridFsTemplate(dataBufferFactory,
-				new GridFsReactiveMongoDatabaseFactory(reactiveMongoDatabaseFactory, this.connectionDetails),
-				mappingMongoConverter,
-				(this.connectionDetails.getGridFs() != null) ? this.connectionDetails.getGridFs().getBucket() : null);
+				new GridFsReactiveMongoDatabaseFactory(reactiveMongoDatabaseFactory, dataProperties),
+				mappingMongoConverter, dataProperties.getGridfs().getBucket());
 	}
 
 	/**
-	 * {@link ReactiveMongoDatabaseFactory} decorator to use {@link GridFs#getGridFs()}
-	 * from the {@link MongoConnectionDetails} when set.
+	 * {@link ReactiveMongoDatabaseFactory} decorator to use {@link Gridfs#getDatabase()}
+	 * from the {@link MongoProperties} when set.
 	 */
 	static class GridFsReactiveMongoDatabaseFactory implements ReactiveMongoDatabaseFactory {
 
 		private final ReactiveMongoDatabaseFactory delegate;
 
-		private final MongoConnectionDetails connectionDetails;
+		private final DataMongoProperties properties;
 
-		GridFsReactiveMongoDatabaseFactory(ReactiveMongoDatabaseFactory delegate,
-				MongoConnectionDetails connectionDetails) {
+		GridFsReactiveMongoDatabaseFactory(ReactiveMongoDatabaseFactory delegate, DataMongoProperties properties) {
 			this.delegate = delegate;
-			this.connectionDetails = connectionDetails;
+			this.properties = properties;
 		}
 
 		@Override
@@ -137,15 +133,15 @@ public class MongoReactiveDataAutoConfiguration {
 
 		@Override
 		public Mono<MongoDatabase> getMongoDatabase() throws DataAccessException {
-			String gridFsDatabase = getGridFsDatabase(this.connectionDetails);
+			String gridFsDatabase = getGridFsDatabase();
 			if (StringUtils.hasText(gridFsDatabase)) {
 				return this.delegate.getMongoDatabase(gridFsDatabase);
 			}
 			return this.delegate.getMongoDatabase();
 		}
 
-		private String getGridFsDatabase(MongoConnectionDetails connectionDetails) {
-			return (connectionDetails.getGridFs() != null) ? connectionDetails.getGridFs().getDatabase() : null;
+		private @Nullable String getGridFsDatabase() {
+			return this.properties.getGridfs().getDatabase();
 		}
 
 		@Override

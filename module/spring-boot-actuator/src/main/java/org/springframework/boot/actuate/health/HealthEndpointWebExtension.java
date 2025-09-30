@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.actuate.endpoint.ApiVersion;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
@@ -61,8 +63,8 @@ public class HealthEndpointWebExtension extends HealthEndpointSupport<Health, He
 	 * @since 4.0.0
 	 */
 	public HealthEndpointWebExtension(HealthContributorRegistry registry,
-			ReactiveHealthContributorRegistry fallbackRegistry, HealthEndpointGroups groups,
-			Duration slowContributorLoggingThreshold) {
+			@Nullable ReactiveHealthContributorRegistry fallbackRegistry, HealthEndpointGroups groups,
+			@Nullable Duration slowContributorLoggingThreshold) {
 		super(Contributor.blocking(registry, fallbackRegistry), groups, slowContributorLoggingThreshold);
 	}
 
@@ -78,8 +80,9 @@ public class HealthEndpointWebExtension extends HealthEndpointSupport<Health, He
 		return health(apiVersion, serverNamespace, securityContext, false, path);
 	}
 
-	public WebEndpointResponse<HealthDescriptor> health(ApiVersion apiVersion, WebServerNamespace serverNamespace,
-			SecurityContext securityContext, boolean showAll, String... path) {
+	public WebEndpointResponse<HealthDescriptor> health(ApiVersion apiVersion,
+			@Nullable WebServerNamespace serverNamespace, SecurityContext securityContext, boolean showAll,
+			String... path) {
 		Result<HealthDescriptor> result = getResult(apiVersion, serverNamespace, securityContext, showAll, path);
 		if (result == null) {
 			return (Arrays.equals(path, EMPTY_PATH))
@@ -94,7 +97,7 @@ public class HealthEndpointWebExtension extends HealthEndpointSupport<Health, He
 
 	@Override
 	protected HealthDescriptor aggregateDescriptors(ApiVersion apiVersion, Map<String, HealthDescriptor> contributions,
-			StatusAggregator statusAggregator, boolean showComponents, Set<String> groupNames) {
+			StatusAggregator statusAggregator, boolean showComponents, @Nullable Set<String> groupNames) {
 		return getCompositeDescriptor(apiVersion, contributions, statusAggregator, showComponents, groupNames);
 	}
 

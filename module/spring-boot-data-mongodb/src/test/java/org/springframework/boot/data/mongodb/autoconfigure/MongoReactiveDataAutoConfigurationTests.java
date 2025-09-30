@@ -18,7 +18,6 @@ package org.springframework.boot.data.mongodb.autoconfigure;
 
 import java.time.Duration;
 
-import com.mongodb.ConnectionString;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.gridfs.GridFSBucket;
 import org.junit.jupiter.api.Test;
@@ -26,12 +25,9 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
-import org.springframework.boot.mongodb.autoconfigure.MongoConnectionDetails;
 import org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration;
 import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
@@ -76,18 +72,6 @@ class MongoReactiveDataAutoConfigurationTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	void usesMongoConnectionDetailsIfAvailable() {
-		this.contextRunner.withUserConfiguration(ConnectionDetailsConfiguration.class).run((context) -> {
-			assertThat(grisFsTemplateDatabaseName(context)).isEqualTo("grid-database-1");
-			ReactiveGridFsTemplate template = context.getBean(ReactiveGridFsTemplate.class);
-			GridFSBucket bucket = ((Mono<GridFSBucket>) ReflectionTestUtils.getField(template, "bucketSupplier"))
-				.block(Duration.ofSeconds(30));
-			assertThat(bucket.getBucketName()).isEqualTo("connection-details-bucket");
-		});
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
 	void whenGridFsBucketIsConfiguredThenGridFsTemplateUsesIt() {
 		this.contextRunner.withPropertyValues("spring.data.mongodb.gridfs.bucket:test-bucket").run((context) -> {
 			assertThat(context).hasSingleBean(ReactiveGridFsTemplate.class);
@@ -116,7 +100,7 @@ class MongoReactiveDataAutoConfigurationTests {
 
 	@Test
 	void databasePropertyIsUsed() {
-		this.contextRunner.withPropertyValues("spring.data.mongodb.database=mydb").run((context) -> {
+		this.contextRunner.withPropertyValues("spring.mongodb.database=mydb").run((context) -> {
 			ReactiveMongoDatabaseFactory factory = context.getBean(ReactiveMongoDatabaseFactory.class);
 			assertThat(factory).isInstanceOf(SimpleReactiveMongoDatabaseFactory.class);
 			assertThat(factory.getMongoDatabase().block().getName()).isEqualTo("mydb");
@@ -125,19 +109,18 @@ class MongoReactiveDataAutoConfigurationTests {
 
 	@Test
 	void databaseInUriPropertyIsUsed() {
-		this.contextRunner.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/mydb")
-			.run((context) -> {
-				ReactiveMongoDatabaseFactory factory = context.getBean(ReactiveMongoDatabaseFactory.class);
-				assertThat(factory).isInstanceOf(SimpleReactiveMongoDatabaseFactory.class);
-				assertThat(factory.getMongoDatabase().block().getName()).isEqualTo("mydb");
-			});
+		this.contextRunner.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/mydb").run((context) -> {
+			ReactiveMongoDatabaseFactory factory = context.getBean(ReactiveMongoDatabaseFactory.class);
+			assertThat(factory).isInstanceOf(SimpleReactiveMongoDatabaseFactory.class);
+			assertThat(factory.getMongoDatabase().block().getName()).isEqualTo("mydb");
+		});
 	}
 
 	@Test
 	void databasePropertyOverridesUriProperty() {
 		this.contextRunner
-			.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/notused",
-					"spring.data.mongodb.database=mydb")
+			.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/notused",
+					"spring.mongodb.database=mydb")
 			.run((context) -> {
 				ReactiveMongoDatabaseFactory factory = context.getBean(ReactiveMongoDatabaseFactory.class);
 				assertThat(factory).isInstanceOf(SimpleReactiveMongoDatabaseFactory.class);
@@ -148,8 +131,7 @@ class MongoReactiveDataAutoConfigurationTests {
 	@Test
 	void databasePropertyIsUsedWhenNoDatabaseInUri() {
 		this.contextRunner
-			.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/",
-					"spring.data.mongodb.database=mydb")
+			.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/", "spring.mongodb.database=mydb")
 			.run((context) -> {
 				ReactiveMongoDatabaseFactory factory = context.getBean(ReactiveMongoDatabaseFactory.class);
 				assertThat(factory).isInstanceOf(SimpleReactiveMongoDatabaseFactory.class);
@@ -159,7 +141,7 @@ class MongoReactiveDataAutoConfigurationTests {
 
 	@Test
 	void contextFailsWhenDatabaseNotSet() {
-		this.contextRunner.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/")
+		this.contextRunner.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/")
 			.run((context) -> assertThat(context).getFailure().hasMessageContaining("Database name must not be empty"));
 	}
 
@@ -179,40 +161,6 @@ class MongoReactiveDataAutoConfigurationTests {
 			.block(Duration.ofSeconds(30));
 		MongoCollection<?> collection = (MongoCollection<?>) ReflectionTestUtils.getField(bucket, "filesCollection");
 		return collection.getNamespace().getDatabaseName();
-	}
-
-	@Configuration(proxyBeanMethods = false)
-	static class ConnectionDetailsConfiguration {
-
-		@Bean
-		MongoConnectionDetails mongoConnectionDetails() {
-			return new MongoConnectionDetails() {
-
-				@Override
-				public ConnectionString getConnectionString() {
-					return new ConnectionString("mongodb://localhost/db");
-				}
-
-				@Override
-				public GridFs getGridFs() {
-					return new GridFs() {
-
-						@Override
-						public String getDatabase() {
-							return "grid-database-1";
-						}
-
-						@Override
-						public String getBucket() {
-							return "connection-details-bucket";
-						}
-
-					};
-				}
-
-			};
-		}
-
 	}
 
 }

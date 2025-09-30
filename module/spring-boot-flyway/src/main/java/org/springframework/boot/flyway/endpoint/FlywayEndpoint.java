@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.MigrationState;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.actuate.endpoint.OperationResponseBody;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
@@ -53,7 +54,7 @@ public class FlywayEndpoint {
 	@ReadOperation
 	public FlywayBeansDescriptor flywayBeans() {
 		ApplicationContext target = this.context;
-		Map<String, ContextFlywayBeansDescriptor> contextFlywayBeans = new HashMap<>();
+		Map<@Nullable String, ContextFlywayBeansDescriptor> contextFlywayBeans = new HashMap<>();
 		while (target != null) {
 			Map<String, FlywayDescriptor> flywayBeans = new HashMap<>();
 			target.getBeansOfType(Flyway.class)
@@ -71,13 +72,13 @@ public class FlywayEndpoint {
 	 */
 	public static final class FlywayBeansDescriptor implements OperationResponseBody {
 
-		private final Map<String, ContextFlywayBeansDescriptor> contexts;
+		private final Map<@Nullable String, ContextFlywayBeansDescriptor> contexts;
 
-		private FlywayBeansDescriptor(Map<String, ContextFlywayBeansDescriptor> contexts) {
+		private FlywayBeansDescriptor(Map<@Nullable String, ContextFlywayBeansDescriptor> contexts) {
 			this.contexts = contexts;
 		}
 
-		public Map<String, ContextFlywayBeansDescriptor> getContexts() {
+		public Map<@Nullable String, ContextFlywayBeansDescriptor> getContexts() {
 			return this.contexts;
 		}
 
@@ -90,9 +91,9 @@ public class FlywayEndpoint {
 
 		private final Map<String, FlywayDescriptor> flywayBeans;
 
-		private final String parentId;
+		private final @Nullable String parentId;
 
-		private ContextFlywayBeansDescriptor(Map<String, FlywayDescriptor> flywayBeans, String parentId) {
+		private ContextFlywayBeansDescriptor(Map<String, FlywayDescriptor> flywayBeans, @Nullable String parentId) {
 			this.flywayBeans = flywayBeans;
 			this.parentId = parentId;
 		}
@@ -101,7 +102,7 @@ public class FlywayEndpoint {
 			return this.flywayBeans;
 		}
 
-		public String getParentId() {
+		public @Nullable String getParentId() {
 			return this.parentId;
 		}
 
@@ -137,7 +138,7 @@ public class FlywayEndpoint {
 
 		private final Integer checksum;
 
-		private final String version;
+		private final @Nullable String version;
 
 		private final String description;
 
@@ -147,7 +148,7 @@ public class FlywayEndpoint {
 
 		private final String installedBy;
 
-		private final Instant installedOn;
+		private final @Nullable Instant installedOn;
 
 		private final Integer installedRank;
 
@@ -166,11 +167,11 @@ public class FlywayEndpoint {
 			this.installedOn = nullSafeToInstant(info.getInstalledOn());
 		}
 
-		private String nullSafeToString(Object obj) {
+		private @Nullable String nullSafeToString(@Nullable Object obj) {
 			return (obj != null) ? obj.toString() : null;
 		}
 
-		private Instant nullSafeToInstant(Date date) {
+		private @Nullable Instant nullSafeToInstant(@Nullable Date date) {
 			return (date != null) ? Instant.ofEpochMilli(date.getTime()) : null;
 		}
 
@@ -182,7 +183,7 @@ public class FlywayEndpoint {
 			return this.checksum;
 		}
 
-		public String getVersion() {
+		public @Nullable String getVersion() {
 			return this.version;
 		}
 
@@ -202,7 +203,7 @@ public class FlywayEndpoint {
 			return this.installedBy;
 		}
 
-		public Instant getInstalledOn() {
+		public @Nullable Instant getInstalledOn() {
 			return this.installedOn;
 		}
 

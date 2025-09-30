@@ -24,7 +24,8 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.function.Supplier;
+
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.ssl.SslStoreBundle;
 import org.springframework.core.style.ToStringCreator;
@@ -45,16 +46,17 @@ public class PemSslStoreBundle implements SslStoreBundle {
 
 	private static final String DEFAULT_ALIAS = "ssl";
 
-	private final Supplier<KeyStore> keyStore;
+	private final SingletonSupplier<KeyStore> keyStore;
 
-	private final Supplier<KeyStore> trustStore;
+	private final SingletonSupplier<KeyStore> trustStore;
 
 	/**
 	 * Create a new {@link PemSslStoreBundle} instance.
 	 * @param keyStoreDetails the key store details
 	 * @param trustStoreDetails the trust store details
 	 */
-	public PemSslStoreBundle(PemSslStoreDetails keyStoreDetails, PemSslStoreDetails trustStoreDetails) {
+	public PemSslStoreBundle(@Nullable PemSslStoreDetails keyStoreDetails,
+			@Nullable PemSslStoreDetails trustStoreDetails) {
 		this(PemSslStore.load(keyStoreDetails), PemSslStore.load(trustStoreDetails));
 	}
 
@@ -64,34 +66,34 @@ public class PemSslStoreBundle implements SslStoreBundle {
 	 * @param pemTrustStore the PEM trust store
 	 * @since 3.2.0
 	 */
-	public PemSslStoreBundle(PemSslStore pemKeyStore, PemSslStore pemTrustStore) {
+	public PemSslStoreBundle(@Nullable PemSslStore pemKeyStore, @Nullable PemSslStore pemTrustStore) {
 		this.keyStore = SingletonSupplier.of(() -> createKeyStore("key", pemKeyStore));
 		this.trustStore = SingletonSupplier.of(() -> createKeyStore("trust", pemTrustStore));
 	}
 
 	@Override
-	public KeyStore getKeyStore() {
+	public @Nullable KeyStore getKeyStore() {
 		return this.keyStore.get();
 	}
 
 	@Override
-	public String getKeyStorePassword() {
+	public @Nullable String getKeyStorePassword() {
 		return null;
 	}
 
 	@Override
-	public KeyStore getTrustStore() {
+	public @Nullable KeyStore getTrustStore() {
 		return this.trustStore.get();
 	}
 
-	private static KeyStore createKeyStore(String name, PemSslStore pemSslStore) {
+	private static @Nullable KeyStore createKeyStore(String name, @Nullable PemSslStore pemSslStore) {
 		if (pemSslStore == null) {
 			return null;
 		}
 		try {
 			List<X509Certificate> certificates = pemSslStore.certificates();
 			Assert.state(!ObjectUtils.isEmpty(certificates), "Certificates must not be empty");
-			String alias = (pemSslStore.alias() != null) ? pemSslStore.alias() : DEFAULT_ALIAS;
+			String alias = getAlias(pemSslStore);
 			KeyStore store = createKeyStore(pemSslStore.type());
 			PrivateKey privateKey = pemSslStore.privateKey();
 			if (privateKey != null) {
@@ -107,15 +109,20 @@ public class PemSslStoreBundle implements SslStoreBundle {
 		}
 	}
 
-	private static KeyStore createKeyStore(String type)
+	private static String getAlias(PemSslStore pemSslStore) {
+		String alias = pemSslStore.alias();
+		return (alias != null) ? alias : DEFAULT_ALIAS;
+	}
+
+	private static KeyStore createKeyStore(@Nullable String type)
 			throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
 		KeyStore store = KeyStore.getInstance(StringUtils.hasText(type) ? type : KeyStore.getDefaultType());
 		store.load(null);
 		return store;
 	}
 
-	private static void addPrivateKey(KeyStore keyStore, PrivateKey privateKey, String alias, String keyPassword,
-			List<X509Certificate> certificateChain) throws KeyStoreException {
+	private static void addPrivateKey(KeyStore keyStore, PrivateKey privateKey, String alias,
+			@Nullable String keyPassword, List<X509Certificate> certificateChain) throws KeyStoreException {
 		keyStore.setKeyEntry(alias, privateKey, (keyPassword != null) ? keyPassword.toCharArray() : null,
 				certificateChain.toArray(X509Certificate[]::new));
 	}

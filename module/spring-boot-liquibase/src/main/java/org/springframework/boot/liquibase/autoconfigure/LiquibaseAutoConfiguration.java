@@ -25,6 +25,7 @@ import liquibase.change.DatabaseChange;
 import liquibase.integration.spring.Customizer;
 import liquibase.integration.spring.SpringLiquibase;
 import liquibase.ui.UIServiceEnum;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -78,7 +79,7 @@ import org.springframework.util.StringUtils;
 @Conditional(LiquibaseDataSourceCondition.class)
 @Import(DatabaseInitializationDependencyConfigurer.class)
 @ImportRuntimeHints(LiquibaseAutoConfigurationRuntimeHints.class)
-public class LiquibaseAutoConfiguration {
+public final class LiquibaseAutoConfiguration {
 
 	@Bean
 	LiquibaseSchemaManagementProvider liquibaseDefaultDdlModeProvider(ObjectProvider<SpringLiquibase> liquibases) {
@@ -142,8 +143,8 @@ public class LiquibaseAutoConfiguration {
 			return liquibase;
 		}
 
-		private SpringLiquibase createSpringLiquibase(DataSource liquibaseDataSource, DataSource dataSource,
-				LiquibaseConnectionDetails connectionDetails) {
+		private SpringLiquibase createSpringLiquibase(@Nullable DataSource liquibaseDataSource,
+				@Nullable DataSource dataSource, LiquibaseConnectionDetails connectionDetails) {
 			DataSource migrationDataSource = getMigrationDataSource(liquibaseDataSource, dataSource, connectionDetails);
 			SpringLiquibase liquibase = (migrationDataSource == liquibaseDataSource
 					|| migrationDataSource == dataSource) ? new SpringLiquibase()
@@ -152,8 +153,8 @@ public class LiquibaseAutoConfiguration {
 			return liquibase;
 		}
 
-		private DataSource getMigrationDataSource(DataSource liquibaseDataSource, DataSource dataSource,
-				LiquibaseConnectionDetails connectionDetails) {
+		private DataSource getMigrationDataSource(@Nullable DataSource liquibaseDataSource,
+				@Nullable DataSource dataSource, LiquibaseConnectionDetails connectionDetails) {
 			if (liquibaseDataSource != null) {
 				return liquibaseDataSource;
 			}
@@ -188,6 +189,7 @@ public class LiquibaseAutoConfiguration {
 	}
 
 	@ConditionalOnClass(Customizer.class)
+	@Configuration(proxyBeanMethods = false)
 	static class CustomizerConfiguration {
 
 		@Bean
@@ -224,7 +226,7 @@ public class LiquibaseAutoConfiguration {
 	static class LiquibaseAutoConfigurationRuntimeHints implements RuntimeHintsRegistrar {
 
 		@Override
-		public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+		public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
 			hints.resources().registerPattern("db/changelog/**");
 		}
 
@@ -242,22 +244,22 @@ public class LiquibaseAutoConfiguration {
 		}
 
 		@Override
-		public String getUsername() {
+		public @Nullable String getUsername() {
 			return this.properties.getUser();
 		}
 
 		@Override
-		public String getPassword() {
+		public @Nullable String getPassword() {
 			return this.properties.getPassword();
 		}
 
 		@Override
-		public String getJdbcUrl() {
+		public @Nullable String getJdbcUrl() {
 			return this.properties.getUrl();
 		}
 
 		@Override
-		public String getDriverClassName() {
+		public @Nullable String getDriverClassName() {
 			String driverClassName = this.properties.getDriverClassName();
 			return (driverClassName != null) ? driverClassName : LiquibaseConnectionDetails.super.getDriverClassName();
 		}
@@ -265,7 +267,7 @@ public class LiquibaseAutoConfiguration {
 	}
 
 	@FunctionalInterface
-	private interface SpringLiquibaseCustomizer {
+	interface SpringLiquibaseCustomizer {
 
 		/**
 		 * Customize the given {@link SpringLiquibase} instance.

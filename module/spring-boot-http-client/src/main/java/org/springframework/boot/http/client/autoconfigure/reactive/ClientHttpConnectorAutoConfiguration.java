@@ -30,14 +30,21 @@ import org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.http.client.reactive.ClientHttpConnectorBuilder;
 import org.springframework.boot.http.client.reactive.ClientHttpConnectorSettings;
+import org.springframework.boot.http.client.reactive.JdkClientHttpConnectorBuilder;
+import org.springframework.boot.http.client.reactive.ReactorClientHttpConnectorBuilder;
 import org.springframework.boot.reactor.netty.autoconfigure.ReactorNettyConfigurations;
 import org.springframework.boot.ssl.SslBundles;
+import org.springframework.boot.thread.Threading;
 import org.springframework.boot.util.LambdaSafe;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
+import org.springframework.core.task.VirtualThreadTaskExecutor;
+import org.springframework.http.client.ReactorResourceFactory;
 import org.springframework.http.client.reactive.ClientHttpConnector;
 
 /**
@@ -51,14 +58,18 @@ import org.springframework.http.client.reactive.ClientHttpConnector;
 @ConditionalOnClass({ ClientHttpConnector.class, Mono.class })
 @Conditional(ConditionalOnClientHttpConnectorBuilderDetection.class)
 @EnableConfigurationProperties(HttpReactiveClientProperties.class)
-public class ClientHttpConnectorAutoConfiguration implements BeanClassLoaderAware {
+public final class ClientHttpConnectorAutoConfiguration implements BeanClassLoaderAware {
 
 	private final ClientHttpConnectors connectors;
 
+	private final Environment environment;
+
+	@SuppressWarnings("NullAway.Init")
 	private ClassLoader beanClassLoader;
 
-	ClientHttpConnectorAutoConfiguration(ObjectProvider<SslBundles> sslBundles,
+	ClientHttpConnectorAutoConfiguration(Environment environment, ObjectProvider<SslBundles> sslBundles,
 			HttpReactiveClientProperties properties) {
+		this.environment = environment;
 		this.connectors = new ClientHttpConnectors(sslBundles, properties);
 	}
 
@@ -72,6 +83,9 @@ public class ClientHttpConnectorAutoConfiguration implements BeanClassLoaderAwar
 	ClientHttpConnectorBuilder<?> clientHttpConnectorBuilder(
 			ObjectProvider<ClientHttpConnectorBuilderCustomizer<?>> clientHttpConnectorBuilderCustomizers) {
 		ClientHttpConnectorBuilder<?> builder = this.connectors.builder(this.beanClassLoader);
+		if (builder instanceof JdkClientHttpConnectorBuilder jdk && Threading.VIRTUAL.isActive(this.environment)) {
+			builder = jdk.withExecutor(new VirtualThreadTaskExecutor("httpclient-"));
+		}
 		return customize(builder, clientHttpConnectorBuilderCustomizers.orderedStream().toList());
 	}
 
@@ -102,6 +116,13 @@ public class ClientHttpConnectorAutoConfiguration implements BeanClassLoaderAwar
 	@ConditionalOnClass({ reactor.netty.http.client.HttpClient.class, ReactorNettyConfigurations.class })
 	@Import(ReactorNettyConfigurations.ReactorResourceFactoryConfiguration.class)
 	static class ReactorNetty {
+
+		@Bean
+		@Order(0)
+		ClientHttpConnectorBuilderCustomizer<ReactorClientHttpConnectorBuilder> reactorResourceFactoryClientHttpConnectorBuilderCustomizer(
+				ReactorResourceFactory reactorResourceFactory) {
+			return (builder) -> builder.withReactorResourceFactory(reactorResourceFactory);
+		}
 
 	}
 

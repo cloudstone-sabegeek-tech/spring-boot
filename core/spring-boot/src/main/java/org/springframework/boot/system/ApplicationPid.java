@@ -24,6 +24,8 @@ import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -38,17 +40,17 @@ public class ApplicationPid {
 	private static final PosixFilePermission[] WRITE_PERMISSIONS = { PosixFilePermission.OWNER_WRITE,
 			PosixFilePermission.GROUP_WRITE, PosixFilePermission.OTHERS_WRITE };
 
-	private final Long pid;
+	private final @Nullable Long pid;
 
 	public ApplicationPid() {
 		this.pid = currentProcessPid();
 	}
 
-	protected ApplicationPid(Long pid) {
+	protected ApplicationPid(@Nullable Long pid) {
 		this.pid = pid;
 	}
 
-	private Long currentProcessPid() {
+	private @Nullable Long currentProcessPid() {
 		try {
 			return ProcessHandle.current().pid();
 		}
@@ -71,7 +73,7 @@ public class ApplicationPid {
 	 * @return the application PID or {@code null}
 	 * @since 3.4.0
 	 */
-	public Long toLong() {
+	public @Nullable Long toLong() {
 		return this.pid;
 	}
 

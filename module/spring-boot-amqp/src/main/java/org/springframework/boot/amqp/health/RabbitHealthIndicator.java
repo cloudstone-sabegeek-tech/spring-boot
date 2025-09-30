@@ -16,6 +16,8 @@
 
 package org.springframework.boot.amqp.health;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.health.contributor.AbstractHealthIndicator;
 import org.springframework.boot.health.contributor.Health;
@@ -41,12 +43,19 @@ public class RabbitHealthIndicator extends AbstractHealthIndicator {
 
 	@Override
 	protected void doHealthCheck(Health.Builder builder) throws Exception {
-		builder.up().withDetail("version", getVersion());
+		builder.up();
+		String version = getVersion();
+		if (version != null) {
+			builder.withDetail("version", version);
+		}
 	}
 
-	private String getVersion() {
-		return this.rabbitTemplate
-			.execute((channel) -> channel.getConnection().getServerProperties().get("version").toString());
+	private @Nullable String getVersion() {
+		return this.rabbitTemplate.execute((channel) -> {
+			Object version = channel.getConnection().getServerProperties().get("version");
+			Assert.state(version != null, "'version' must not be null");
+			return version.toString();
+		});
 	}
 
 }

@@ -20,6 +20,7 @@ import java.util.EnumSet;
 import java.util.stream.Collectors;
 
 import jakarta.servlet.DispatcherType;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -50,14 +51,13 @@ import org.springframework.security.web.context.AbstractSecurityWebApplicationIn
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @EnableConfigurationProperties(SecurityProperties.class)
 @ConditionalOnClass({ AbstractSecurityWebApplicationInitializer.class, SessionCreationPolicy.class })
-public class SecurityFilterAutoConfiguration {
+public final class SecurityFilterAutoConfiguration {
 
 	private static final String DEFAULT_FILTER_NAME = AbstractSecurityWebApplicationInitializer.DEFAULT_FILTER_NAME;
 
 	@Bean
 	@ConditionalOnBean(name = DEFAULT_FILTER_NAME)
-	public DelegatingFilterProxyRegistrationBean securityFilterChainRegistration(
-			SecurityProperties securityProperties) {
+	DelegatingFilterProxyRegistrationBean securityFilterChainRegistration(SecurityProperties securityProperties) {
 		DelegatingFilterProxyRegistrationBean registration = new DelegatingFilterProxyRegistrationBean(
 				DEFAULT_FILTER_NAME);
 		registration.setOrder(securityProperties.getFilter().getOrder());
@@ -65,7 +65,7 @@ public class SecurityFilterAutoConfiguration {
 		return registration;
 	}
 
-	private EnumSet<DispatcherType> getDispatcherTypes(SecurityProperties securityProperties) {
+	private @Nullable EnumSet<DispatcherType> getDispatcherTypes(SecurityProperties securityProperties) {
 		if (securityProperties.getFilter().getDispatcherTypes() == null) {
 			return null;
 		}

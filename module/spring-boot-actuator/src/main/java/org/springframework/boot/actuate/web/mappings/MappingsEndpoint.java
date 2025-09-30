@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.actuate.endpoint.OperationResponseBody;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
@@ -46,7 +48,7 @@ public class MappingsEndpoint {
 	@ReadOperation
 	public ApplicationMappingsDescriptor mappings() {
 		ApplicationContext target = this.context;
-		Map<String, ContextMappingsDescriptor> contextMappings = new HashMap<>();
+		Map<@Nullable String, ContextMappingsDescriptor> contextMappings = new HashMap<>();
 		while (target != null) {
 			contextMappings.put(target.getId(), mappingsForContext(target));
 			target = target.getParent();
@@ -67,13 +69,13 @@ public class MappingsEndpoint {
 	 */
 	public static final class ApplicationMappingsDescriptor implements OperationResponseBody {
 
-		private final Map<String, ContextMappingsDescriptor> contextMappings;
+		private final Map<@Nullable String, ContextMappingsDescriptor> contextMappings;
 
-		private ApplicationMappingsDescriptor(Map<String, ContextMappingsDescriptor> contextMappings) {
+		private ApplicationMappingsDescriptor(Map<@Nullable String, ContextMappingsDescriptor> contextMappings) {
 			this.contextMappings = contextMappings;
 		}
 
-		public Map<String, ContextMappingsDescriptor> getContexts() {
+		public Map<@Nullable String, ContextMappingsDescriptor> getContexts() {
 			return this.contextMappings;
 		}
 
@@ -86,14 +88,14 @@ public class MappingsEndpoint {
 
 		private final Map<String, Object> mappings;
 
-		private final String parentId;
+		private final @Nullable String parentId;
 
-		private ContextMappingsDescriptor(Map<String, Object> mappings, String parentId) {
+		private ContextMappingsDescriptor(Map<String, Object> mappings, @Nullable String parentId) {
 			this.mappings = mappings;
 			this.parentId = parentId;
 		}
 
-		public String getParentId() {
+		public @Nullable String getParentId() {
 			return this.parentId;
 		}
 

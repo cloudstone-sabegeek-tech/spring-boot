@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -34,6 +36,7 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
@@ -49,9 +52,9 @@ class ConfigurationPropertiesScanRegistrar implements ImportBeanDefinitionRegist
 
 	private final Environment environment;
 
-	private final ResourceLoader resourceLoader;
+	private final @Nullable ResourceLoader resourceLoader;
 
-	ConfigurationPropertiesScanRegistrar(Environment environment, ResourceLoader resourceLoader) {
+	ConfigurationPropertiesScanRegistrar(Environment environment, @Nullable ResourceLoader resourceLoader) {
 		this.environment = environment;
 		this.resourceLoader = resourceLoader;
 	}
@@ -65,6 +68,7 @@ class ConfigurationPropertiesScanRegistrar implements ImportBeanDefinitionRegist
 	private Set<String> getPackagesToScan(AnnotationMetadata metadata) {
 		AnnotationAttributes attributes = AnnotationAttributes
 			.fromMap(metadata.getAnnotationAttributes(ConfigurationPropertiesScan.class.getName()));
+		Assert.state(attributes != null, "'attributes' must not be null");
 		String[] basePackages = attributes.getStringArray("basePackages");
 		Class<?>[] basePackageClasses = attributes.getClassArray("basePackageClasses");
 		Set<String> packagesToScan = new LinkedHashSet<>(Arrays.asList(basePackages));
@@ -83,7 +87,9 @@ class ConfigurationPropertiesScanRegistrar implements ImportBeanDefinitionRegist
 		ClassPathScanningCandidateComponentProvider scanner = getScanner(registry);
 		for (String basePackage : packages) {
 			for (BeanDefinition candidate : scanner.findCandidateComponents(basePackage)) {
-				register(registrar, candidate.getBeanClassName());
+				String beanClassName = candidate.getBeanClassName();
+				Assert.state(beanClassName != null, "'beanClassName' must not be null");
+				register(registrar, beanClassName);
 			}
 		}
 	}

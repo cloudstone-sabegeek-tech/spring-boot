@@ -35,15 +35,16 @@ import org.springframework.context.annotation.Bean;
  * @author Andy Wilkinson
  * @since 4.0.0
  */
-@AutoConfiguration(afterName = "org.springframework.boot.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration")
+@AutoConfiguration(
+		afterName = "org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration")
 @ConditionalOnWebApplication
 @ConditionalOnClass({ TomcatMetrics.class, Manager.class, MeterRegistry.class })
-public class TomcatMetricsAutoConfiguration {
+public final class TomcatMetricsAutoConfiguration {
 
 	@Bean
 	@ConditionalOnBean(MeterRegistry.class)
 	@ConditionalOnMissingBean({ TomcatMetrics.class, TomcatMetricsBinder.class })
-	public TomcatMetricsBinder tomcatMetricsBinder(MeterRegistry meterRegistry) {
+	TomcatMetricsBinder tomcatMetricsBinder(MeterRegistry meterRegistry) {
 		return new TomcatMetricsBinder(meterRegistry);
 	}
 

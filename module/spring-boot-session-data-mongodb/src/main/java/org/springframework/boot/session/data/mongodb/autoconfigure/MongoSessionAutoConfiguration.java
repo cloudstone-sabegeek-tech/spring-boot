@@ -62,7 +62,7 @@ import org.springframework.session.data.mongo.config.annotation.web.reactive.Rea
 		afterName = "org.springframework.boot.webflux.autoconfigure.WebSessionIdResolverAutoConfiguration")
 @ConditionalOnClass(Session.class)
 @EnableConfigurationProperties(MongoSessionProperties.class)
-public class MongoSessionAutoConfiguration {
+public final class MongoSessionAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnClass({ MongoOperations.class, MongoIndexedSessionRepository.class })
@@ -77,8 +77,8 @@ public class MongoSessionAutoConfiguration {
 		SessionRepositoryCustomizer<MongoIndexedSessionRepository> springBootSessionRepositoryCustomizer(
 				SessionProperties sessionProperties, MongoSessionProperties mongoSessionProperties,
 				ServerProperties serverProperties) {
-			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
 			return (sessionRepository) -> {
+				PropertyMapper map = PropertyMapper.get();
 				map.from(sessionProperties
 					.determineTimeout(() -> serverProperties.getServlet().getSession().getTimeout()))
 					.to(sessionRepository::setDefaultMaxInactiveInterval);
@@ -100,7 +100,7 @@ public class MongoSessionAutoConfiguration {
 				SessionProperties sessionProperties, MongoSessionProperties mongoSessionProperties,
 				ServerProperties serverProperties) {
 			return (sessionRepository) -> {
-				PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+				PropertyMapper map = PropertyMapper.get();
 				map.from(sessionProperties
 					.determineTimeout(() -> serverProperties.getReactive().getSession().getTimeout()))
 					.to(sessionRepository::setDefaultMaxInactiveInterval);

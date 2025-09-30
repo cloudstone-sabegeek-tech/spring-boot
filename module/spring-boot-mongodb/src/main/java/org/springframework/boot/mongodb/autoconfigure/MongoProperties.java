@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.mongodb.ConnectionString;
 import org.bson.UuidRepresentation;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -38,7 +39,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Safeer Ansari
  * @since 4.0.0
  */
-@ConfigurationProperties("spring.data.mongodb")
+@ConfigurationProperties("spring.mongodb")
 public class MongoProperties {
 
 	/**
@@ -59,68 +60,53 @@ public class MongoProperties {
 	/**
 	 * Mongo server host. Ignored if 'uri' is set.
 	 */
-	private String host;
+	private @Nullable String host;
 
 	/**
 	 * Mongo server port. Ignored if 'uri' is set.
 	 */
-	private Integer port = null;
+	private @Nullable Integer port;
 
 	/**
 	 * Additional server hosts. Ignored if 'uri' is set or if 'host' is omitted.
 	 * Additional hosts will use the default mongo port of 27017. If you want to use a
 	 * different port you can use the "host:port" syntax.
 	 */
-	private List<String> additionalHosts;
+	private @Nullable List<String> additionalHosts;
 
 	/**
 	 * Mongo database URI. Overrides host, port, username, and password.
 	 */
-	private String uri;
+	private @Nullable String uri;
 
 	/**
 	 * Database name. Overrides database in URI.
 	 */
-	private String database;
+	private @Nullable String database;
 
 	/**
 	 * Authentication database name.
 	 */
-	private String authenticationDatabase;
-
-	private final Gridfs gridfs = new Gridfs();
+	private @Nullable String authenticationDatabase;
 
 	/**
 	 * Login user of the mongo server. Ignored if 'uri' is set.
 	 */
-	private String username;
+	private @Nullable String username;
 
 	/**
 	 * Login password of the mongo server. Ignored if 'uri' is set.
 	 */
-	private char[] password;
+	private char @Nullable [] password;
 
 	/**
 	 * Required replica set name for the cluster. Ignored if 'uri' is set.
 	 */
-	private String replicaSetName;
+	private @Nullable String replicaSetName;
 
-	/**
-	 * Fully qualified name of the FieldNamingStrategy to use.
-	 */
-	private Class<?> fieldNamingStrategy;
-
-	/**
-	 * Representation to use when converting a UUID to a BSON binary value.
-	 */
-	private UuidRepresentation uuidRepresentation = UuidRepresentation.JAVA_LEGACY;
+	private final Representation representation = new Representation();
 
 	private final Ssl ssl = new Ssl();
-
-	/**
-	 * Whether to enable auto-index creation.
-	 */
-	private Boolean autoIndexCreation;
 
 	public void setProtocol(String protocol) {
 		this.protocol = protocol;
@@ -130,71 +116,55 @@ public class MongoProperties {
 		return this.protocol;
 	}
 
-	public String getHost() {
+	public @Nullable String getHost() {
 		return this.host;
 	}
 
-	public void setHost(String host) {
+	public void setHost(@Nullable String host) {
 		this.host = host;
 	}
 
-	public String getDatabase() {
+	public @Nullable String getDatabase() {
 		return this.database;
 	}
 
-	public void setDatabase(String database) {
+	public void setDatabase(@Nullable String database) {
 		this.database = database;
 	}
 
-	public String getAuthenticationDatabase() {
+	public @Nullable String getAuthenticationDatabase() {
 		return this.authenticationDatabase;
 	}
 
-	public void setAuthenticationDatabase(String authenticationDatabase) {
+	public void setAuthenticationDatabase(@Nullable String authenticationDatabase) {
 		this.authenticationDatabase = authenticationDatabase;
 	}
 
-	public String getUsername() {
+	public @Nullable String getUsername() {
 		return this.username;
 	}
 
-	public void setUsername(String username) {
+	public void setUsername(@Nullable String username) {
 		this.username = username;
 	}
 
-	public char[] getPassword() {
+	public char @Nullable [] getPassword() {
 		return this.password;
 	}
 
-	public void setPassword(char[] password) {
+	public void setPassword(char @Nullable [] password) {
 		this.password = password;
 	}
 
-	public String getReplicaSetName() {
+	public @Nullable String getReplicaSetName() {
 		return this.replicaSetName;
 	}
 
-	public void setReplicaSetName(String replicaSetName) {
+	public void setReplicaSetName(@Nullable String replicaSetName) {
 		this.replicaSetName = replicaSetName;
 	}
 
-	public Class<?> getFieldNamingStrategy() {
-		return this.fieldNamingStrategy;
-	}
-
-	public void setFieldNamingStrategy(Class<?> fieldNamingStrategy) {
-		this.fieldNamingStrategy = fieldNamingStrategy;
-	}
-
-	public UuidRepresentation getUuidRepresentation() {
-		return this.uuidRepresentation;
-	}
-
-	public void setUuidRepresentation(UuidRepresentation uuidRepresentation) {
-		this.uuidRepresentation = uuidRepresentation;
-	}
-
-	public String getUri() {
+	public @Nullable String getUri() {
 		return this.uri;
 	}
 
@@ -202,75 +172,54 @@ public class MongoProperties {
 		return (this.uri != null) ? this.uri : DEFAULT_URI;
 	}
 
-	public void setUri(String uri) {
+	public void setUri(@Nullable String uri) {
 		this.uri = uri;
 	}
 
-	public Integer getPort() {
+	public @Nullable Integer getPort() {
 		return this.port;
 	}
 
-	public void setPort(Integer port) {
+	public void setPort(@Nullable Integer port) {
 		this.port = port;
 	}
 
-	public Gridfs getGridfs() {
-		return this.gridfs;
-	}
-
-	public String getMongoClientDatabase() {
+	public @Nullable String getMongoClientDatabase() {
 		if (this.database != null) {
 			return this.database;
 		}
 		return new ConnectionString(determineUri()).getDatabase();
 	}
 
-	public Boolean isAutoIndexCreation() {
-		return this.autoIndexCreation;
-	}
-
-	public void setAutoIndexCreation(Boolean autoIndexCreation) {
-		this.autoIndexCreation = autoIndexCreation;
-	}
-
-	public List<String> getAdditionalHosts() {
+	public @Nullable List<String> getAdditionalHosts() {
 		return this.additionalHosts;
 	}
 
-	public void setAdditionalHosts(List<String> additionalHosts) {
+	public void setAdditionalHosts(@Nullable List<String> additionalHosts) {
 		this.additionalHosts = additionalHosts;
+	}
+
+	public Representation getRepresentation() {
+		return this.representation;
 	}
 
 	public Ssl getSsl() {
 		return this.ssl;
 	}
 
-	public static class Gridfs {
+	public static class Representation {
 
 		/**
-		 * GridFS database name.
+		 * Representation to use when converting a UUID to a BSON binary value.
 		 */
-		private String database;
+		private UuidRepresentation uuid = UuidRepresentation.UNSPECIFIED;
 
-		/**
-		 * GridFS bucket name.
-		 */
-		private String bucket;
-
-		public String getDatabase() {
-			return this.database;
+		public UuidRepresentation getUuid() {
+			return this.uuid;
 		}
 
-		public void setDatabase(String database) {
-			this.database = database;
-		}
-
-		public String getBucket() {
-			return this.bucket;
-		}
-
-		public void setBucket(String bucket) {
-			this.bucket = bucket;
+		public void setUuidRepresentation(UuidRepresentation uuidRepresentation) {
+			this.uuid = uuidRepresentation;
 		}
 
 	}
@@ -281,12 +230,12 @@ public class MongoProperties {
 		 * Whether to enable SSL support. Enabled automatically if "bundle" is provided
 		 * unless specified otherwise.
 		 */
-		private Boolean enabled;
+		private @Nullable Boolean enabled;
 
 		/**
 		 * SSL bundle name.
 		 */
-		private String bundle;
+		private @Nullable String bundle;
 
 		public boolean isEnabled() {
 			return (this.enabled != null) ? this.enabled : this.bundle != null;
@@ -296,11 +245,11 @@ public class MongoProperties {
 			this.enabled = enabled;
 		}
 
-		public String getBundle() {
+		public @Nullable String getBundle() {
 			return this.bundle;
 		}
 
-		public void setBundle(String bundle) {
+		public void setBundle(@Nullable String bundle) {
 			this.bundle = bundle;
 		}
 

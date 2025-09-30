@@ -34,6 +34,7 @@ import org.springframework.jmx.export.annotation.AnnotationJmxAttributeSource;
 import org.springframework.jmx.export.annotation.AnnotationMBeanExporter;
 import org.springframework.jmx.export.naming.ObjectNamingStrategy;
 import org.springframework.jmx.support.MBeanServerFactoryBean;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
@@ -53,18 +54,18 @@ import org.springframework.util.StringUtils;
 @EnableConfigurationProperties(JmxProperties.class)
 @ConditionalOnClass({ MBeanExporter.class })
 @ConditionalOnBooleanProperty("spring.jmx.enabled")
-public class JmxAutoConfiguration {
+public final class JmxAutoConfiguration {
 
 	private final JmxProperties properties;
 
-	public JmxAutoConfiguration(JmxProperties properties) {
+	JmxAutoConfiguration(JmxProperties properties) {
 		this.properties = properties;
 	}
 
 	@Bean
 	@Primary
 	@ConditionalOnMissingBean(value = MBeanExporter.class, search = SearchStrategy.CURRENT)
-	public AnnotationMBeanExporter mbeanExporter(ObjectNamingStrategy namingStrategy, BeanFactory beanFactory) {
+	AnnotationMBeanExporter mbeanExporter(ObjectNamingStrategy namingStrategy, BeanFactory beanFactory) {
 		AnnotationMBeanExporter exporter = new AnnotationMBeanExporter();
 		exporter.setRegistrationPolicy(this.properties.getRegistrationPolicy());
 		exporter.setNamingStrategy(namingStrategy);
@@ -78,7 +79,7 @@ public class JmxAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(value = ObjectNamingStrategy.class, search = SearchStrategy.CURRENT)
-	public ParentAwareNamingStrategy objectNamingStrategy() {
+	ParentAwareNamingStrategy objectNamingStrategy() {
 		ParentAwareNamingStrategy namingStrategy = new ParentAwareNamingStrategy(new AnnotationJmxAttributeSource());
 		String defaultDomain = this.properties.getDefaultDomain();
 		if (StringUtils.hasLength(defaultDomain)) {
@@ -90,11 +91,13 @@ public class JmxAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public MBeanServer mbeanServer() {
+	MBeanServer mbeanServer() {
 		MBeanServerFactoryBean factory = new MBeanServerFactoryBean();
 		factory.setLocateExistingServerIfPossible(true);
 		factory.afterPropertiesSet();
-		return factory.getObject();
+		MBeanServer mBeanServer = factory.getObject();
+		Assert.state(mBeanServer != null, "'mBeanServer' must not be null");
+		return mBeanServer;
 	}
 
 }

@@ -18,14 +18,15 @@ package org.springframework.boot.actuate.autoconfigure.web.server;
 
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.actuate.autoconfigure.web.ManagementContextType;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.origin.Origin;
-import org.springframework.boot.origin.OriginLookup;
+import org.springframework.boot.env.PropertySourceInfo;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.AbstractApplicationContext;
@@ -47,7 +48,7 @@ import org.springframework.util.Assert;
  */
 @AutoConfiguration
 @AutoConfigureOrder(Ordered.LOWEST_PRECEDENCE)
-public class ManagementContextAutoConfiguration {
+public final class ManagementContextAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnManagementPort(ManagementPortType.SAME)
@@ -114,7 +115,7 @@ public class ManagementContextAutoConfiguration {
 	 * {@link EnumerablePropertySource} providing {@code local.management.port} support.
 	 */
 	static class LocalManagementPortPropertySource extends EnumerablePropertySource<Object>
-			implements OriginLookup<String> {
+			implements PropertySourceInfo {
 
 		private static final Map<String, String> PROPERTY_MAPPINGS = Map.of("local.management.port",
 				"local.server.port");
@@ -134,14 +135,9 @@ public class ManagementContextAutoConfiguration {
 		}
 
 		@Override
-		public Object getProperty(String name) {
+		public @Nullable Object getProperty(String name) {
 			String mapped = PROPERTY_MAPPINGS.get(name);
 			return (mapped != null) ? this.environment.getProperty(mapped) : null;
-		}
-
-		@Override
-		public Origin getOrigin(String key) {
-			return null;
 		}
 
 		@Override

@@ -22,10 +22,11 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.boot.BootstrapContext;
-import org.springframework.boot.BootstrapRegistry;
-import org.springframework.boot.ConfigurableBootstrapContext;
+import org.springframework.boot.bootstrap.BootstrapContext;
+import org.springframework.boot.bootstrap.BootstrapRegistry;
+import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.io.support.SpringFactoriesLoader;
@@ -79,7 +80,9 @@ class ConfigDataLoaders {
 	}
 
 	private Class<?> getResourceType(ConfigDataLoader<?> loader) {
-		return ResolvableType.forClass(loader.getClass()).as(ConfigDataLoader.class).resolveGeneric();
+		Class<?> generic = ResolvableType.forClass(loader.getClass()).as(ConfigDataLoader.class).resolveGeneric();
+		Assert.state(generic != null, "'generic' must not be null");
+		return generic;
 	}
 
 	/**
@@ -90,7 +93,8 @@ class ConfigDataLoaders {
 	 * @return the loaded {@link ConfigData}
 	 * @throws IOException on IO error
 	 */
-	<R extends ConfigDataResource> ConfigData load(ConfigDataLoaderContext context, R resource) throws IOException {
+	<R extends ConfigDataResource> @Nullable ConfigData load(ConfigDataLoaderContext context, R resource)
+			throws IOException {
 		ConfigDataLoader<R> loader = getLoader(context, resource);
 		this.logger.trace(LogMessage.of(() -> "Loading " + resource + " using loader " + loader.getClass().getName()));
 		return loader.load(context, resource);

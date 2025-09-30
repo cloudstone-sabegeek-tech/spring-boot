@@ -28,7 +28,8 @@ configurations {
 dependencies {
 	developmentOnly project(":module:spring-boot-devtools")
 
-	implementation(project(":starter:spring-boot-starter-web"))
+	implementation(project(":starter:spring-boot-starter-webmvc"))
 
+	testImplementation(project(":starter:spring-boot-starter-restclient"))
 	testImplementation(project(":starter:spring-boot-starter-test"))
 }

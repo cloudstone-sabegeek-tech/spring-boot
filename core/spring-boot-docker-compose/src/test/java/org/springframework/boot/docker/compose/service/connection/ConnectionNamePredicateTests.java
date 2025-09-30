@@ -32,11 +32,12 @@ import static org.mockito.Mockito.mock;
  * Tests for {@link ConnectionNamePredicate}.
  *
  * @author Phillip Webb
+ * @author Yanming Zhou
  */
 class ConnectionNamePredicateTests {
 
 	@Test
-	void offical() {
+	void official() {
 		assertThat(predicateOf("elasticsearch")).accepts(sourceOf("elasticsearch"));
 		assertThat(predicateOf("elasticsearch")).accepts(sourceOf("library/elasticsearch"));
 		assertThat(predicateOf("elasticsearch")).accepts(sourceOf("docker.io/library/elasticsearch"));
@@ -60,10 +61,16 @@ class ConnectionNamePredicateTests {
 
 	@Test
 	void customDomain() {
+		assertThat(predicateOf("redis")).accepts(sourceOf("internalhost:8080/redis"));
 		assertThat(predicateOf("redis")).accepts(sourceOf("internalhost:8080/library/redis"));
+		assertThat(predicateOf("redis")).accepts(sourceOf("myhost.com/redis"));
 		assertThat(predicateOf("redis")).accepts(sourceOf("myhost.com/library/redis"));
 		assertThat(predicateOf("redis")).accepts(sourceOf("myhost.com:8080/library/redis"));
-		assertThat(predicateOf("redis")).rejects(sourceOf("internalhost:8080/redis"));
+		assertThat(predicateOf("redis")).accepts(sourceOf("docker.my-company.com/library/redis:latest"));
+		assertThat(predicateOf("openzipkin/zipkin")).rejects(sourceOf("myhost.com:8080/zipkin"));
+		assertThat(predicateOf("openzipkin/zipkin")).rejects(sourceOf("myhost.com:8080/library/zipkin"));
+		assertThat(predicateOf("openzipkin/zipkin")).accepts(sourceOf("myhost.com:8080/openzipkin/zipkin"));
+		assertThat(predicateOf("postgres")).accepts(sourceOf("docker.my-company.com/postgres:latest"));
 	}
 
 	@Test
@@ -85,15 +92,15 @@ class ConnectionNamePredicateTests {
 		return new ConnectionNamePredicate(required);
 	}
 
-	private DockerComposeConnectionSource sourceOf(String connectioName) {
-		return sourceOf(connectioName, null);
+	private DockerComposeConnectionSource sourceOf(String connectionName) {
+		return sourceOf(connectionName, null);
 	}
 
-	private DockerComposeConnectionSource sourceOf(String connectioName, String label) {
+	private DockerComposeConnectionSource sourceOf(String connectionName, String label) {
 		DockerComposeConnectionSource source = mock(DockerComposeConnectionSource.class);
 		RunningService runningService = mock(RunningService.class);
 		given(source.getRunningService()).willReturn(runningService);
-		given(runningService.image()).willReturn(ImageReference.of(connectioName));
+		given(runningService.image()).willReturn(ImageReference.of(connectionName));
 		if (label != null) {
 			given(runningService.labels()).willReturn(Map.of("org.springframework.boot.service-connection", label));
 		}

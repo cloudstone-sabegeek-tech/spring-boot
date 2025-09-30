@@ -25,13 +25,13 @@ plugins {
 description = "Spring Boot Integration"
 
 dependencies {
-	api(project(":core:spring-boot"))
+	api(project(":module:spring-boot-tx"))
 	api("org.springframework.integration:spring-integration-core")
 
 	optional(project(":core:spring-boot-autoconfigure"))
 	optional(project(":module:spring-boot-actuator-autoconfigure"))
 	optional(project(":module:spring-boot-jdbc"))
-	optional(project(":module:spring-boot-metrics"))
+	optional(project(":module:spring-boot-micrometer-metrics"))
 	optional(project(":module:spring-boot-rsocket"))
 	optional("org.springframework.integration:spring-integration-jdbc")
 	optional("org.springframework.integration:spring-integration-jmx")
@@ -41,7 +41,6 @@ dependencies {
 	testImplementation(project(":module:spring-boot-flyway"))
 	testImplementation(project(":module:spring-boot-rsocket"))
 	testImplementation(project(":test-support:spring-boot-test-support"))
-	testImplementation(testFixtures(project(":module:spring-boot-jersey")))
 	testImplementation(testFixtures(project(":module:spring-boot-webflux")))
 	testImplementation(testFixtures(project(":module:spring-boot-webmvc")))
 	testImplementation("org.springframework:spring-web")

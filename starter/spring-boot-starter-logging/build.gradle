@@ -18,7 +18,7 @@ plugins {
 	id "org.springframework.boot.starter"
 }
 
-description = "Starter for logging using Logback. Default logging starter"
+description = "Starter for logging default logging"
 
 dependencies {
 	api("ch.qos.logback:logback-classic")

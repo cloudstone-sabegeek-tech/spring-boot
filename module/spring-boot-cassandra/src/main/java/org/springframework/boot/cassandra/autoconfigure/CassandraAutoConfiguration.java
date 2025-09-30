@@ -34,6 +34,7 @@ import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfig
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammaticDriverConfigLoaderBuilder;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -77,7 +78,7 @@ import org.springframework.util.StringUtils;
 @AutoConfiguration
 @ConditionalOnClass(CqlSession.class)
 @EnableConfigurationProperties(CassandraProperties.class)
-public class CassandraAutoConfiguration {
+public final class CassandraAutoConfiguration {
 
 	private static final Config SPRING_BOOT_DEFAULTS;
 	static {
@@ -103,14 +104,14 @@ public class CassandraAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	@Lazy
-	public CqlSession cassandraSession(CqlSessionBuilder cqlSessionBuilder) {
+	CqlSession cassandraSession(CqlSessionBuilder cqlSessionBuilder) {
 		return cqlSessionBuilder.build();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
 	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-	public CqlSessionBuilder cassandraSessionBuilder(DriverConfigLoader driverConfigLoader,
+	CqlSessionBuilder cassandraSessionBuilder(DriverConfigLoader driverConfigLoader,
 			CassandraConnectionDetails connectionDetails,
 			ObjectProvider<CqlSessionBuilderCustomizer> builderCustomizers) {
 		CqlSessionBuilder builder = CqlSession.builder().withConfigLoader(driverConfigLoader);
@@ -123,8 +124,9 @@ public class CassandraAutoConfiguration {
 
 	private void configureAuthentication(CqlSessionBuilder builder, CassandraConnectionDetails connectionDetails) {
 		String username = connectionDetails.getUsername();
-		if (username != null) {
-			builder.withAuthCredentials(username, connectionDetails.getPassword());
+		String password = connectionDetails.getPassword();
+		if (username != null && password != null) {
+			builder.withAuthCredentials(username, password);
 		}
 	}
 
@@ -141,7 +143,7 @@ public class CassandraAutoConfiguration {
 
 	@Bean(destroyMethod = "")
 	@ConditionalOnMissingBean
-	public DriverConfigLoader cassandraDriverConfigLoader(CassandraConnectionDetails connectionDetails,
+	DriverConfigLoader cassandraDriverConfigLoader(CassandraConnectionDetails connectionDetails,
 			ObjectProvider<DriverConfigLoaderBuilderCustomizer> builderCustomizers) {
 		ProgrammaticDriverConfigLoaderBuilder builder = new DefaultProgrammaticDriverConfigLoaderBuilder(
 				() -> cassandraConfiguration(connectionDetails), DefaultDriverConfigLoader.DEFAULT_ROOT_PATH);
@@ -172,7 +174,7 @@ public class CassandraAutoConfiguration {
 
 	private Config mapConfig(CassandraConnectionDetails connectionDetails) {
 		CassandraDriverOptions options = new CassandraDriverOptions();
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		map.from(this.properties.getSessionName())
 			.whenHasText()
 			.to((sessionName) -> options.add(DefaultDriverOption.SESSION_NAME, sessionName));
@@ -194,7 +196,7 @@ public class CassandraAutoConfiguration {
 	}
 
 	private void mapConnectionOptions(CassandraDriverOptions options) {
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		Connection connectionProperties = this.properties.getConnection();
 		map.from(connectionProperties::getConnectTimeout)
 			.asInt(Duration::toMillis)
@@ -205,7 +207,7 @@ public class CassandraAutoConfiguration {
 	}
 
 	private void mapPoolingOptions(CassandraDriverOptions options) {
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		CassandraProperties.Pool poolProperties = this.properties.getPool();
 		map.from(poolProperties::getIdleTimeout)
 			.asInt(Duration::toMillis)
@@ -216,7 +218,7 @@ public class CassandraAutoConfiguration {
 	}
 
 	private void mapRequestOptions(CassandraDriverOptions options) {
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		Request requestProperties = this.properties.getRequest();
 		map.from(requestProperties::getTimeout)
 			.asInt(Duration::toMillis)
@@ -245,7 +247,7 @@ public class CassandraAutoConfiguration {
 	}
 
 	private void mapControlConnectionOptions(CassandraDriverOptions options) {
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		Controlconnection controlProperties = this.properties.getControlconnection();
 		map.from(controlProperties::getTimeout)
 			.asInt(Duration::toMillis)
@@ -258,9 +260,9 @@ public class CassandraAutoConfiguration {
 
 	private static final class CassandraDriverOptions {
 
-		private final Map<String, String> options = new LinkedHashMap<>();
+		private final Map<String, @Nullable String> options = new LinkedHashMap<>();
 
-		private CassandraDriverOptions add(DriverOption option, String value) {
+		private CassandraDriverOptions add(DriverOption option, @Nullable String value) {
 			String key = createKeyFor(option);
 			this.options.put(key, value);
 			return this;
@@ -298,9 +300,9 @@ public class CassandraAutoConfiguration {
 
 		private final CassandraProperties properties;
 
-		private final SslBundles sslBundles;
+		private final @Nullable SslBundles sslBundles;
 
-		private PropertiesCassandraConnectionDetails(CassandraProperties properties, SslBundles sslBundles) {
+		private PropertiesCassandraConnectionDetails(CassandraProperties properties, @Nullable SslBundles sslBundles) {
 			this.properties = properties;
 			this.sslBundles = sslBundles;
 		}
@@ -313,22 +315,22 @@ public class CassandraAutoConfiguration {
 		}
 
 		@Override
-		public String getUsername() {
+		public @Nullable String getUsername() {
 			return this.properties.getUsername();
 		}
 
 		@Override
-		public String getPassword() {
+		public @Nullable String getPassword() {
 			return this.properties.getPassword();
 		}
 
 		@Override
-		public String getLocalDatacenter() {
+		public @Nullable String getLocalDatacenter() {
 			return this.properties.getLocalDatacenter();
 		}
 
 		@Override
-		public SslBundle getSslBundle() {
+		public @Nullable SslBundle getSslBundle() {
 			Ssl ssl = this.properties.getSsl();
 			if (ssl == null || !ssl.isEnabled()) {
 				return null;
@@ -352,7 +354,7 @@ public class CassandraAutoConfiguration {
 			return new Node(contactPoint, this.properties.getPort());
 		}
 
-		private Integer asPort(String value) {
+		private @Nullable Integer asPort(String value) {
 			try {
 				int i = Integer.parseInt(value);
 				return (i > 0 && i < 65535) ? i : null;

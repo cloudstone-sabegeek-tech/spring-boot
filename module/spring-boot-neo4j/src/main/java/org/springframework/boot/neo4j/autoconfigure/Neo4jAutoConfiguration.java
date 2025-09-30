@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import org.jspecify.annotations.Nullable;
 import org.neo4j.driver.AuthToken;
 import org.neo4j.driver.AuthTokenManager;
 import org.neo4j.driver.AuthTokens;
@@ -60,7 +61,7 @@ import org.springframework.util.StringUtils;
 @AutoConfiguration
 @ConditionalOnClass(Driver.class)
 @EnableConfigurationProperties(Neo4jProperties.class)
-public class Neo4jAutoConfiguration {
+public final class Neo4jAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(Neo4jConnectionDetails.class)
@@ -71,8 +72,7 @@ public class Neo4jAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public Driver neo4jDriver(Neo4jProperties properties, Environment environment,
-			Neo4jConnectionDetails connectionDetails,
+	Driver neo4jDriver(Neo4jProperties properties, Environment environment, Neo4jConnectionDetails connectionDetails,
 			ObjectProvider<ConfigBuilderCustomizer> configBuilderCustomizers) {
 
 		Config config = mapDriverConfig(properties, connectionDetails,
@@ -186,9 +186,9 @@ public class Neo4jAutoConfiguration {
 
 		private final Neo4jProperties properties;
 
-		private final AuthTokenManager authTokenManager;
+		private final @Nullable AuthTokenManager authTokenManager;
 
-		PropertiesNeo4jConnectionDetails(Neo4jProperties properties, AuthTokenManager authTokenManager) {
+		PropertiesNeo4jConnectionDetails(Neo4jProperties properties, @Nullable AuthTokenManager authTokenManager) {
 			this.properties = properties;
 			this.authTokenManager = authTokenManager;
 		}
@@ -220,7 +220,7 @@ public class Neo4jAutoConfiguration {
 		}
 
 		@Override
-		public AuthTokenManager getAuthTokenManager() {
+		public @Nullable AuthTokenManager getAuthTokenManager() {
 			return this.authTokenManager;
 		}
 

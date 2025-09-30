@@ -15,12 +15,12 @@ jobs:
     runs-on: ${{ vars.UBUNTU_MEDIUM || 'ubuntu-latest' }}
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Build and Publish
         id: build-and-publish
         uses: ./.github/actions/build
         with:
-          develocity-access-key: ${{ secrets.GRADLE_ENTERPRISE_SECRET_ACCESS_KEY }}
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           gradle-cache-read-only: false
           publish: true
       - name: Stage Release
@@ -50,24 +50,58 @@ jobs:
     with:
       staging: true
       version: ${{ needs.build-and-stage-release.outputs.version }}
-  promote-release:
-    name: Promote Release
+  sync-to-maven-central:
+    name: Sync to Maven Central
+    if: ${{ !vars.COMMERCIAL }}
     needs:
       - build-and-stage-release
       - verify
     runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
     steps:
+      - name: Check Out Code
+        uses: actions/checkout@v5
+      - name: Sync to Maven Central
+        uses: ./.github/actions/sync-to-maven-central
+        with:
+          central-token-password: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          central-token-username: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          jfrog-cli-config-token: ${{ secrets.JF_ARTIFACTORY_SPRING }}
+          spring-boot-version: ${{ needs.build-and-stage-release.outputs.version }}
+  promote-release:
+    name: Promote Release
+    needs:
+      - build-and-stage-release
+      - sync-to-maven-central
+    runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
+    steps:
       - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@ff5cb544114ffc152db9cea1cd3d5978d5074946 # v4.5.11
+        uses: jfrog/setup-jfrog-cli@88e9eba31c07e31beefa4cef5c0e93d1af9535d7 # v4.6.1
         env:
           JF_ENV_SPRING: ${{ secrets.JF_ARTIFACTORY_SPRING }}
       - name: Promote build
         run: jfrog rt build-promote ${{ format('spring-boot-{0}', needs.build-and-stage-release.outputs.version)}} ${{ github.run_number }} libs-milestone-local
+  publish-gradle-plugin:
+    name: Publish Gradle Plugin
+    if: ${{ !vars.COMMERCIAL }}
+    needs:
+      - build-and-stage-release
+      - sync-to-maven-central
+    runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v5
+      - name: Publish
+        uses: ./.github/actions/publish-gradle-plugin
+        with:
+          gradle-plugin-publish-key: ${{ secrets.GRADLE_PLUGIN_PUBLISH_KEY }}
+          gradle-plugin-publish-secret: ${{ secrets.GRADLE_PLUGIN_PUBLISH_SECRET }}
+          jfrog-cli-config-token: ${{ secrets.JF_ARTIFACTORY_SPRING }}
+          plugin-version: ${{ needs.build-and-stage-release.outputs.version }}
   trigger-docs-build:
     name: Trigger Docs Build
     needs:
       - build-and-stage-release
-      - verify
+      - sync-to-maven-central
     permissions:
       actions: write
     runs-on: ubuntu-latest
@@ -81,14 +115,16 @@ jobs:
     needs:
       - build-and-stage-release
       - promote-release
+      - publish-gradle-plugin
       - trigger-docs-build
     runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
     steps:
       - name: Check Out Code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v5
       - name: Create GitHub Release
         uses: ./.github/actions/create-github-release
         with:
+          commercial: ${{ vars.COMMERCIAL }}
           milestone: ${{ needs.build-and-stage-release.outputs.version }}
           pre-release: true
           token: ${{ secrets.GH_ACTIONS_REPO_TOKEN }}

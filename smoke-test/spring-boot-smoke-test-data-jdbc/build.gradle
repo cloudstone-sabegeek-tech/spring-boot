@@ -22,9 +22,11 @@ description = "Spring Boot Data JDBC smoke test"
 
 dependencies {
 	implementation(project(":starter:spring-boot-starter-data-jdbc"))
-	implementation(project(":starter:spring-boot-starter-web"))
+	implementation(project(":starter:spring-boot-starter-webmvc"))
 
 	runtimeOnly("com.h2database:h2")
 
+	testImplementation(project(":module:spring-boot-data-jdbc-test"))
+	testImplementation(project(":module:spring-boot-webmvc-test"))
 	testImplementation(project(":starter:spring-boot-starter-test"))
 }

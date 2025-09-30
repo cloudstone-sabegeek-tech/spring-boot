@@ -18,13 +18,16 @@ package org.springframework.boot.http.client.reactive;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.concurrent.Executor;
 
 import org.junit.jupiter.api.Test;
 
-import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.JdkHttpClientBuilder;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.http.client.reactive.JdkClientHttpConnector;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link JdkClientHttpConnectorBuilder} and {@link JdkHttpClientBuilder}.
@@ -41,12 +44,27 @@ class JdkClientHttpConnectorBuilderTests extends AbstractClientHttpConnectorBuil
 	void withCustomizers() {
 		TestCustomizer<HttpClient.Builder> httpClientCustomizer1 = new TestCustomizer<>();
 		TestCustomizer<HttpClient.Builder> httpClientCustomizer2 = new TestCustomizer<>();
-		ClientHttpRequestFactoryBuilder.jdk()
+		ClientHttpConnectorBuilder.jdk()
 			.withHttpClientCustomizer(httpClientCustomizer1)
 			.withHttpClientCustomizer(httpClientCustomizer2)
 			.build();
 		httpClientCustomizer1.assertCalled();
 		httpClientCustomizer2.assertCalled();
+	}
+
+	@Test
+	void withExecutor() {
+		Executor executor = new SimpleAsyncTaskExecutor();
+		JdkClientHttpConnector connector = ClientHttpConnectorBuilder.jdk().withExecutor(executor).build();
+		HttpClient httpClient = (HttpClient) ReflectionTestUtils.getField(connector, "httpClient");
+		assertThat(httpClient.executor()).containsSame(executor);
+	}
+
+	@Test
+	void with() {
+		TestCustomizer<HttpClient.Builder> customizer = new TestCustomizer<>();
+		ClientHttpConnectorBuilder.jdk().with((builder) -> builder.withHttpClientCustomizer(customizer)).build();
+		customizer.assertCalled();
 	}
 
 	@Override

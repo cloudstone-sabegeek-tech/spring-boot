@@ -47,14 +47,14 @@ import org.springframework.web.reactive.config.WebFluxConfigurer;
 @ConditionalOnClass({ DefaultPartHttpMessageReader.class, WebFluxConfigurer.class })
 @ConditionalOnWebApplication(type = Type.REACTIVE)
 @EnableConfigurationProperties(ReactiveMultipartProperties.class)
-public class ReactiveMultipartAutoConfiguration {
+public final class ReactiveMultipartAutoConfiguration {
 
 	@Bean
 	@Order(0)
 	CodecCustomizer defaultPartHttpMessageReaderCustomizer(ReactiveMultipartProperties multipartProperties) {
 		return (configurer) -> configurer.defaultCodecs().configureDefaultCodec((codec) -> {
 			if (codec instanceof DefaultPartHttpMessageReader defaultPartHttpMessageReader) {
-				PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+				PropertyMapper map = PropertyMapper.get();
 				map.from(multipartProperties::getMaxInMemorySize)
 					.asInt(DataSize::toBytes)
 					.to(defaultPartHttpMessageReader::setMaxInMemorySize);
@@ -71,7 +71,7 @@ public class ReactiveMultipartAutoConfiguration {
 				map.from(multipartProperties::getHeadersCharset).to(defaultPartHttpMessageReader::setHeadersCharset);
 			}
 			else if (codec instanceof PartEventHttpMessageReader partEventHttpMessageReader) {
-				PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+				PropertyMapper map = PropertyMapper.get();
 				map.from(multipartProperties::getMaxInMemorySize)
 					.asInt(DataSize::toBytes)
 					.to(partEventHttpMessageReader::setMaxInMemorySize);

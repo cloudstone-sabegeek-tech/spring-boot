@@ -42,15 +42,15 @@ import org.apache.hc.core5.http.HttpResponse;
 import org.apache.jasper.servlet.JspServlet;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.awaitility.Awaitility;
-import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
-import org.eclipse.jetty.ee10.servlet.ServletHolder;
-import org.eclipse.jetty.ee10.webapp.AbstractConfiguration;
-import org.eclipse.jetty.ee10.webapp.Configuration;
-import org.eclipse.jetty.ee10.webapp.WebAppContext;
+import org.eclipse.jetty.ee11.servlet.ErrorPageErrorHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
+import org.eclipse.jetty.ee11.webapp.AbstractConfiguration;
+import org.eclipse.jetty.ee11.webapp.Configuration;
+import org.eclipse.jetty.ee11.webapp.WebAppContext;
 import org.eclipse.jetty.server.AbstractConnector;
-import org.eclipse.jetty.server.ConnectionLimit;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.NetworkConnectionLimit;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
@@ -565,9 +565,9 @@ class JettyServletWebServerFactoryTests extends AbstractServletWebServerFactoryT
 		factory.setMaxConnections(1);
 		this.webServer = factory.getWebServer();
 		Server server = ((JettyWebServer) this.webServer).getServer();
-		ConnectionLimit connectionLimit = server.getBean(ConnectionLimit.class);
+		NetworkConnectionLimit connectionLimit = server.getBean(NetworkConnectionLimit.class);
 		assertThat(connectionLimit).isNotNull();
-		assertThat(connectionLimit.getMaxConnections()).isOne();
+		assertThat(connectionLimit.getMaxNetworkConnectionCount()).isOne();
 	}
 
 	@Test
@@ -577,7 +577,7 @@ class JettyServletWebServerFactoryTests extends AbstractServletWebServerFactoryT
 		this.webServer = factory.getWebServer();
 		Server server = ((JettyWebServer) this.webServer).getServer();
 		assertThat(server.getConnectors()).isEmpty();
-		ConnectionLimit connectionLimit = server.getBean(ConnectionLimit.class);
+		NetworkConnectionLimit connectionLimit = server.getBean(NetworkConnectionLimit.class);
 		assertThat(connectionLimit).extracting("_connectors")
 			.asInstanceOf(InstanceOfAssertFactories.list(AbstractConnector.class))
 			.hasSize(1);

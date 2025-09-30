@@ -21,10 +21,13 @@ plugins {
 description = "Spring Boot Prometheus smoke test"
 
 dependencies {
-	implementation(project(":starter:spring-boot-starter-web"))
+	implementation(project(":starter:spring-boot-starter-webmvc"))
 	implementation(project(":starter:spring-boot-starter-actuator"))
 	implementation('io.micrometer:micrometer-tracing-bridge-brave')
+
 	runtimeOnly('io.micrometer:micrometer-registry-prometheus')
 
+	testImplementation(project(":module:spring-boot-micrometer-metrics-test"))
+	testImplementation(project(":starter:spring-boot-starter-restclient"))
 	testImplementation(project(":starter:spring-boot-starter-test"))
 }

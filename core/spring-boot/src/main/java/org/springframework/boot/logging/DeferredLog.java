@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.util.Assert;
 
@@ -35,9 +36,9 @@ import org.springframework.util.Assert;
  */
 public class DeferredLog implements Log {
 
-	private Log destination;
+	private @Nullable Log destination;
 
-	private final Supplier<Log> destinationSupplier;
+	private final @Nullable Supplier<Log> destinationSupplier;
 
 	private final Lines lines;
 
@@ -109,7 +110,7 @@ public class DeferredLog implements Log {
 	}
 
 	@Override
-	public void trace(Object message, Throwable t) {
+	public void trace(Object message, @Nullable Throwable t) {
 		log(LogLevel.TRACE, message, t);
 	}
 
@@ -119,7 +120,7 @@ public class DeferredLog implements Log {
 	}
 
 	@Override
-	public void debug(Object message, Throwable t) {
+	public void debug(Object message, @Nullable Throwable t) {
 		log(LogLevel.DEBUG, message, t);
 	}
 
@@ -129,7 +130,7 @@ public class DeferredLog implements Log {
 	}
 
 	@Override
-	public void info(Object message, Throwable t) {
+	public void info(Object message, @Nullable Throwable t) {
 		log(LogLevel.INFO, message, t);
 	}
 
@@ -139,7 +140,7 @@ public class DeferredLog implements Log {
 	}
 
 	@Override
-	public void warn(Object message, Throwable t) {
+	public void warn(Object message, @Nullable Throwable t) {
 		log(LogLevel.WARN, message, t);
 	}
 
@@ -149,7 +150,7 @@ public class DeferredLog implements Log {
 	}
 
 	@Override
-	public void error(Object message, Throwable t) {
+	public void error(Object message, @Nullable Throwable t) {
 		log(LogLevel.ERROR, message, t);
 	}
 
@@ -159,14 +160,14 @@ public class DeferredLog implements Log {
 	}
 
 	@Override
-	public void fatal(Object message, Throwable t) {
+	public void fatal(Object message, @Nullable Throwable t) {
 		log(LogLevel.FATAL, message, t);
 	}
 
-	private void log(LogLevel level, Object message, Throwable t) {
+	private void log(LogLevel level, Object message, @Nullable Throwable t) {
 		synchronized (this.lines) {
 			if (this.destination != null) {
-				logTo(this.destination, level, message, t);
+				level.log(this.destination, message, t);
 			}
 			else {
 				this.lines.add(this.destinationSupplier, level, message, t);
@@ -176,6 +177,7 @@ public class DeferredLog implements Log {
 
 	void switchOver() {
 		synchronized (this.lines) {
+			Assert.state(this.destinationSupplier != null, "destinationSupplier hasn't been set");
 			this.destination = this.destinationSupplier.get();
 		}
 	}
@@ -216,7 +218,7 @@ public class DeferredLog implements Log {
 	public void replayTo(Log destination) {
 		synchronized (this.lines) {
 			for (Line line : this.lines) {
-				logTo(destination, line.getLevel(), line.getMessage(), line.getThrowable());
+				line.getLevel().log(destination, line.getMessage(), line.getThrowable());
 			}
 			this.lines.clear();
 		}
@@ -245,22 +247,12 @@ public class DeferredLog implements Log {
 		return destination;
 	}
 
-	static void logTo(Log log, LogLevel level, Object message, Throwable throwable) {
-		switch (level) {
-			case TRACE -> log.trace(message, throwable);
-			case DEBUG -> log.debug(message, throwable);
-			case INFO -> log.info(message, throwable);
-			case WARN -> log.warn(message, throwable);
-			case ERROR -> log.error(message, throwable);
-			case FATAL -> log.fatal(message, throwable);
-		}
-	}
-
 	static class Lines implements Iterable<Line> {
 
 		private final List<Line> lines = new ArrayList<>();
 
-		void add(Supplier<Log> destinationSupplier, LogLevel level, Object message, Throwable throwable) {
+		void add(@Nullable Supplier<Log> destinationSupplier, LogLevel level, Object message,
+				@Nullable Throwable throwable) {
 			this.lines.add(new Line(destinationSupplier, level, message, throwable));
 		}
 
@@ -277,15 +269,16 @@ public class DeferredLog implements Log {
 
 	static class Line {
 
-		private final Supplier<Log> destinationSupplier;
+		private final @Nullable Supplier<Log> destinationSupplier;
 
 		private final LogLevel level;
 
 		private final Object message;
 
-		private final Throwable throwable;
+		private final @Nullable Throwable throwable;
 
-		Line(Supplier<Log> destinationSupplier, LogLevel level, Object message, Throwable throwable) {
+		Line(@Nullable Supplier<Log> destinationSupplier, LogLevel level, Object message,
+				@Nullable Throwable throwable) {
 			this.destinationSupplier = destinationSupplier;
 			this.level = level;
 			this.message = message;
@@ -293,6 +286,7 @@ public class DeferredLog implements Log {
 		}
 
 		Log getDestination() {
+			Assert.state(this.destinationSupplier != null, "destinationSupplier hasn't been set");
 			return this.destinationSupplier.get();
 		}
 
@@ -304,7 +298,7 @@ public class DeferredLog implements Log {
 			return this.message;
 		}
 
-		Throwable getThrowable() {
+		@Nullable Throwable getThrowable() {
 			return this.throwable;
 		}
 

@@ -18,6 +18,7 @@ package org.springframework.boot.logging.logback;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.pattern.CompositeConverter;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.util.StringUtils;
 
@@ -31,12 +32,12 @@ import org.springframework.util.StringUtils;
 public class EnclosedInSquareBracketsConverter extends CompositeConverter<ILoggingEvent> {
 
 	@Override
-	protected String transform(ILoggingEvent event, String in) {
+	protected String transform(ILoggingEvent event, @Nullable String in) {
 		in = (!StringUtils.hasLength(in)) ? resolveFromFirstOption(event) : in;
 		return (!StringUtils.hasLength(in)) ? "" : "[%s] ".formatted(in);
 	}
 
-	private String resolveFromFirstOption(ILoggingEvent event) {
+	private @Nullable String resolveFromFirstOption(ILoggingEvent event) {
 		String name = getFirstOption();
 		if (name == null) {
 			return null;

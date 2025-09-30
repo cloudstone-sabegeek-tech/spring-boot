@@ -134,7 +134,7 @@ class AntoraAsciidocAttributesTests {
 	void urlArtifactRepositoryWhenMilestone() {
 		AntoraAsciidocAttributes attributes = new AntoraAsciidocAttributes("1.2.3-M1", true, BuildType.OPEN_SOURCE,
 				null, mockDependencyVersions(), null);
-		assertThat(attributes.get()).containsEntry("url-artifact-repository", "https://repo.spring.io/milestone");
+		assertThat(attributes.get()).containsEntry("url-artifact-repository", "https://repo.maven.apache.org/maven2");
 	}
 
 	@Test
@@ -237,7 +237,7 @@ class AntoraAsciidocAttributesTests {
 		VersionAlignment versionAlignment = null;
 		String alignsWithBom = null;
 		String linkRootName = null;
-		Library library = new Library(name, calendarName, version, groups, prohibitedVersion, considerSnapshots,
+		Library library = new Library(name, calendarName, version, groups, null, prohibitedVersion, considerSnapshots,
 				versionAlignment, alignsWithBom, linkRootName, links);
 		return library;
 	}
@@ -280,12 +280,12 @@ class AntoraAsciidocAttributesTests {
 		addMockTestcontainersVersion(versions, "rabbitmq", version);
 		addMockTestcontainersVersion(versions, "redpanda", version);
 		addMockTestcontainersVersion(versions, "r2dbc", version);
-		addMockJacksonCoreVersion(versions, "jackson-annotations", version);
+		addMockJackson2CoreVersion(versions, "jackson-annotations", version);
 		addMockJacksonCoreVersion(versions, "jackson-core", version);
 		addMockJacksonCoreVersion(versions, "jackson-databind", version);
 		versions.put("org.apache.pulsar:pulsar-client-api", version);
 		versions.put("org.apache.pulsar:pulsar-client-reactive-api", version);
-		versions.put("com.fasterxml.jackson.dataformat:jackson-dataformat-xml", version);
+		versions.put("tools.jackson.dataformat:jackson-dataformat-xml", version);
 		return versions;
 	}
 
@@ -297,8 +297,12 @@ class AntoraAsciidocAttributesTests {
 		versions.put("org.testcontainers:" + artifactId, version);
 	}
 
-	private void addMockJacksonCoreVersion(Map<String, String> versions, String artifactId, String version) {
+	private void addMockJackson2CoreVersion(Map<String, String> versions, String artifactId, String version) {
 		versions.put("com.fasterxml.jackson.core:" + artifactId, version);
+	}
+
+	private void addMockJacksonCoreVersion(Map<String, String> versions, String artifactId, String version) {
+		versions.put("tools.jackson.core:" + artifactId, version);
 	}
 
 }

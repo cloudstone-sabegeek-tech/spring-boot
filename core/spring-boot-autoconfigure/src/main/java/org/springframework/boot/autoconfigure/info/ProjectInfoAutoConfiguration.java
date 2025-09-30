@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Properties;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
@@ -49,18 +51,18 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  */
 @AutoConfiguration
 @EnableConfigurationProperties(ProjectInfoProperties.class)
-public class ProjectInfoAutoConfiguration {
+public final class ProjectInfoAutoConfiguration {
 
 	private final ProjectInfoProperties properties;
 
-	public ProjectInfoAutoConfiguration(ProjectInfoProperties properties) {
+	ProjectInfoAutoConfiguration(ProjectInfoProperties properties) {
 		this.properties = properties;
 	}
 
 	@Conditional(GitResourceAvailableCondition.class)
 	@ConditionalOnMissingBean
 	@Bean
-	public GitProperties gitProperties() throws Exception {
+	GitProperties gitProperties() throws Exception {
 		return new GitProperties(
 				loadFrom(this.properties.getGit().getLocation(), "git", this.properties.getGit().getEncoding()));
 	}
@@ -68,7 +70,7 @@ public class ProjectInfoAutoConfiguration {
 	@ConditionalOnResource(resources = "${spring.info.build.location:classpath:META-INF/build-info.properties}")
 	@ConditionalOnMissingBean
 	@Bean
-	public BuildProperties buildProperties() throws Exception {
+	BuildProperties buildProperties() throws Exception {
 		return new BuildProperties(
 				loadFrom(this.properties.getBuild().getLocation(), "build", this.properties.getBuild().getEncoding()));
 	}
@@ -85,7 +87,7 @@ public class ProjectInfoAutoConfiguration {
 		return target;
 	}
 
-	private Properties loadSource(Resource location, Charset encoding) throws IOException {
+	private Properties loadSource(Resource location, @Nullable Charset encoding) throws IOException {
 		if (encoding != null) {
 			return PropertiesLoaderUtils.loadProperties(new EncodedResource(location, encoding));
 		}

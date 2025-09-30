@@ -56,10 +56,10 @@ import org.springframework.util.StringUtils;
  * @since 4.0.0
  */
 @AutoConfiguration(after = DataSourceAutoConfiguration.class,
-		afterName = "org.springframework.boot.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration")
+		afterName = "org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration")
 @ConditionalOnClass({ DataSource.class, MeterRegistry.class })
 @ConditionalOnBean({ DataSource.class, MeterRegistry.class })
-public class DataSourcePoolMetricsAutoConfiguration {
+public final class DataSourcePoolMetricsAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnBean(DataSourcePoolMetadataProvider.class)

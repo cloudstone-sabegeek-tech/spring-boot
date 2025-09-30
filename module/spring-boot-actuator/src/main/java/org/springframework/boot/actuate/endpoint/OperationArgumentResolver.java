@@ -18,6 +18,8 @@ package org.springframework.boot.actuate.endpoint;
 
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.Assert;
 
 /**
@@ -42,7 +44,7 @@ public interface OperationArgumentResolver {
 	 * @param type argument type
 	 * @return an argument of the required type, or {@code null}
 	 */
-	<T> T resolve(Class<T> type);
+	<T> @Nullable T resolve(Class<T> type);
 
 	/**
 	 * Factory method that creates an {@link OperationArgumentResolver} for a specific
@@ -52,7 +54,7 @@ public interface OperationArgumentResolver {
 	 * @param supplier the value supplier
 	 * @return an {@link OperationArgumentResolver} instance
 	 */
-	static <T> OperationArgumentResolver of(Class<T> type, Supplier<? extends T> supplier) {
+	static <T> OperationArgumentResolver of(Class<T> type, Supplier<? extends @Nullable T> supplier) {
 		Assert.notNull(type, "'type' must not be null");
 		Assert.notNull(supplier, "'supplier' must not be null");
 		return new OperationArgumentResolver() {
@@ -64,7 +66,7 @@ public interface OperationArgumentResolver {
 
 			@Override
 			@SuppressWarnings("unchecked")
-			public <R> R resolve(Class<R> argumentType) {
+			public <R> @Nullable R resolve(Class<R> argumentType) {
 				return (R) supplier.get();
 			}
 

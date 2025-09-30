@@ -21,10 +21,16 @@ plugins {
 description = "Spring Boot Gradle Testing Support"
 
 dependencies {
+	api(project(":test-support:spring-boot-test-support"))
+
 	compileOnly("org.junit.jupiter:junit-jupiter")
 
 	implementation(gradleTestKit())
 	implementation("io.spring.gradle:dependency-management-plugin")
 	implementation("org.assertj:assertj-core")
 	implementation("org.springframework:spring-core")
+}
+
+architectureCheck {
+	nullMarked = false
 }

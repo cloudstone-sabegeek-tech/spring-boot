@@ -20,6 +20,7 @@ import java.util.List;
 
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.Message;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.RuntimeHints;
@@ -51,12 +52,12 @@ import org.springframework.jms.core.JmsTemplate;
 		JmsClientConfigurations.MessagingTemplateConfiguration.class,
 		JmsClientConfigurations.JmsClientConfiguration.class, JmsAnnotationDrivenConfiguration.class })
 @ImportRuntimeHints(JmsRuntimeHints.class)
-public class JmsAutoConfiguration {
+public final class JmsAutoConfiguration {
 
 	static class JmsRuntimeHints implements RuntimeHintsRegistrar {
 
 		@Override
-		public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+		public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
 			hints.reflection()
 				.registerType(TypeReference.of(AcknowledgeMode.class), (type) -> type.withMethod("of",
 						List.of(TypeReference.of(String.class)), ExecutableMode.INVOKE));

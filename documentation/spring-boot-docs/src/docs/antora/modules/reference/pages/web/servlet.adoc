@@ -1,7 +1,7 @@
 [[web.servlet]]
 = Servlet Web Applications
 
-If you want to build servlet-based web applications, you can take advantage of Spring Boot's auto-configuration for Spring MVC or Jersey.
+If you want to build servlet-based web applications, you can take advantage of Spring Boot's auto-configuration for Spring MVC.
 
 
 
@@ -47,7 +47,7 @@ In addition to Spring MVC's defaults, the auto-configuration provides the follow
 
 If you want to keep those Spring Boot MVC customizations and make more {url-spring-framework-docs}/web/webmvc.html[MVC customizations] (interceptors, formatters, view controllers, and other features), you can add your own javadoc:org.springframework.context.annotation.Configuration[format=annotation] class of type javadoc:org.springframework.web.servlet.config.annotation.WebMvcConfigurer[] but *without* javadoc:org.springframework.web.servlet.config.annotation.EnableWebMvc[format=annotation].
 
-If you want to provide custom instances of javadoc:org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping[], javadoc:org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter[], or javadoc:org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver[], and still keep the Spring Boot MVC customizations, you can declare a bean of type javadoc:org.springframework.boot.autoconfigure.web.servlet.WebMvcRegistrations[] and use it to provide custom instances of those components.
+If you want to provide custom instances of javadoc:org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping[], javadoc:org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter[], or javadoc:org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver[], and still keep the Spring Boot MVC customizations, you can declare a bean of type javadoc:org.springframework.boot.webmvc.autoconfigure.WebMvcRegistrations[] and use it to provide custom instances of those components.
 The custom instances will be subject to further initialization and configuration by Spring MVC.
 To participate in, and if desired, override that subsequent processing, a javadoc:org.springframework.web.servlet.config.annotation.WebMvcConfigurer[] should be used.
 
@@ -346,9 +346,9 @@ See the xref:appendix:application-properties/index.adoc#appendix.application-pro
 
 To replace the default behavior completely, you can implement javadoc:org.springframework.boot.web.servlet.error.ErrorController[] and register a bean definition of that type or add a bean of type javadoc:org.springframework.boot.web.servlet.error.ErrorAttributes[] to use the existing mechanism but replace the contents.
 
-TIP: The javadoc:org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController[] can be used as a base class for a custom javadoc:org.springframework.boot.web.servlet.error.ErrorController[].
+TIP: The javadoc:org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController[] can be used as a base class for a custom javadoc:org.springframework.boot.web.servlet.error.ErrorController[].
 This is particularly useful if you want to add a handler for a new content type (the default is to handle `text/html` specifically and provide a fallback for everything else).
-To do so, extend javadoc:org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController[], add a public method with a javadoc:org.springframework.web.bind.annotation.RequestMapping[format=annotation] that has a `produces` attribute, and create a bean of your new type.
+To do so, extend javadoc:org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController[], add a public method with a javadoc:org.springframework.web.bind.annotation.RequestMapping[format=annotation] that has a `produces` attribute, and create a bean of your new type.
 
 As of Spring Framework 6.0, {url-spring-framework-docs}/web/webmvc/mvc-ann-rest-exceptions.html[RFC 9457 Problem Details] is supported.
 Spring MVC can produce custom error messages with the `application/problem+json` media type, like:
@@ -414,7 +414,7 @@ src/
              +- <other templates>
 ----
 
-For more complex mappings, you can also add beans that implement the javadoc:org.springframework.boot.autoconfigure.web.servlet.error.ErrorViewResolver[] interface, as shown in the following example:
+For more complex mappings, you can also add beans that implement the javadoc:org.springframework.boot.webmvc.autoconfigure.error.ErrorViewResolver[] interface, as shown in the following example:
 
 include-code::MyErrorViewResolver[]
 
@@ -465,47 +465,42 @@ include-code::MyCorsConfiguration[]
 
 
 
-[[web.servlet.jersey]]
-== JAX-RS and Jersey
+[[web.servlet.spring-mvc.api-versioning]]
+=== API Versioning
 
-If you prefer the JAX-RS programming model for REST endpoints, you can use one of the available implementations instead of Spring MVC.
-https://jersey.github.io/[Jersey] and https://cxf.apache.org/[Apache CXF] work quite well out of the box.
-CXF requires you to register its javadoc:jakarta.servlet.Servlet[] or javadoc:jakarta.servlet.Filter[] as a javadoc:org.springframework.context.annotation.Bean[format=annotation] in your application context.
-Jersey has some native Spring support, so we also provide auto-configuration support for it in Spring Boot, together with a starter.
+Spring MVC supports API versioning which can be used to evolve an HTTP API over time.
+The same `@Controller` path can be mapped multiple times to support different versions of the API.
 
-To get started with Jersey, include the `spring-boot-starter-jersey` as a dependency and then you need one javadoc:org.springframework.context.annotation.Bean[format=annotation] of type javadoc:org.glassfish.jersey.server.ResourceConfig[] in which you register all the endpoints, as shown in the following example:
+For more details see {url-spring-framework-docs}/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-version[Spring Framework's reference documentation].
 
-include-code::MyJerseyConfig[]
+One mappings have been added, you additionally need to configure Spring MVC so that it is able to use any version information sent with a request.
+Typically, versions are sent as HTTP headers, query parameters or as part of the path.
 
-WARNING: Jersey's support for scanning executable archives is rather limited.
-For example, it cannot scan for endpoints in a package found in a xref:how-to:deployment/installing.adoc[fully executable jar file] or in `WEB-INF/classes` when running an executable war file.
-To avoid this limitation, the `packages` method should not be used, and endpoints should be registered individually by using the `register` method, as shown in the preceding example.
+To configure Spring MVC, you can either use a javadoc:org.springframework.web.servlet.config.annotation.WebMvcConfigurer[] bean and override the `configureApiVersioning(...)` method, or you can use properties.
 
-For more advanced customizations, you can also register an arbitrary number of beans that implement javadoc:org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer[].
+For example, the following will use an `X-Version` HTTP header to obtain version information and default to `1.0.0` when no header is sent.
 
-All the registered endpoints should be a javadoc:org.springframework.stereotype.Component[format=annotation] with HTTP resource annotations (`@GET` and others), as shown in the following example:
+[configprops,yaml]
+----
+spring:
+  mvc:
+    apiversion:
+      default: 1.0.0
+      use:
+        header: X-Version
+----
 
-include-code::MyEndpoint[]
+For more complete control, you can also define javadoc:org.springframework.web.accept.ApiVersionResolver[], javadoc:org.springframework.web.accept.ApiVersionParser[] and javadoc:org.springframework.web.accept.ApiVersionDeprecationHandler[] beans which will be injected into the auto-configured Spring MVC configuration.
 
-Since the javadoc:org.springframework.boot.actuate.endpoint.annotation.Endpoint[format=annotation] is a Spring javadoc:org.springframework.stereotype.Component[format=annotation], its lifecycle is managed by Spring and you can use the javadoc:org.springframework.beans.factory.annotation.Autowired[format=annotation] annotation to inject dependencies and use the javadoc:org.springframework.beans.factory.annotation.Value[format=annotation] annotation to inject external configuration.
-By default, the Jersey servlet is registered and mapped to `/*`.
-You can change the mapping by adding javadoc:jakarta.ws.rs.ApplicationPath[format=annotation] to your javadoc:org.glassfish.jersey.server.ResourceConfig[].
-
-By default, Jersey is set up as a servlet in a javadoc:org.springframework.context.annotation.Bean[format=annotation] of type javadoc:org.springframework.boot.web.servlet.ServletRegistrationBean[] named `jerseyServletRegistration`.
-By default, the servlet is initialized lazily, but you can customize that behavior by setting `spring.jersey.servlet.load-on-startup`.
-You can disable or override that bean by creating one of your own with the same name.
-You can also use a filter instead of a servlet by setting `spring.jersey.type=filter` (in which case, the javadoc:org.springframework.context.annotation.Bean[format=annotation] to replace or override is `jerseyFilterRegistration`).
-The filter has an javadoc:org.springframework.core.annotation.Order[format=annotation], which you can set with `spring.jersey.filter.order`.
-When using Jersey as a filter, a servlet that will handle any requests that are not intercepted by Jersey must be present.
-If your application does not contain such a servlet, you may want to enable the default servlet by setting configprop:server.servlet.register-default-servlet[] to `true`.
-Both the servlet and the filter registrations can be given init parameters by using `spring.jersey.init.*` to specify a map of properties.
+TIP: API versioning is also supported with both `WebClient` and `RestClient`.
+See xref:io/rest-client.adoc#io.rest-client.apiversioning[] for details.
 
 
 
 [[web.servlet.embedded-container]]
 == Embedded Servlet Container Support
 
-For servlet application, Spring Boot includes support for embedded https://tomcat.apache.org/[Tomcat], https://www.eclipse.org/jetty/[Jetty], and https://github.com/undertow-io/undertow[Undertow] servers.
+For servlet application, Spring Boot includes support for embedded https://tomcat.apache.org/[Tomcat] and https://www.eclipse.org/jetty/[Jetty] servers.
 Most developers use the appropriate starter to obtain a fully configured instance.
 By default, the embedded server listens for HTTP requests on port `8080`.
 
@@ -573,7 +568,7 @@ TIP: javadoc:org.springframework.boot.web.servlet.ServletComponentScan[format=an
 
 Under the hood, Spring Boot uses a different type of javadoc:org.springframework.context.ApplicationContext[] for embedded servlet container support.
 The javadoc:org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[] is a special type of javadoc:org.springframework.web.context.WebApplicationContext[] that bootstraps itself by searching for a single javadoc:org.springframework.boot.web.servlet.server.ServletWebServerFactory[] bean.
-Usually a javadoc:org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory[], javadoc:org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory[], or javadoc:org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory[] has been auto-configured.
+Usually a javadoc:org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory[], or javadoc:org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory[] has been auto-configured.
 
 NOTE: You usually do not need to be aware of these implementation classes.
 Most applications are auto-configured, and the appropriate javadoc:org.springframework.context.ApplicationContext[] and javadoc:org.springframework.boot.web.servlet.server.ServletWebServerFactory[] are created on your behalf.
@@ -603,10 +598,10 @@ Common server settings include:
 * xref:how-to:webserver.adoc#howto.webserver.enable-response-compression[HTTP compression]
 
 Spring Boot tries as much as possible to expose common settings, but this is not always possible.
-For those cases, dedicated namespaces offer server-specific customizations (see `server.tomcat` and `server.undertow`).
+For those cases, dedicated namespaces offer server-specific customizations (see `server.tomcat`).
 For instance, xref:how-to:webserver.adoc#howto.webserver.configure-access-logs[access logs] can be configured with specific features of the embedded servlet container.
 
-TIP: See the javadoc:org.springframework.boot.autoconfigure.web.ServerProperties[] class for a complete list.
+TIP: See the javadoc:org.springframework.boot.web.server.autoconfigure.ServerProperties[] class for a complete list.
 
 
 
@@ -617,7 +612,7 @@ The `SameSite` cookie attribute can be used by web browsers to control if and ho
 The attribute is particularly relevant for modern web browsers which have started to change the default value that is used when the attribute is missing.
 
 If you want to change the `SameSite` attribute of your session cookie, you can use the configprop:server.servlet.session.cookie.same-site[] property.
-This property is supported by auto-configured Tomcat, Jetty and Undertow servers.
+This property is supported by auto-configured Tomcat and Jetty servers.
 It is also used to configure Spring Session servlet based javadoc:org.springframework.session.SessionRepository[] beans.
 
 For example, if you want your session cookie to have a `SameSite` attribute of `None`, you can add the following to your `application.properties` or `application.yaml` file:
@@ -673,7 +668,7 @@ The following example shows programmatically setting the port:
 
 include-code::MyWebServerFactoryCustomizer[]
 
-javadoc:org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory[], javadoc:org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory[] and javadoc:org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory[] are dedicated variants of javadoc:org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory[] that have additional customization setter methods for Tomcat, Jetty and Undertow respectively.
+javadoc:org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory[], and javadoc:org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory[] are dedicated variants of javadoc:org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory[] that have additional customization setter methods for Tomcat, and Jetty respectively.
 The following example shows how to customize javadoc:org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory[] that provides access to Tomcat-specific configuration options:
 
 include-code::MyTomcatWebServerFactoryCustomizer[]
@@ -701,8 +696,6 @@ When running a Spring Boot application that uses an embedded servlet container (
 * With Jetty and Tomcat, it should work if you use war packaging.
 An executable war will work when launched with `java -jar`, and will also be deployable to any standard container.
 JSPs are not supported when using an executable jar.
-
-* Undertow does not support JSPs.
 
 * Creating a custom `error.jsp` page does not override the default view for xref:web/servlet.adoc#web.servlet.spring-mvc.error-handling[error handling].
   xref:web/servlet.adoc#web.servlet.spring-mvc.error-handling.error-pages[Custom error pages] should be used instead.

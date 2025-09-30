@@ -54,13 +54,6 @@ class PostgresJdbcDockerComposeConnectionDetailsFactoryIntegrationTests {
 		checkDatabaseAccess(connectionDetails);
 	}
 
-	@DockerComposeTest(composeFile = "postgres-bitnami-compose.yaml", image = TestImage.BITNAMI_POSTGRESQL)
-	void runWithBitnamiImageCreatesConnectionDetails(JdbcConnectionDetails connectionDetails)
-			throws ClassNotFoundException {
-		assertConnectionDetails(connectionDetails);
-		checkDatabaseAccess(connectionDetails);
-	}
-
 	@DockerComposeTest(composeFile = "postgres-application-name-compose.yaml", image = TestImage.POSTGRESQL)
 	void runCreatesConnectionDetailsApplicationName(JdbcConnectionDetails connectionDetails)
 			throws ClassNotFoundException {

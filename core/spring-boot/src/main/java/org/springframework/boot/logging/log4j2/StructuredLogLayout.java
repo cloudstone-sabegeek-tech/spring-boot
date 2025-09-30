@@ -76,20 +76,23 @@ final class StructuredLogLayout extends AbstractStringLayout {
 	static final class Builder implements org.apache.logging.log4j.core.util.Builder<StructuredLogLayout> {
 
 		@PluginLoggerContext
+		@SuppressWarnings("NullAway.Init")
 		private LoggerContext loggerContext;
 
 		@PluginBuilderAttribute
+		@SuppressWarnings("NullAway.Init")
 		private String format;
 
 		@PluginBuilderAttribute
+		@SuppressWarnings("NullAway.Init")
 		private String charset = StandardCharsets.UTF_8.name();
 
-		Builder setFormat(String format) {
+		public Builder setFormat(String format) {
 			this.format = format;
 			return this;
 		}
 
-		Builder setCharset(String charset) {
+		public Builder setCharset(String charset) {
 			this.charset = charset;
 			return this;
 		}
@@ -115,10 +118,13 @@ final class StructuredLogLayout extends AbstractStringLayout {
 			Environment environment = instantiator.getArg(Environment.class);
 			StackTracePrinter stackTracePrinter = instantiator.getArg(StackTracePrinter.class);
 			ContextPairs contextPairs = instantiator.getArg(ContextPairs.class);
-			StructuredLoggingJsonMembersCustomizer<?> jsonMembersCustomizer = instantiator
-				.getArg(StructuredLoggingJsonMembersCustomizer.class);
+			StructuredLoggingJsonMembersCustomizer.Builder<?> jsonMembersCustomizerBuilder = instantiator
+				.getArg(StructuredLoggingJsonMembersCustomizer.Builder.class);
+			Assert.state(environment != null, "'environment' must not be null");
+			Assert.state(contextPairs != null, "'contextPairs' must not be null");
+			Assert.state(jsonMembersCustomizerBuilder != null, "'jsonMembersCustomizerBuilder' must not be null");
 			return new ElasticCommonSchemaStructuredLogFormatter(environment, stackTracePrinter, contextPairs,
-					jsonMembersCustomizer);
+					jsonMembersCustomizerBuilder);
 		}
 
 		private GraylogExtendedLogFormatStructuredLogFormatter createGraylogFormatter(Instantiator<?> instantiator) {
@@ -127,6 +133,8 @@ final class StructuredLogLayout extends AbstractStringLayout {
 			ContextPairs contextPairs = instantiator.getArg(ContextPairs.class);
 			StructuredLoggingJsonMembersCustomizer<?> jsonMembersCustomizer = instantiator
 				.getArg(StructuredLoggingJsonMembersCustomizer.class);
+			Assert.state(environment != null, "'environment' must not be null");
+			Assert.state(contextPairs != null, "'contextPairs' must not be null");
 			return new GraylogExtendedLogFormatStructuredLogFormatter(environment, stackTracePrinter, contextPairs,
 					jsonMembersCustomizer);
 		}
@@ -136,6 +144,7 @@ final class StructuredLogLayout extends AbstractStringLayout {
 			ContextPairs contextPairs = instantiator.getArg(ContextPairs.class);
 			StructuredLoggingJsonMembersCustomizer<?> jsonMembersCustomizer = instantiator
 				.getArg(StructuredLoggingJsonMembersCustomizer.class);
+			Assert.state(contextPairs != null, "'contextPairs' must not be null");
 			return new LogstashStructuredLogFormatter(stackTracePrinter, contextPairs, jsonMembersCustomizer);
 		}
 

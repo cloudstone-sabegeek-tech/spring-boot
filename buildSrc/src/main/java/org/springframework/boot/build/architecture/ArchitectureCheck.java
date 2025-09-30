@@ -43,6 +43,7 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.IgnoreEmptyDirectories;
 import org.gradle.api.tasks.Input;
@@ -53,6 +54,7 @@ import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SkipWhenEmpty;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.VerificationException;
 
@@ -65,6 +67,7 @@ import org.gradle.api.tasks.VerificationException;
  * @author Ivan Malutin
  * @author Phillip Webb
  * @author Dmytro Nosan
+ * @author Moritz Halbritter
  */
 public abstract class ArchitectureCheck extends DefaultTask {
 
@@ -75,7 +78,23 @@ public abstract class ArchitectureCheck extends DefaultTask {
 		getRules().addAll(getProhibitObjectsRequireNonNull().convention(true)
 			.map(whenTrue(ArchitectureRules::noClassesShouldCallObjectsRequireNonNull)));
 		getRules().addAll(ArchitectureRules.standard());
+		getRules().addAll(whenMainSources(
+				() -> Collections.singletonList(ArchitectureRules.allBeanMethodsShouldReturnNonPrivateType())));
+		getRules().addAll(and(getNullMarked(), isMainSourceSet()).map(whenTrue(
+				() -> Collections.singletonList(ArchitectureRules.packagesShouldBeAnnotatedWithNullMarked()))));
 		getRuleDescriptions().set(getRules().map(this::asDescriptions));
+	}
+
+	private Provider<Boolean> and(Provider<Boolean> provider1, Provider<Boolean> provider2) {
+		return provider1.zip(provider2, (result1, result2) -> result1 && result2);
+	}
+
+	private Provider<List<ArchRule>> whenMainSources(Supplier<List<ArchRule>> rules) {
+		return isMainSourceSet().map(whenTrue(rules));
+	}
+
+	private Provider<Boolean> isMainSourceSet() {
+		return getSourceSet().convention(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet.MAIN_SOURCE_SET_NAME::equals);
 	}
 
 	private Transformer<List<ArchRule>, Boolean> whenTrue(Supplier<List<ArchRule>> rules) {
@@ -170,7 +189,13 @@ public abstract class ArchitectureCheck extends DefaultTask {
 	@Internal
 	public abstract Property<Boolean> getProhibitObjectsRequireNonNull();
 
+	@Internal
+	abstract Property<String> getSourceSet();
+
 	@Input // Use descriptions as input since rules aren't serializable
 	abstract ListProperty<String> getRuleDescriptions();
+
+	@Internal
+	abstract Property<Boolean> getNullMarked();
 
 }

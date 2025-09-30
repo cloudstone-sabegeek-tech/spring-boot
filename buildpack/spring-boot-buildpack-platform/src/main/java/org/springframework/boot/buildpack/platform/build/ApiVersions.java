@@ -19,7 +19,9 @@ package org.springframework.boot.buildpack.platform.build;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import org.springframework.boot.buildpack.platform.docker.type.ApiVersion;
+import org.jspecify.annotations.Nullable;
+
+import org.springframework.boot.buildpack.platform.docker.ApiVersion;
 import org.springframework.util.StringUtils;
 
 /**
@@ -62,7 +64,7 @@ final class ApiVersions {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj) {
 			return true;
 		}

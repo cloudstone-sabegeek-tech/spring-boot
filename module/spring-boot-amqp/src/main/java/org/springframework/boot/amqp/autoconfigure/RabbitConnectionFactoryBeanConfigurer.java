@@ -20,6 +20,7 @@ import java.time.Duration;
 
 import com.rabbitmq.client.impl.CredentialsProvider;
 import com.rabbitmq.client.impl.CredentialsRefreshService;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.amqp.rabbit.connection.RabbitConnectionFactoryBean;
 import org.springframework.boot.amqp.autoconfigure.RabbitConnectionDetails.Address;
@@ -53,9 +54,9 @@ public class RabbitConnectionFactoryBeanConfigurer {
 
 	private final RabbitConnectionDetails connectionDetails;
 
-	private CredentialsProvider credentialsProvider;
+	private @Nullable CredentialsProvider credentialsProvider;
 
-	private CredentialsRefreshService credentialsRefreshService;
+	private @Nullable CredentialsRefreshService credentialsRefreshService;
 
 	/**
 	 * Creates a new configurer that will use the given {@code resourceLoader} and
@@ -90,7 +91,7 @@ public class RabbitConnectionFactoryBeanConfigurer {
 	 * @param sslBundles the SSL bundles
 	 */
 	public RabbitConnectionFactoryBeanConfigurer(ResourceLoader resourceLoader, RabbitProperties properties,
-			RabbitConnectionDetails connectionDetails, SslBundles sslBundles) {
+			RabbitConnectionDetails connectionDetails, @Nullable SslBundles sslBundles) {
 		Assert.notNull(resourceLoader, "'resourceLoader' must not be null");
 		Assert.notNull(properties, "'properties' must not be null");
 		Assert.notNull(connectionDetails, "'connectionDetails' must not be null");
@@ -99,11 +100,11 @@ public class RabbitConnectionFactoryBeanConfigurer {
 		this.connectionDetails = connectionDetails;
 	}
 
-	public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
+	public void setCredentialsProvider(@Nullable CredentialsProvider credentialsProvider) {
 		this.credentialsProvider = credentialsProvider;
 	}
 
-	public void setCredentialsRefreshService(CredentialsRefreshService credentialsRefreshService) {
+	public void setCredentialsRefreshService(@Nullable CredentialsRefreshService credentialsRefreshService) {
 		this.credentialsRefreshService = credentialsRefreshService;
 	}
 
@@ -119,13 +120,12 @@ public class RabbitConnectionFactoryBeanConfigurer {
 		factory.setResourceLoader(this.resourceLoader);
 		Address address = this.connectionDetails.getFirstAddress();
 		PropertyMapper map = PropertyMapper.get();
-		map.from(address::host).whenNonNull().to(factory::setHost);
+		map.from(address::host).to(factory::setHost);
 		map.from(address::port).to(factory::setPort);
-		map.from(this.connectionDetails::getUsername).whenNonNull().to(factory::setUsername);
-		map.from(this.connectionDetails::getPassword).whenNonNull().to(factory::setPassword);
-		map.from(this.connectionDetails::getVirtualHost).whenNonNull().to(factory::setVirtualHost);
+		map.from(this.connectionDetails::getUsername).to(factory::setUsername);
+		map.from(this.connectionDetails::getPassword).to(factory::setPassword);
+		map.from(this.connectionDetails::getVirtualHost).to(factory::setVirtualHost);
 		map.from(this.rabbitProperties::getRequestedHeartbeat)
-			.whenNonNull()
 			.asInt(Duration::getSeconds)
 			.to(factory::setRequestedHeartbeat);
 		map.from(this.rabbitProperties::getRequestedChannelMax).to(factory::setRequestedChannelMax);
@@ -137,32 +137,29 @@ public class RabbitConnectionFactoryBeanConfigurer {
 			RabbitProperties.Ssl ssl = this.rabbitProperties.getSsl();
 			if (ssl.determineEnabled()) {
 				factory.setUseSSL(true);
-				map.from(ssl::getAlgorithm).whenNonNull().to(factory::setSslAlgorithm);
+				map.from(ssl::getAlgorithm).to(factory::setSslAlgorithm);
 				map.from(ssl::getKeyStoreType).to(factory::setKeyStoreType);
 				map.from(ssl::getKeyStore).to(factory::setKeyStore);
 				map.from(ssl::getKeyStorePassword).to(factory::setKeyStorePassphrase);
-				map.from(ssl::getKeyStoreAlgorithm).whenNonNull().to(factory::setKeyStoreAlgorithm);
+				map.from(ssl::getKeyStoreAlgorithm).to(factory::setKeyStoreAlgorithm);
 				map.from(ssl::getTrustStoreType).to(factory::setTrustStoreType);
 				map.from(ssl::getTrustStore).to(factory::setTrustStore);
 				map.from(ssl::getTrustStorePassword).to(factory::setTrustStorePassphrase);
-				map.from(ssl::getTrustStoreAlgorithm).whenNonNull().to(factory::setTrustStoreAlgorithm);
+				map.from(ssl::getTrustStoreAlgorithm).to(factory::setTrustStoreAlgorithm);
 				map.from(ssl::isValidateServerCertificate)
 					.to((validate) -> factory.setSkipServerCertificateValidation(!validate));
 				map.from(ssl::isVerifyHostname).to(factory::setEnableHostnameVerification);
 			}
 		}
 		map.from(this.rabbitProperties::getConnectionTimeout)
-			.whenNonNull()
 			.asInt(Duration::toMillis)
 			.to(factory::setConnectionTimeout);
 		map.from(this.rabbitProperties::getChannelRpcTimeout)
-			.whenNonNull()
 			.asInt(Duration::toMillis)
 			.to(factory::setChannelRpcTimeout);
-		map.from(this.credentialsProvider).whenNonNull().to(factory::setCredentialsProvider);
-		map.from(this.credentialsRefreshService).whenNonNull().to(factory::setCredentialsRefreshService);
+		map.from(this.credentialsProvider).to(factory::setCredentialsProvider);
+		map.from(this.credentialsRefreshService).to(factory::setCredentialsRefreshService);
 		map.from(this.rabbitProperties.getMaxInboundMessageBodySize())
-			.whenNonNull()
 			.asInt(DataSize::toBytes)
 			.to(factory::setMaxInboundMessageBodySize);
 	}

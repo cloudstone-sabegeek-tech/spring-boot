@@ -14,12 +14,12 @@ jobs:
       matrix:
         java:
           - version: 17
-            toolchain: false
+            toolchain: true
           - version: 21
             toolchain: true
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Prepare Gradle Build
         uses: ./.github/actions/prepare-gradle-build
         with:

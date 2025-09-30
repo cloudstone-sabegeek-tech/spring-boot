@@ -29,6 +29,7 @@ import org.apache.pulsar.reactive.client.api.ReactiveMessageSenderBuilder;
 import org.apache.pulsar.reactive.client.api.ReactiveMessageSenderCache;
 import org.apache.pulsar.reactive.client.api.ReactivePulsarClient;
 import org.apache.pulsar.reactive.client.producercache.CaffeineShadedProducerCacheProvider;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -70,7 +71,7 @@ import org.springframework.pulsar.reactive.listener.ReactivePulsarContainerPrope
 @AutoConfiguration(after = PulsarAutoConfiguration.class)
 @ConditionalOnClass({ PulsarClient.class, ReactivePulsarClient.class, ReactivePulsarTemplate.class })
 @Import(PulsarConfiguration.class)
-public class PulsarReactiveAutoConfiguration {
+public final class PulsarReactiveAutoConfiguration {
 
 	private final PulsarProperties properties;
 
@@ -105,7 +106,8 @@ public class PulsarReactiveAutoConfiguration {
 		return reactivePulsarMessageSenderCache(producerCacheProvider.getIfAvailable());
 	}
 
-	private ReactiveMessageSenderCache reactivePulsarMessageSenderCache(ProducerCacheProvider producerCacheProvider) {
+	private ReactiveMessageSenderCache reactivePulsarMessageSenderCache(
+			@Nullable ProducerCacheProvider producerCacheProvider) {
 		return (producerCacheProvider != null) ? AdaptedReactivePulsarClientFactory.createCache(producerCacheProvider)
 				: AdaptedReactivePulsarClientFactory.createCache();
 	}
@@ -123,8 +125,8 @@ public class PulsarReactiveAutoConfiguration {
 			.of((builder) -> applyMessageSenderBuilderCustomizers(customizers, builder));
 		Builder<Object> senderFactoryBuilder = DefaultReactivePulsarSenderFactory.builderFor(reactivePulsarClient)
 			.withDefaultConfigCustomizers(lambdaSafeCustomizers)
-			.withMessageSenderCache(reactiveMessageSenderCache.getIfAvailable())
 			.withTopicResolver(topicResolver);
+		reactiveMessageSenderCache.ifAvailable(senderFactoryBuilder::withMessageSenderCache);
 		topicBuilderProvider.ifAvailable(senderFactoryBuilder::withTopicBuilder);
 		return senderFactoryBuilder.build();
 	}

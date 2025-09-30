@@ -31,6 +31,7 @@ import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.integration.spring.SpringLiquibase;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.actuate.endpoint.OperationResponseBody;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
@@ -43,6 +44,7 @@ import org.springframework.util.StringUtils;
  * {@link Endpoint @Endpoint} to expose liquibase info.
  *
  * @author Eddú Meléndez
+ * @author Nabil Fawwaz Elqayyim
  * @since 4.0.0
  */
 @Endpoint(id = "liquibase")
@@ -58,7 +60,7 @@ public class LiquibaseEndpoint {
 	@ReadOperation
 	public LiquibaseBeansDescriptor liquibaseBeans() {
 		ApplicationContext target = this.context;
-		Map<String, ContextLiquibaseBeansDescriptor> contextBeans = new HashMap<>();
+		Map<@Nullable String, ContextLiquibaseBeansDescriptor> contextBeans = new HashMap<>();
 		while (target != null) {
 			Map<String, LiquibaseBeanDescriptor> liquibaseBeans = new HashMap<>();
 			DatabaseFactory factory = DatabaseFactory.getInstance();
@@ -79,9 +81,10 @@ public class LiquibaseEndpoint {
 			Database database = null;
 			try {
 				database = factory.findCorrectDatabaseImplementation(connection);
-				String defaultSchema = liquibase.getDefaultSchema();
-				if (StringUtils.hasText(defaultSchema)) {
-					database.setDefaultSchemaName(defaultSchema);
+				String schemaToUse = StringUtils.hasText(liquibase.getLiquibaseSchema())
+						? liquibase.getLiquibaseSchema() : liquibase.getDefaultSchema();
+				if (StringUtils.hasText(schemaToUse)) {
+					database.setDefaultSchemaName(schemaToUse);
 				}
 				database.setDatabaseChangeLogTableName(liquibase.getDatabaseChangeLogTable());
 				database.setDatabaseChangeLogLockTableName(liquibase.getDatabaseChangeLogLockTable());
@@ -109,13 +112,13 @@ public class LiquibaseEndpoint {
 	 */
 	public static final class LiquibaseBeansDescriptor implements OperationResponseBody {
 
-		private final Map<String, ContextLiquibaseBeansDescriptor> contexts;
+		private final Map<@Nullable String, ContextLiquibaseBeansDescriptor> contexts;
 
-		private LiquibaseBeansDescriptor(Map<String, ContextLiquibaseBeansDescriptor> contexts) {
+		private LiquibaseBeansDescriptor(Map<@Nullable String, ContextLiquibaseBeansDescriptor> contexts) {
 			this.contexts = contexts;
 		}
 
-		public Map<String, ContextLiquibaseBeansDescriptor> getContexts() {
+		public Map<@Nullable String, ContextLiquibaseBeansDescriptor> getContexts() {
 			return this.contexts;
 		}
 
@@ -128,9 +131,10 @@ public class LiquibaseEndpoint {
 
 		private final Map<String, LiquibaseBeanDescriptor> liquibaseBeans;
 
-		private final String parentId;
+		private final @Nullable String parentId;
 
-		private ContextLiquibaseBeansDescriptor(Map<String, LiquibaseBeanDescriptor> liquibaseBeans, String parentId) {
+		private ContextLiquibaseBeansDescriptor(Map<String, LiquibaseBeanDescriptor> liquibaseBeans,
+				@Nullable String parentId) {
 			this.liquibaseBeans = liquibaseBeans;
 			this.parentId = parentId;
 		}
@@ -139,7 +143,7 @@ public class LiquibaseEndpoint {
 			return this.liquibaseBeans;
 		}
 
-		public String getParentId() {
+		public @Nullable String getParentId() {
 			return this.parentId;
 		}
 
@@ -187,7 +191,7 @@ public class LiquibaseEndpoint {
 
 		private final Set<String> labels;
 
-		private final String checksum;
+		private final @Nullable String checksum;
 
 		private final Integer orderExecuted;
 
@@ -250,7 +254,7 @@ public class LiquibaseEndpoint {
 			return this.labels;
 		}
 
-		public String getChecksum() {
+		public @Nullable String getChecksum() {
 			return this.checksum;
 		}
 

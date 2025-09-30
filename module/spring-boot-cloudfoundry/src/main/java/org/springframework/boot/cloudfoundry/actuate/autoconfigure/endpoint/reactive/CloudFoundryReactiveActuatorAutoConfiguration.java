@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -80,7 +82,7 @@ import org.springframework.web.server.WebFilter;
 @ConditionalOnBooleanProperty(name = "management.cloudfoundry.enabled", matchIfMissing = true)
 @ConditionalOnWebApplication(type = Type.REACTIVE)
 @ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
-public class CloudFoundryReactiveActuatorAutoConfiguration {
+public final class CloudFoundryReactiveActuatorAutoConfiguration {
 
 	private static final String BASE_PATH = "/cloudfoundryapplication";
 
@@ -88,7 +90,7 @@ public class CloudFoundryReactiveActuatorAutoConfiguration {
 	@ConditionalOnMissingBean
 	@ConditionalOnAvailableEndpoint
 	@ConditionalOnBean({ HealthEndpoint.class, ReactiveHealthEndpointWebExtension.class })
-	public CloudFoundryReactiveHealthEndpointWebExtension cloudFoundryReactiveHealthEndpointWebExtension(
+	CloudFoundryReactiveHealthEndpointWebExtension cloudFoundryReactiveHealthEndpointWebExtension(
 			ReactiveHealthEndpointWebExtension reactiveHealthEndpointWebExtension) {
 		return new CloudFoundryReactiveHealthEndpointWebExtension(reactiveHealthEndpointWebExtension);
 	}
@@ -97,7 +99,7 @@ public class CloudFoundryReactiveActuatorAutoConfiguration {
 	@ConditionalOnMissingBean
 	@ConditionalOnAvailableEndpoint
 	@ConditionalOnBean({ InfoEndpoint.class, GitProperties.class })
-	public CloudFoundryInfoEndpointWebExtension cloudFoundryInfoEndpointWebExtension(GitProperties properties,
+	CloudFoundryInfoEndpointWebExtension cloudFoundryInfoEndpointWebExtension(GitProperties properties,
 			ObjectProvider<InfoContributor> infoContributors) {
 		List<InfoContributor> contributors = infoContributors.orderedStream()
 			.map((infoContributor) -> (infoContributor instanceof GitInfoContributor)
@@ -108,7 +110,7 @@ public class CloudFoundryReactiveActuatorAutoConfiguration {
 
 	@Bean
 	@SuppressWarnings("removal")
-	public CloudFoundryWebFluxEndpointHandlerMapping cloudFoundryWebFluxEndpointHandlerMapping(
+	CloudFoundryWebFluxEndpointHandlerMapping cloudFoundryWebFluxEndpointHandlerMapping(
 			ParameterValueMapper parameterMapper, EndpointMediaTypes endpointMediaTypes,
 			WebClient.Builder webClientBuilder,
 			org.springframework.boot.actuate.endpoint.web.annotation.ControllerEndpointsSupplier controllerEndpointsSupplier,
@@ -128,12 +130,13 @@ public class CloudFoundryReactiveActuatorAutoConfiguration {
 
 	private SecurityInterceptor getSecurityInterceptor(WebClient.Builder webClientBuilder, Environment environment) {
 		SecurityService cloudfoundrySecurityService = getCloudFoundrySecurityService(webClientBuilder, environment);
-		TokenValidator tokenValidator = new TokenValidator(cloudfoundrySecurityService);
+		TokenValidator tokenValidator = (cloudfoundrySecurityService != null)
+				? new TokenValidator(cloudfoundrySecurityService) : null;
 		return new SecurityInterceptor(tokenValidator, cloudfoundrySecurityService,
 				environment.getProperty("vcap.application.application_id"));
 	}
 
-	private SecurityService getCloudFoundrySecurityService(WebClient.Builder webClientBuilder,
+	private @Nullable SecurityService getCloudFoundrySecurityService(WebClient.Builder webClientBuilder,
 			Environment environment) {
 		String cloudControllerUrl = environment.getProperty("vcap.application.cf_api");
 		boolean skipSslValidation = environment.getProperty("management.cloudfoundry.skip-ssl-validation",

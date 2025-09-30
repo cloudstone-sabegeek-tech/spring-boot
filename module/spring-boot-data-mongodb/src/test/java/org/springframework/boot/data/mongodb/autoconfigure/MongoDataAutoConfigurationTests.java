@@ -32,12 +32,12 @@ import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.data.mongodb.autoconfigure.domain.city.City;
 import org.springframework.boot.data.mongodb.autoconfigure.domain.country.Country;
 import org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration;
 import org.springframework.boot.mongodb.autoconfigure.MongoConnectionDetails;
 import org.springframework.boot.mongodb.autoconfigure.PropertiesMongoConnectionDetails;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -99,21 +99,6 @@ class MongoDataAutoConfigurationTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	void usesMongoConnectionDetailsIfAvailable() {
-		this.contextRunner.withUserConfiguration(ConnectionDetailsConfiguration.class).run((context) -> {
-			assertThat(context).hasSingleBean(GridFsTemplate.class);
-			GridFsTemplate template = context.getBean(GridFsTemplate.class);
-			GridFSBucket bucket = ((Supplier<GridFSBucket>) ReflectionTestUtils.getField(template, "bucketSupplier"))
-				.get();
-			assertThat(bucket.getBucketName()).isEqualTo("connection-details-bucket");
-			assertThat(bucket).extracting("filesCollection", InstanceOfAssertFactories.type(MongoCollection.class))
-				.extracting((collection) -> collection.getNamespace().getDatabaseName())
-				.isEqualTo("grid-database-1");
-		});
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
 	void whenGridFsBucketIsConfiguredThenGridFsTemplateIsAutoConfiguredAndUsesIt() {
 		this.contextRunner.withPropertyValues("spring.data.mongodb.gridfs.bucket:test-bucket").run((context) -> {
 			assertThat(context).hasSingleBean(GridFsTemplate.class);
@@ -131,6 +116,38 @@ class MongoDataAutoConfigurationTests {
 			assertThat(template.getConverter().getConversionService().canConvert(MongoClient.class, Boolean.class))
 				.isTrue();
 		});
+	}
+
+	@Test
+	@Deprecated(since = "4.0.0")
+	void customBigDecimalDeprecatedRepresentation() {
+		this.contextRunner.withPropertyValues("spring.data.mongodb.representation.big-decimal=string")
+			.run((context) -> assertThat(context.getBean(MongoCustomConversions.class)).extracting("converters")
+				.asInstanceOf(InstanceOfAssertFactories.LIST)
+				.map((converter) -> converter.getClass().getName())
+				.anySatisfy((className) -> assertThat(className).contains("BigDecimalToStringConverter"))
+				.anySatisfy((className) -> assertThat(className).contains("BigIntegerToStringConverter")));
+	}
+
+	@Test
+	void customBigDecimalRepresentation() {
+		this.contextRunner.withPropertyValues("spring.data.mongodb.representation.big-decimal=decimal128")
+			.run((context) -> assertThat(context.getBean(MongoCustomConversions.class)).extracting("converters")
+				.asInstanceOf(InstanceOfAssertFactories.LIST)
+				.map((converter) -> converter.getClass().getName())
+				.anySatisfy((className) -> assertThat(className).contains("BigDecimalToDecimal128Converter"))
+				.anySatisfy((className) -> assertThat(className).contains("BigIntegerToDecimal128Converter")));
+	}
+
+	@Test
+	void defaultBigDecimalRepresentation() {
+		this.contextRunner
+			.run((context) -> assertThat(context.getBean(MongoCustomConversions.class)).extracting("converters")
+				.asInstanceOf(InstanceOfAssertFactories.LIST)
+				.map((converter) -> converter.getClass().getName())
+				.filteredOn((className) -> className.startsWith("org.springframework.data.mongodb"))
+				.noneSatisfy((className) -> assertThat(className).contains("BigDecimalTo"))
+				.noneSatisfy((className) -> assertThat(className).contains("BigIntegerTo")));
 	}
 
 	@Test
@@ -255,7 +272,7 @@ class MongoDataAutoConfigurationTests {
 
 	@Test
 	void databasePropertyIsUsed() {
-		this.contextRunner.withPropertyValues("spring.data.mongodb.database=mydb").run((context) -> {
+		this.contextRunner.withPropertyValues("spring.mongodb.database=mydb").run((context) -> {
 			MongoDatabaseFactory factory = context.getBean(MongoDatabaseFactory.class);
 			assertThat(factory).isInstanceOf(SimpleMongoClientDatabaseFactory.class);
 			assertThat(factory.getMongoDatabase().getName()).isEqualTo("mydb");
@@ -264,19 +281,18 @@ class MongoDataAutoConfigurationTests {
 
 	@Test
 	void databaseInUriPropertyIsUsed() {
-		this.contextRunner.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/mydb")
-			.run((context) -> {
-				MongoDatabaseFactory factory = context.getBean(MongoDatabaseFactory.class);
-				assertThat(factory).isInstanceOf(SimpleMongoClientDatabaseFactory.class);
-				assertThat(factory.getMongoDatabase().getName()).isEqualTo("mydb");
-			});
+		this.contextRunner.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/mydb").run((context) -> {
+			MongoDatabaseFactory factory = context.getBean(MongoDatabaseFactory.class);
+			assertThat(factory).isInstanceOf(SimpleMongoClientDatabaseFactory.class);
+			assertThat(factory.getMongoDatabase().getName()).isEqualTo("mydb");
+		});
 	}
 
 	@Test
 	void databasePropertyOverridesUriProperty() {
 		this.contextRunner
-			.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/notused",
-					"spring.data.mongodb.database=mydb")
+			.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/notused",
+					"spring.mongodb.database=mydb")
 			.run((context) -> {
 				MongoDatabaseFactory factory = context.getBean(MongoDatabaseFactory.class);
 				assertThat(factory).isInstanceOf(SimpleMongoClientDatabaseFactory.class);
@@ -287,8 +303,7 @@ class MongoDataAutoConfigurationTests {
 	@Test
 	void databasePropertyIsUsedWhenNoDatabaseInUri() {
 		this.contextRunner
-			.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/",
-					"spring.data.mongodb.database=mydb")
+			.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/", "spring.mongodb.database=mydb")
 			.run((context) -> {
 				MongoDatabaseFactory factory = context.getBean(MongoDatabaseFactory.class);
 				assertThat(factory).isInstanceOf(SimpleMongoClientDatabaseFactory.class);
@@ -298,7 +313,7 @@ class MongoDataAutoConfigurationTests {
 
 	@Test
 	void contextFailsWhenDatabaseNotSet() {
-		this.contextRunner.withPropertyValues("spring.data.mongodb.uri=mongodb://mongo.example.com/")
+		this.contextRunner.withPropertyValues("spring.mongodb.uri=mongodb://mongo.example.com/")
 			.run((context) -> assertThat(context).getFailure().hasMessageContaining("Database name must not be empty"));
 	}
 
@@ -366,28 +381,6 @@ class MongoDataAutoConfigurationTests {
 		@Bean
 		MongoDatabaseFactory mongoDatabaseFactory() {
 			return new SimpleMongoClientDatabaseFactory(MongoClients.create(), "test");
-		}
-
-	}
-
-	@Configuration(proxyBeanMethods = false)
-	static class ConnectionDetailsConfiguration {
-
-		@Bean
-		MongoConnectionDetails mongoConnectionDetails() {
-			return new MongoConnectionDetails() {
-
-				@Override
-				public ConnectionString getConnectionString() {
-					return new ConnectionString("mongodb://localhost/db");
-				}
-
-				@Override
-				public GridFs getGridFs() {
-					return GridFs.of("grid-database-1", "connection-details-bucket");
-				}
-
-			};
 		}
 
 	}

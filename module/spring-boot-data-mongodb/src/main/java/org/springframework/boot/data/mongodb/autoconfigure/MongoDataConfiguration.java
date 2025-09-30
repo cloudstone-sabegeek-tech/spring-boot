@@ -16,14 +16,11 @@
 
 package org.springframework.boot.data.mongodb.autoconfigure;
 
-import java.util.Collections;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.domain.EntityScanner;
 import org.springframework.boot.context.properties.PropertyMapper;
-import org.springframework.boot.mongodb.autoconfigure.MongoProperties;
+import org.springframework.boot.persistence.autoconfigure.EntityScanner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +32,7 @@ import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
+import org.springframework.data.mongodb.core.convert.MongoCustomConversions.MongoConverterConfigurationAdapter;
 import org.springframework.data.mongodb.core.convert.NoOpDbRefResolver;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
@@ -49,6 +47,12 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 @Configuration(proxyBeanMethods = false)
 class MongoDataConfiguration {
 
+	private final DataMongoProperties properties;
+
+	MongoDataConfiguration(DataMongoProperties properties) {
+		this.properties = properties;
+	}
+
 	@Bean
 	@ConditionalOnMissingBean
 	static MongoManagedTypes mongoManagedTypes(ApplicationContext applicationContext) throws ClassNotFoundException {
@@ -57,13 +61,12 @@ class MongoDataConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	MongoMappingContext mongoMappingContext(MongoProperties properties, MongoCustomConversions conversions,
-			MongoManagedTypes managedTypes) {
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+	MongoMappingContext mongoMappingContext(MongoCustomConversions conversions, MongoManagedTypes managedTypes) {
+		PropertyMapper map = PropertyMapper.get();
 		MongoMappingContext context = new MongoMappingContext();
-		map.from(properties.isAutoIndexCreation()).to(context::setAutoIndexCreation);
+		map.from(this.properties.isAutoIndexCreation()).to(context::setAutoIndexCreation);
 		context.setManagedTypes(managedTypes);
-		Class<?> strategyClass = properties.getFieldNamingStrategy();
+		Class<?> strategyClass = this.properties.getFieldNamingStrategy();
 		if (strategyClass != null) {
 			context.setFieldNamingStrategy((FieldNamingStrategy) BeanUtils.instantiateClass(strategyClass));
 		}
@@ -74,7 +77,11 @@ class MongoDataConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	MongoCustomConversions mongoCustomConversions() {
-		return new MongoCustomConversions(Collections.emptyList());
+		return MongoCustomConversions.create(this::configureConversions);
+	}
+
+	private void configureConversions(MongoConverterConfigurationAdapter configurer) {
+		PropertyMapper.get().from(this.properties.getRepresentation()::getBigDecimal).to(configurer::bigDecimal);
 	}
 
 	@Bean

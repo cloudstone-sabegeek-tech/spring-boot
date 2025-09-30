@@ -36,8 +36,11 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
 
+import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -50,6 +53,7 @@ public abstract class DocumentAutoConfigurationClasses extends DefaultTask {
 	private FileCollection autoConfiguration;
 
 	@InputFiles
+	@PathSensitive(PathSensitivity.RELATIVE)
 	public FileCollection getAutoConfiguration() {
 		return this.autoConfiguration;
 	}
@@ -63,6 +67,7 @@ public abstract class DocumentAutoConfigurationClasses extends DefaultTask {
 
 	@TaskAction
 	void documentAutoConfigurationClasses() throws IOException {
+		FileSystemUtils.deleteRecursively(getOutputDir().getAsFile().get());
 		List<AutoConfiguration> autoConfigurations = load();
 		autoConfigurations.forEach(this::writeModuleAdoc);
 		for (File metadataFile : this.autoConfiguration) {

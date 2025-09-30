@@ -53,11 +53,6 @@ class RedisDockerComposeConnectionDetailsFactoryIntegrationTests {
 		assertThat(sslContext).isNotNull();
 	}
 
-	@DockerComposeTest(composeFile = "redis-bitnami-compose.yaml", image = TestImage.BITNAMI_REDIS)
-	void runWithBitnamiImageCreatesConnectionDetails(RedisConnectionDetails connectionDetails) {
-		assertConnectionDetails(connectionDetails);
-	}
-
 	@DockerComposeTest(composeFile = "redis-compose.yaml", image = TestImage.REDIS_STACK)
 	void runWithRedisStackCreatesConnectionDetails(RedisConnectionDetails connectionDetails) {
 		assertConnectionDetails(connectionDetails);

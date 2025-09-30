@@ -43,11 +43,11 @@ import org.springframework.util.ClassUtils;
 @AutoConfiguration
 @ConditionalOnClass(Gson.class)
 @EnableConfigurationProperties(GsonProperties.class)
-public class GsonAutoConfiguration {
+public final class GsonAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GsonBuilder gsonBuilder(List<GsonBuilderCustomizer> customizers) {
+	GsonBuilder gsonBuilder(List<GsonBuilderCustomizer> customizers) {
 		GsonBuilder builder = new GsonBuilder();
 		customizers.forEach((c) -> c.customize(builder));
 		return builder;
@@ -55,12 +55,12 @@ public class GsonAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public Gson gson(GsonBuilder gsonBuilder) {
+	Gson gson(GsonBuilder gsonBuilder) {
 		return gsonBuilder.create();
 	}
 
 	@Bean
-	public StandardGsonBuilderCustomizer standardGsonBuilderCustomizer(GsonProperties gsonProperties) {
+	StandardGsonBuilderCustomizer standardGsonBuilderCustomizer(GsonProperties gsonProperties) {
 		return new StandardGsonBuilderCustomizer(gsonProperties);
 	}
 
@@ -80,7 +80,7 @@ public class GsonAutoConfiguration {
 		@Override
 		public void customize(GsonBuilder builder) {
 			GsonProperties properties = this.properties;
-			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+			PropertyMapper map = PropertyMapper.get();
 			map.from(properties::getGenerateNonExecutableJson).whenTrue().toCall(builder::generateNonExecutableJson);
 			map.from(properties::getExcludeFieldsWithoutExposeAnnotation)
 				.whenTrue()

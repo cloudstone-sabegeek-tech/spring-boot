@@ -29,6 +29,7 @@ import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.ReflectionException;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -54,7 +55,7 @@ public class EndpointMBean implements DynamicMBean {
 
 	private final JmxOperationResponseMapper responseMapper;
 
-	private final ClassLoader classLoader;
+	private final @Nullable ClassLoader classLoader;
 
 	private final ExposableJmxEndpoint endpoint;
 
@@ -62,7 +63,8 @@ public class EndpointMBean implements DynamicMBean {
 
 	private final Map<String, JmxOperation> operations;
 
-	EndpointMBean(JmxOperationResponseMapper responseMapper, ClassLoader classLoader, ExposableJmxEndpoint endpoint) {
+	EndpointMBean(JmxOperationResponseMapper responseMapper, @Nullable ClassLoader classLoader,
+			ExposableJmxEndpoint endpoint) {
 		Assert.notNull(responseMapper, "'responseMapper' must not be null");
 		Assert.notNull(endpoint, "'endpoint' must not be null");
 		this.responseMapper = responseMapper;
@@ -84,7 +86,7 @@ public class EndpointMBean implements DynamicMBean {
 	}
 
 	@Override
-	public Object invoke(String actionName, Object[] params, String[] signature)
+	public @Nullable Object invoke(String actionName, Object[] params, String[] signature)
 			throws MBeanException, ReflectionException {
 		JmxOperation operation = this.operations.get(actionName);
 		if (operation == null) {
@@ -101,7 +103,7 @@ public class EndpointMBean implements DynamicMBean {
 		}
 	}
 
-	private ClassLoader overrideThreadContextClassLoader(ClassLoader classLoader) {
+	private @Nullable ClassLoader overrideThreadContextClassLoader(@Nullable ClassLoader classLoader) {
 		if (classLoader != null) {
 			try {
 				return ClassUtils.overrideThreadContextClassLoader(classLoader);
@@ -113,7 +115,8 @@ public class EndpointMBean implements DynamicMBean {
 		return null;
 	}
 
-	private Object invoke(JmxOperation operation, Object[] params) throws MBeanException, ReflectionException {
+	private @Nullable Object invoke(JmxOperation operation, Object[] params)
+			throws MBeanException, ReflectionException {
 		try {
 			String[] parameterNames = operation.getParameters()
 				.stream()
@@ -174,7 +177,7 @@ public class EndpointMBean implements DynamicMBean {
 
 	private static final class ReactiveHandler {
 
-		static Object handle(Object result) {
+		static @Nullable Object handle(@Nullable Object result) {
 			if (result instanceof Flux) {
 				result = ((Flux<?>) result).collectList();
 			}

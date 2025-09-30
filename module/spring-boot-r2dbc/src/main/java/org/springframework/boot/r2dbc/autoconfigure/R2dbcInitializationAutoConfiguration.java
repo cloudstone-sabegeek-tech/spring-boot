@@ -17,6 +17,7 @@
 package org.springframework.boot.r2dbc.autoconfigure;
 
 import io.r2dbc.spi.ConnectionFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -48,7 +49,7 @@ import org.springframework.util.StringUtils;
 @ConditionalOnSqlInitialization
 @Import(DatabaseInitializationDependencyConfigurer.class)
 @EnableConfigurationProperties(SqlInitializationProperties.class)
-public class R2dbcInitializationAutoConfiguration {
+public final class R2dbcInitializationAutoConfiguration {
 
 	@Bean
 	ApplicationR2dbcScriptDatabaseInitializer r2dbcScriptDatabaseInitializer(ConnectionFactory connectionFactory,
@@ -58,8 +59,8 @@ public class R2dbcInitializationAutoConfiguration {
 				properties);
 	}
 
-	private static ConnectionFactory determineConnectionFactory(ConnectionFactory connectionFactory, String username,
-			String password) {
+	private static ConnectionFactory determineConnectionFactory(ConnectionFactory connectionFactory,
+			@Nullable String username, @Nullable String password) {
 		if (StringUtils.hasText(username) && StringUtils.hasText(password)) {
 			return ConnectionFactoryBuilder.derivedFrom(connectionFactory)
 				.username(username)

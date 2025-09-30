@@ -28,6 +28,7 @@ import com.unboundid.ldap.listener.InMemoryListenerConfig;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.schema.Schema;
 import com.unboundid.ldif.LDIFReader;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -77,32 +78,33 @@ import org.springframework.util.StringUtils;
 @ConditionalOnClass(InMemoryDirectoryServer.class)
 @Conditional(EmbeddedLdapAutoConfiguration.EmbeddedLdapCondition.class)
 @ImportRuntimeHints(EmbeddedLdapAutoConfigurationRuntimeHints.class)
-public class EmbeddedLdapAutoConfiguration implements DisposableBean {
+public final class EmbeddedLdapAutoConfiguration implements DisposableBean {
 
 	private static final String PROPERTY_SOURCE_NAME = "ldap.ports";
 
 	private final EmbeddedLdapProperties embeddedProperties;
 
-	private InMemoryDirectoryServer server;
+	private @Nullable InMemoryDirectoryServer server;
 
-	public EmbeddedLdapAutoConfiguration(EmbeddedLdapProperties embeddedProperties) {
+	EmbeddedLdapAutoConfiguration(EmbeddedLdapProperties embeddedProperties) {
 		this.embeddedProperties = embeddedProperties;
 	}
 
 	@Bean
-	public InMemoryDirectoryServer directoryServer(ApplicationContext applicationContext) throws LDAPException {
+	InMemoryDirectoryServer directoryServer(ApplicationContext applicationContext) throws LDAPException {
 		String[] baseDn = StringUtils.toStringArray(this.embeddedProperties.getBaseDn());
 		InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(baseDn);
-		if (this.embeddedProperties.getCredential().isAvailable()) {
-			config.addAdditionalBindCredentials(this.embeddedProperties.getCredential().getUsername(),
-					this.embeddedProperties.getCredential().getPassword());
+		String username = this.embeddedProperties.getCredential().getUsername();
+		String password = this.embeddedProperties.getCredential().getPassword();
+		if (StringUtils.hasText(username) && StringUtils.hasText(password)) {
+			config.addAdditionalBindCredentials(username, password);
 		}
 		setSchema(config);
 		InMemoryListenerConfig listenerConfig = InMemoryListenerConfig.createLDAPConfig("LDAP",
 				this.embeddedProperties.getPort());
 		config.setListenerConfigs(listenerConfig);
 		this.server = new InMemoryDirectoryServer(config);
-		importLdif(applicationContext);
+		importLdif(this.server, applicationContext);
 		this.server.startListening();
 		setPortProperty(applicationContext, this.server.getListenPort());
 		return this.server;
@@ -123,21 +125,26 @@ public class EmbeddedLdapAutoConfiguration implements DisposableBean {
 		try {
 			Schema defaultSchema = Schema.getDefaultStandardSchema();
 			Schema schema = Schema.getSchema(resource.getInputStream());
-			config.setSchema(Schema.mergeSchemas(defaultSchema, schema));
+			if (schema == null) {
+				config.setSchema(defaultSchema);
+			}
+			else {
+				config.setSchema(Schema.mergeSchemas(defaultSchema, schema));
+			}
 		}
 		catch (Exception ex) {
 			throw new IllegalStateException("Unable to load schema " + resource.getDescription(), ex);
 		}
 	}
 
-	private void importLdif(ApplicationContext applicationContext) {
+	private void importLdif(InMemoryDirectoryServer server, ApplicationContext applicationContext) {
 		String location = this.embeddedProperties.getLdif();
 		if (StringUtils.hasText(location)) {
 			try {
 				Resource resource = applicationContext.getResource(location);
 				if (resource.exists()) {
 					try (InputStream inputStream = resource.getInputStream()) {
-						this.server.importFromLDIF(true, new LDIFReader(inputStream));
+						server.importFromLDIF(true, new LDIFReader(inputStream));
 					}
 				}
 			}
@@ -221,7 +228,7 @@ public class EmbeddedLdapAutoConfiguration implements DisposableBean {
 	static class EmbeddedLdapAutoConfigurationRuntimeHints implements RuntimeHintsRegistrar {
 
 		@Override
-		public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+		public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
 			hints.resources()
 				.registerPatternIfPresent(classLoader, "schema.ldif", (hint) -> hint.includes("schema.ldif"));
 		}

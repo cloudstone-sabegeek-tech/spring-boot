@@ -27,12 +27,13 @@ configurations {
 }
 
 dependencies {
-	implementation(project(":starter:spring-boot-starter-web"))
+	implementation(project(":starter:spring-boot-starter-webmvc"))
 
 	providedRuntime( project(":starter:spring-boot-starter-tomcat"))
 
 	runtimeOnly("org.webjars:bootstrap:3.0.3")
 	runtimeOnly("org.webjars:jquery:2.0.3-1")
 
+	testImplementation(project(":starter:spring-boot-starter-restclient"))
 	testImplementation(project(":starter:spring-boot-starter-test"))
 }

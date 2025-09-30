@@ -23,10 +23,11 @@ description = "Spring Boot web secure JDBC smoke test"
 dependencies {
 	implementation(project(":starter:spring-boot-starter-jdbc"))
 	implementation(project(":starter:spring-boot-starter-security"))
-	implementation(project(":starter:spring-boot-starter-web"))
+	implementation(project(":starter:spring-boot-starter-webmvc"))
 
 	runtimeOnly("com.h2database:h2")
 
+	testImplementation(project(":starter:spring-boot-starter-restclient"))
 	testImplementation(project(":starter:spring-boot-starter-test"))
 	testImplementation("org.apache.httpcomponents.client5:httpclient5")
 }

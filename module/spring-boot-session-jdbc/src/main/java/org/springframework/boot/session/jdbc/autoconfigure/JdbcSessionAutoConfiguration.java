@@ -61,7 +61,7 @@ import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessi
 @ConditionalOnBean(DataSource.class)
 @EnableConfigurationProperties({ JdbcSessionProperties.class, SessionProperties.class })
 @Import({ DatabaseInitializationDependencyConfigurer.class, JdbcHttpSessionConfiguration.class })
-public class JdbcSessionAutoConfiguration {
+public final class JdbcSessionAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -79,7 +79,7 @@ public class JdbcSessionAutoConfiguration {
 			SessionProperties sessionProperties, JdbcSessionProperties jdbcSessionProperties,
 			ServerProperties serverProperties) {
 		return (sessionRepository) -> {
-			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+			PropertyMapper map = PropertyMapper.get();
 			map.from(sessionProperties.determineTimeout(() -> serverProperties.getServlet().getSession().getTimeout()))
 				.to(sessionRepository::setDefaultMaxInactiveInterval);
 			map.from(jdbcSessionProperties::getTableName).to(sessionRepository::setTableName);

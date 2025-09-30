@@ -16,8 +16,11 @@
 
 package org.springframework.boot.context.properties.bind.validation;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginProvider;
+import org.springframework.lang.Contract;
 import org.springframework.validation.FieldError;
 
 /**
@@ -28,9 +31,9 @@ import org.springframework.validation.FieldError;
  */
 final class OriginTrackedFieldError extends FieldError implements OriginProvider {
 
-	private final Origin origin;
+	private final @Nullable Origin origin;
 
-	private OriginTrackedFieldError(FieldError fieldError, Origin origin) {
+	private OriginTrackedFieldError(FieldError fieldError, @Nullable Origin origin) {
 		super(fieldError.getObjectName(), fieldError.getField(), fieldError.getRejectedValue(),
 				fieldError.isBindingFailure(), fieldError.getCodes(), fieldError.getArguments(),
 				fieldError.getDefaultMessage());
@@ -38,7 +41,7 @@ final class OriginTrackedFieldError extends FieldError implements OriginProvider
 	}
 
 	@Override
-	public Origin getOrigin() {
+	public @Nullable Origin getOrigin() {
 		return this.origin;
 	}
 
@@ -50,7 +53,8 @@ final class OriginTrackedFieldError extends FieldError implements OriginProvider
 		return super.toString() + "; origin " + this.origin;
 	}
 
-	static FieldError of(FieldError fieldError, Origin origin) {
+	@Contract("!null, _ -> !null")
+	static @Nullable FieldError of(@Nullable FieldError fieldError, @Nullable Origin origin) {
 		if (fieldError == null || origin == null) {
 			return fieldError;
 		}

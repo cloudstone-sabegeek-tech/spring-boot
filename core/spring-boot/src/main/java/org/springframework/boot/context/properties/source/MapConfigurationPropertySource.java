@@ -22,6 +22,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.Assert;
 
@@ -76,7 +78,8 @@ public class MapConfigurationPropertySource implements IterableConfigurationProp
 	 * @param value the value
 	 */
 	public void put(Object name, Object value) {
-		this.source.put((name != null) ? name.toString() : null, value);
+		Assert.notNull(name, "'name' must not be null");
+		this.source.put(name.toString(), value);
 	}
 
 	@Override
@@ -85,7 +88,7 @@ public class MapConfigurationPropertySource implements IterableConfigurationProp
 	}
 
 	@Override
-	public ConfigurationProperty getConfigurationProperty(ConfigurationPropertyName name) {
+	public @Nullable ConfigurationProperty getConfigurationProperty(ConfigurationPropertyName name) {
 		return this.delegate.getConfigurationProperty(name);
 	}
 

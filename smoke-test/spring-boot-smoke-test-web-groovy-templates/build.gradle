@@ -23,7 +23,10 @@ description = "Spring Boot web Groovy Templates smoke test"
 dependencies {
 	implementation(project(":starter:spring-boot-starter-groovy-templates"))
 	implementation(project(":starter:spring-boot-starter-validation"))
+	implementation(project(":starter:spring-boot-starter-webmvc"))
 	implementation("jakarta.xml.bind:jakarta.xml.bind-api")
 
+	testImplementation(project(":module:spring-boot-webmvc-test"))
+	testImplementation(project(":starter:spring-boot-starter-restclient"))
 	testImplementation(project(":starter:spring-boot-starter-test"))
 }

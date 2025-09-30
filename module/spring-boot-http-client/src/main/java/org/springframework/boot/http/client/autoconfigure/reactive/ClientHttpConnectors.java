@@ -21,6 +21,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.boot.http.client.HttpRedirects;
 import org.springframework.boot.http.client.autoconfigure.reactive.AbstractClientHttpConnectorProperties.Connector;
@@ -42,36 +44,65 @@ public final class ClientHttpConnectors {
 
 	private final ObjectFactory<SslBundles> sslBundles;
 
-	private final AbstractClientHttpConnectorProperties[] orderedProperties;
+	private final @Nullable AbstractClientHttpConnectorProperties[] orderedProperties;
+
+	private final @Nullable ClientHttpConnectorBuilder<?> fallbackBuilder;
+
+	private final @Nullable ClientHttpConnectorSettings fallbackSettings;
 
 	public ClientHttpConnectors(ObjectFactory<SslBundles> sslBundles,
-			AbstractClientHttpConnectorProperties... orderedProperties) {
+			@Nullable AbstractClientHttpConnectorProperties... orderedProperties) {
+		this(null, null, sslBundles, orderedProperties);
+	}
+
+	public ClientHttpConnectors(@Nullable ClientHttpConnectorBuilder<?> fallbackBuilder,
+			@Nullable ClientHttpConnectorSettings fallbackSettings, ObjectFactory<SslBundles> sslBundles,
+			@Nullable AbstractClientHttpConnectorProperties... orderedProperties) {
+		this.fallbackBuilder = fallbackBuilder;
+		this.fallbackSettings = fallbackSettings;
 		this.sslBundles = sslBundles;
 		this.orderedProperties = orderedProperties;
 	}
 
-	public ClientHttpConnectorBuilder<?> builder(ClassLoader classLoader) {
-		Connector connector = getProperty(AbstractClientHttpConnectorProperties::getConnector);
-		return (connector != null) ? connector.builder() : ClientHttpConnectorBuilder.detect(classLoader);
+	@SuppressWarnings("NullAway") // Lambda isn't detected with the correct nullability
+	public ClientHttpConnectorBuilder<?> builder(@Nullable ClassLoader classLoader) {
+		Connector connector = getProperty(AbstractClientHttpConnectorProperties::getConnector, Objects::nonNull, null,
+				Function.identity());
+		if (connector != null) {
+			return connector.builder();
+		}
+		return (this.fallbackBuilder != null) ? this.fallbackBuilder : ClientHttpConnectorBuilder.detect(classLoader);
 	}
 
+	@SuppressWarnings("NullAway") // Lambda isn't detected with the correct nullability
 	public ClientHttpConnectorSettings settings() {
-		HttpRedirects redirects = getProperty(AbstractClientHttpConnectorProperties::getRedirects);
-		Duration connectTimeout = getProperty(AbstractClientHttpConnectorProperties::getConnectTimeout);
-		Duration readTimeout = getProperty(AbstractClientHttpConnectorProperties::getReadTimeout);
+		HttpRedirects redirects = getProperty(AbstractClientHttpConnectorProperties::getRedirects, Objects::nonNull,
+				this.fallbackSettings, ClientHttpConnectorSettings::redirects);
+		Duration connectTimeout = getProperty(AbstractClientHttpConnectorProperties::getConnectTimeout,
+				Objects::nonNull, this.fallbackSettings, ClientHttpConnectorSettings::connectTimeout);
+		Duration readTimeout = getProperty(AbstractClientHttpConnectorProperties::getReadTimeout, Objects::nonNull,
+				this.fallbackSettings, ClientHttpConnectorSettings::readTimeout);
 		String sslBundleName = getProperty(AbstractClientHttpConnectorProperties::getSsl, Ssl::getBundle,
-				StringUtils::hasText);
+				StringUtils::hasText, null, Function.identity());
 		SslBundle sslBundle = (StringUtils.hasLength(sslBundleName))
-				? this.sslBundles.getObject().getBundle(sslBundleName) : null;
+				? this.sslBundles.getObject().getBundle(sslBundleName) : fallbackSslBundle();
 		return new ClientHttpConnectorSettings(redirects, connectTimeout, readTimeout, sslBundle);
 	}
 
-	private <T> T getProperty(Function<AbstractClientHttpConnectorProperties, T> accessor) {
-		return getProperty(accessor, Function.identity(), Objects::nonNull);
+	private @Nullable SslBundle fallbackSslBundle() {
+		return (this.fallbackSettings != null) ? this.fallbackSettings.sslBundle() : null;
 	}
 
-	private <P, T> T getProperty(Function<AbstractClientHttpConnectorProperties, P> accessor, Function<P, T> extractor,
-			Predicate<T> predicate) {
+	@SuppressWarnings("NullAway") // Lambda isn't detected with the correct nullability
+	private <T, F> @Nullable T getProperty(Function<AbstractClientHttpConnectorProperties, @Nullable T> accessor,
+			Predicate<@Nullable T> predicate, @Nullable F fallback, Function<F, @Nullable T> fallbackAccessor) {
+		return getProperty(accessor, Function.identity(), predicate, fallback, fallbackAccessor);
+	}
+
+	@SuppressWarnings("NullAway") // Lambda isn't detected with the correct nullability
+	private <P, T, F> @Nullable T getProperty(Function<AbstractClientHttpConnectorProperties, @Nullable P> accessor,
+			Function<P, @Nullable T> extractor, Predicate<@Nullable T> predicate, @Nullable F fallback,
+			Function<F, @Nullable T> fallbackAccessor) {
 		for (AbstractClientHttpConnectorProperties properties : this.orderedProperties) {
 			if (properties != null) {
 				P value = accessor.apply(properties);
@@ -81,7 +112,7 @@ public final class ClientHttpConnectors {
 				}
 			}
 		}
-		return null;
+		return (fallback != null) ? fallbackAccessor.apply(fallback) : null;
 	}
 
 }

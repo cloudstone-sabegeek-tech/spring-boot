@@ -21,12 +21,14 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.time.Instant;
 import org.apache.logging.log4j.util.ReadOnlyStringMap;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.json.JsonWriter;
 import org.springframework.boot.logging.StackTracePrinter;
@@ -45,12 +47,12 @@ import org.springframework.util.CollectionUtils;
  */
 class LogstashStructuredLogFormatter extends JsonWriterStructuredLogFormatter<LogEvent> {
 
-	LogstashStructuredLogFormatter(StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
-			StructuredLoggingJsonMembersCustomizer<?> customizer) {
+	LogstashStructuredLogFormatter(@Nullable StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
+			@Nullable StructuredLoggingJsonMembersCustomizer<?> customizer) {
 		super((members) -> jsonMembers(stackTracePrinter, contextPairs, members), customizer);
 	}
 
-	private static void jsonMembers(StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
+	private static void jsonMembers(@Nullable StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
 			JsonWriter.Members<LogEvent> members) {
 		Extractor extractor = new Extractor(stackTracePrinter);
 		members.add("@timestamp", LogEvent::getInstant).as(LogstashStructuredLogFormatter::asTimestamp);
@@ -60,14 +62,16 @@ class LogstashStructuredLogFormatter extends JsonWriterStructuredLogFormatter<Lo
 		members.add("thread_name", LogEvent::getThreadName);
 		members.add("level", LogEvent::getLevel).as(Level::name);
 		members.add("level_value", LogEvent::getLevel).as(Level::intLevel);
+		Predicate<@Nullable ReadOnlyStringMap> mapIsEmpty = (map) -> map == null || map.isEmpty();
 		members.from(LogEvent::getContextData)
-			.whenNot(ReadOnlyStringMap::isEmpty)
+			.whenNot(mapIsEmpty)
 			.usingPairs(contextPairs.flat("_", LogstashStructuredLogFormatter::addContextDataPairs));
+		Predicate<@Nullable Set<String>> collectionIsEmpty = CollectionUtils::isEmpty;
 		members.add("tags", LogEvent::getMarker)
 			.whenNotNull()
 			.as(LogstashStructuredLogFormatter::getMarkers)
-			.whenNot(CollectionUtils::isEmpty);
-		members.add("stack_trace", LogEvent::getThrownProxy).whenNotNull().as(extractor::stackTrace);
+			.whenNot(collectionIsEmpty);
+		members.add("stack_trace", LogEvent::getThrown).whenNotNull().as(extractor::stackTrace);
 	}
 
 	private static String asTimestamp(Instant instant) {

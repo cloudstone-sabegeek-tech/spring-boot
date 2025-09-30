@@ -36,10 +36,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.actuate.endpoint.Access;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
-import org.springframework.boot.actuate.endpoint.annotation.OptionalParameter;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
@@ -66,7 +66,7 @@ public class HeapDumpWebEndpoint {
 
 	private final Lock lock = new ReentrantLock();
 
-	private HeapDumper heapDumper;
+	private @Nullable HeapDumper heapDumper;
 
 	public HeapDumpWebEndpoint() {
 		this(TimeUnit.SECONDS.toMillis(10));
@@ -77,7 +77,7 @@ public class HeapDumpWebEndpoint {
 	}
 
 	@ReadOperation
-	public WebEndpointResponse<Resource> heapDump(@OptionalParameter Boolean live) {
+	public WebEndpointResponse<Resource> heapDump(@Nullable Boolean live) {
 		try {
 			if (this.lock.tryLock(this.timeout, TimeUnit.MILLISECONDS)) {
 				try {
@@ -100,7 +100,7 @@ public class HeapDumpWebEndpoint {
 		return new WebEndpointResponse<>(WebEndpointResponse.STATUS_TOO_MANY_REQUESTS);
 	}
 
-	private Resource dumpHeap(Boolean live) throws IOException, InterruptedException {
+	private Resource dumpHeap(@Nullable Boolean live) throws IOException, InterruptedException {
 		if (this.heapDumper == null) {
 			this.heapDumper = createHeapDumper();
 		}
@@ -146,7 +146,7 @@ public class HeapDumpWebEndpoint {
 		 * the JVM
 		 * @since 3.0.0
 		 */
-		File dumpHeap(Boolean live) throws IOException, InterruptedException;
+		File dumpHeap(@Nullable Boolean live) throws IOException, InterruptedException;
 
 	}
 
@@ -167,16 +167,21 @@ public class HeapDumpWebEndpoint {
 					.resolveClassName("com.sun.management.HotSpotDiagnosticMXBean", null);
 				this.diagnosticMXBean = ManagementFactory
 					.getPlatformMXBean((Class<PlatformManagedObject>) diagnosticMXBeanClass);
-				this.dumpHeapMethod = ReflectionUtils.findMethod(diagnosticMXBeanClass, "dumpHeap", String.class,
-						Boolean.TYPE);
+				this.dumpHeapMethod = getDumpHeapMethod(diagnosticMXBeanClass);
 			}
 			catch (Throwable ex) {
 				throw new HeapDumperUnavailableException("Unable to locate HotSpotDiagnosticMXBean", ex);
 			}
 		}
 
+		private static Method getDumpHeapMethod(Class<?> clazz) {
+			Method method = ReflectionUtils.findMethod(clazz, "dumpHeap", String.class, Boolean.TYPE);
+			Assert.state(method != null, "'method' must not be null");
+			return method;
+		}
+
 		@Override
-		public File dumpHeap(Boolean live) throws IOException {
+		public File dumpHeap(@Nullable Boolean live) throws IOException {
 			File file = createTempFile();
 			ReflectionUtils.invokeMethod(this.dumpHeapMethod, this.diagnosticMXBean, file.getAbsolutePath(),
 					(live != null) ? live : true);
@@ -209,19 +214,26 @@ public class HeapDumpWebEndpoint {
 				Class<?> mxBeanClass = ClassUtils.resolveClassName("openj9.lang.management.OpenJ9DiagnosticsMXBean",
 						null);
 				this.diagnosticMXBean = ManagementFactory.getPlatformMXBean((Class<PlatformManagedObject>) mxBeanClass);
-				this.dumpHeapMethod = ReflectionUtils.findMethod(mxBeanClass, "triggerDumpToFile", String.class,
-						String.class);
+				this.dumpHeapMethod = getDumpHeapMethod(mxBeanClass);
 			}
 			catch (Throwable ex) {
 				throw new HeapDumperUnavailableException("Unable to locate OpenJ9DiagnosticsMXBean", ex);
 			}
 		}
 
+		private static Method getDumpHeapMethod(Class<?> mxBeanClass) {
+			Method method = ReflectionUtils.findMethod(mxBeanClass, "triggerDumpToFile", String.class, String.class);
+			Assert.state(method != null, "'method' must not be null");
+			return method;
+		}
+
 		@Override
-		public File dumpHeap(Boolean live) throws IOException, InterruptedException {
+		public File dumpHeap(@Nullable Boolean live) throws IOException, InterruptedException {
 			Assert.state(live == null, "OpenJ9DiagnosticsMXBean does not support live parameter when dumping the heap");
-			return new File(
-					(String) ReflectionUtils.invokeMethod(this.dumpHeapMethod, this.diagnosticMXBean, "heap", null));
+			String file = (String) ReflectionUtils.invokeMethod(this.dumpHeapMethod, this.diagnosticMXBean, "heap",
+					null);
+			Assert.state(file != null, "'file' must not be null");
+			return new File(file);
 		}
 
 	}

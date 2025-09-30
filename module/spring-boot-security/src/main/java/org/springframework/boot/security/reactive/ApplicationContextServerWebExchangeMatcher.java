@@ -18,6 +18,7 @@ package org.springframework.boot.security.reactive;
 
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -42,7 +43,7 @@ public abstract class ApplicationContextServerWebExchangeMatcher<C> implements S
 
 	private final Class<? extends C> contextClass;
 
-	private volatile Supplier<C> context;
+	private volatile @Nullable Supplier<C> context;
 
 	private final Object contextLock = new Object();
 
@@ -74,21 +75,23 @@ public abstract class ApplicationContextServerWebExchangeMatcher<C> implements S
 	 * @param applicationContext the candidate application context
 	 * @return if the application context should be ignored
 	 */
-	protected boolean ignoreApplicationContext(ApplicationContext applicationContext) {
+	protected boolean ignoreApplicationContext(@Nullable ApplicationContext applicationContext) {
 		return false;
 	}
 
 	protected Supplier<C> getContext(ServerWebExchange exchange) {
-		if (this.context == null) {
+		Supplier<C> context = this.context;
+		if (context == null) {
 			synchronized (this.contextLock) {
-				if (this.context == null) {
-					Supplier<C> createdContext = createContext(exchange);
-					initialized(createdContext);
-					this.context = createdContext;
+				context = this.context;
+				if (context == null) {
+					context = createContext(exchange);
+					initialized(context);
+					this.context = context;
 				}
 			}
 		}
-		return this.context;
+		return context;
 	}
 
 	/**

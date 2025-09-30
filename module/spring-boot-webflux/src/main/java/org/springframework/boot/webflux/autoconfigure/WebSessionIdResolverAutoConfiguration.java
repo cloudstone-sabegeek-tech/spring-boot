@@ -47,18 +47,17 @@ import org.springframework.web.server.session.WebSessionManager;
 @ConditionalOnWebApplication(type = Type.REACTIVE)
 @ConditionalOnClass({ WebSessionManager.class, Mono.class })
 @EnableConfigurationProperties({ WebFluxProperties.class, ServerProperties.class })
-public class WebSessionIdResolverAutoConfiguration {
+public final class WebSessionIdResolverAutoConfiguration {
 
 	private final ServerProperties serverProperties;
 
-	public WebSessionIdResolverAutoConfiguration(ServerProperties serverProperties,
-			WebFluxProperties webFluxProperties) {
+	WebSessionIdResolverAutoConfiguration(ServerProperties serverProperties, WebFluxProperties webFluxProperties) {
 		this.serverProperties = serverProperties;
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebSessionIdResolver webSessionIdResolver() {
+	WebSessionIdResolver webSessionIdResolver() {
 		CookieWebSessionIdResolver resolver = new CookieWebSessionIdResolver();
 		String cookieName = this.serverProperties.getReactive().getSession().getCookie().getName();
 		if (StringUtils.hasText(cookieName)) {
@@ -70,14 +69,14 @@ public class WebSessionIdResolverAutoConfiguration {
 
 	private void initializeCookie(ResponseCookieBuilder builder) {
 		Cookie cookie = this.serverProperties.getReactive().getSession().getCookie();
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		map.from(cookie::getDomain).to(builder::domain);
 		map.from(cookie::getPath).to(builder::path);
 		map.from(cookie::getHttpOnly).to(builder::httpOnly);
 		map.from(cookie::getSecure).to(builder::secure);
 		map.from(cookie::getMaxAge).to(builder::maxAge);
 		map.from(cookie::getPartitioned).to(builder::partitioned);
-		map.from(cookie::getSameSite).as(SameSite::attributeValue).to(builder::sameSite);
+		map.from(cookie::getSameSite).as(SameSite::attributeValue).always().to(builder::sameSite);
 	}
 
 }

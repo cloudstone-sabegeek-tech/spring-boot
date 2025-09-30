@@ -16,10 +16,10 @@
 
 package org.springframework.boot.security.oauth2.server.authorization.autoconfigure.servlet;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.security.autoconfigure.actuate.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -42,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Steve Riesenberg
  * @author Madhura Bhave
+ * @author Florian Lemaire
  */
 class OAuth2AuthorizationServerAutoConfigurationTests {
 
@@ -74,7 +75,6 @@ class OAuth2AuthorizationServerAutoConfigurationTests {
 	}
 
 	@Test
-	@Disabled("https://github.com/spring-projects/spring-security/commit/edb7a642c7747592c58d9013e178ab9595a392ed")
 	void registeredClientRepositoryBeanShouldBeCreatedWhenPropertiesPresent() {
 		this.contextRunner
 			.withPropertyValues(CLIENT_PREFIX + ".foo.registration.client-id=abcd",
@@ -98,7 +98,6 @@ class OAuth2AuthorizationServerAutoConfigurationTests {
 	}
 
 	@Test
-	@Disabled("https://github.com/spring-projects/spring-security/commit/edb7a642c7747592c58d9013e178ab9595a392ed")
 	void registeredClientRepositoryBacksOffWhenRegisteredClientRepositoryBeanPresent() {
 		this.contextRunner.withUserConfiguration(TestRegisteredClientRepositoryConfiguration.class)
 			.withPropertyValues(CLIENT_PREFIX + ".foo.registration.client-id=abcd",
@@ -136,6 +135,7 @@ class OAuth2AuthorizationServerAutoConfigurationTests {
 					PROPERTIES_PREFIX + ".endpoint.token-uri=/token", PROPERTIES_PREFIX + ".endpoint.jwk-set-uri=/jwks",
 					PROPERTIES_PREFIX + ".endpoint.token-revocation-uri=/revoke",
 					PROPERTIES_PREFIX + ".endpoint.token-introspection-uri=/introspect",
+					PROPERTIES_PREFIX + ".endpoint.pushed-authorization-request-uri=/par",
 					PROPERTIES_PREFIX + ".endpoint.oidc.logout-uri=/logout",
 					PROPERTIES_PREFIX + ".endpoint.oidc.client-registration-uri=/register",
 					PROPERTIES_PREFIX + ".endpoint.oidc.user-info-uri=/user")
@@ -149,6 +149,7 @@ class OAuth2AuthorizationServerAutoConfigurationTests {
 				assertThat(settings.getJwkSetEndpoint()).isEqualTo("/jwks");
 				assertThat(settings.getTokenRevocationEndpoint()).isEqualTo("/revoke");
 				assertThat(settings.getTokenIntrospectionEndpoint()).isEqualTo("/introspect");
+				assertThat(settings.getPushedAuthorizationRequestEndpoint()).isEqualTo("/par");
 				assertThat(settings.getOidcLogoutEndpoint()).isEqualTo("/logout");
 				assertThat(settings.getOidcClientRegistrationEndpoint()).isEqualTo("/register");
 				assertThat(settings.getOidcUserInfoEndpoint()).isEqualTo("/user");
@@ -163,6 +164,19 @@ class OAuth2AuthorizationServerAutoConfigurationTests {
 				AuthorizationServerSettings settings = context.getBean(AuthorizationServerSettings.class);
 				assertThat(settings.getIssuer()).isEqualTo("https://example.com");
 			});
+	}
+
+	@Test
+	void causesManagementWebSecurityAutoConfigurationToBackOff() {
+		this.contextRunner
+			.withPropertyValues(CLIENT_PREFIX + ".foo.registration.client-id=abcd",
+					CLIENT_PREFIX + ".foo.registration.client-secret=secret",
+					CLIENT_PREFIX + ".foo.registration.client-authentication-methods=client_secret_basic",
+					CLIENT_PREFIX + ".foo.registration.authorization-grant-types=client_credentials",
+					CLIENT_PREFIX + ".foo.registration.scopes=test")
+			.withConfiguration(AutoConfigurations.of(ManagementWebSecurityAutoConfiguration.class))
+			.run((context) -> assertThat(context).doesNotHaveBean(ManagementWebSecurityAutoConfiguration.class)
+				.doesNotHaveBean("managementSecurityFilterChain"));
 	}
 
 	@Configuration

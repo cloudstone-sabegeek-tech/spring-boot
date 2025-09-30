@@ -25,10 +25,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.domain.EntityScanner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.persistence.autoconfigure.EntityScanner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -68,8 +68,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 @ConditionalOnBean({ NamedParameterJdbcOperations.class, PlatformTransactionManager.class })
 @ConditionalOnClass({ NamedParameterJdbcOperations.class, AbstractJdbcConfiguration.class })
 @ConditionalOnBooleanProperty(name = "spring.data.jdbc.repositories.enabled", matchIfMissing = true)
-@EnableConfigurationProperties(JdbcDataProperties.class)
-public class JdbcRepositoriesAutoConfiguration {
+@EnableConfigurationProperties(DataJdbcProperties.class)
+public final class JdbcRepositoriesAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnMissingBean(JdbcRepositoryConfigExtension.class)
@@ -84,9 +84,9 @@ public class JdbcRepositoriesAutoConfiguration {
 
 		private final ApplicationContext applicationContext;
 
-		private final JdbcDataProperties properties;
+		private final DataJdbcProperties properties;
 
-		SpringBootJdbcConfiguration(ApplicationContext applicationContext, JdbcDataProperties properties) {
+		SpringBootJdbcConfiguration(ApplicationContext applicationContext, DataJdbcProperties properties) {
 			this.applicationContext = applicationContext;
 			this.properties = properties;
 		}

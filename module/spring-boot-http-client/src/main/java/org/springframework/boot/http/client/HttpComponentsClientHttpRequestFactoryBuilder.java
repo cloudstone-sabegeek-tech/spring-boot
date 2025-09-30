@@ -20,7 +20,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -28,8 +28,10 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.TlsSocketStrategy;
 import org.apache.hc.core5.http.io.SocketConfig;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.context.properties.PropertyMapper;
+import org.springframework.boot.http.client.HttpComponentsHttpClientBuilder.TlsSocketStrategyFactory;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.Assert;
@@ -53,7 +55,7 @@ public final class HttpComponentsClientHttpRequestFactoryBuilder
 	}
 
 	private HttpComponentsClientHttpRequestFactoryBuilder(
-			List<Consumer<HttpComponentsClientHttpRequestFactory>> customizers,
+			@Nullable List<Consumer<HttpComponentsClientHttpRequestFactory>> customizers,
 			HttpComponentsHttpClientBuilder httpClientBuilder) {
 		super(customizers);
 		this.httpClientBuilder = httpClientBuilder;
@@ -121,7 +123,7 @@ public final class HttpComponentsClientHttpRequestFactoryBuilder
 	 * @return a new {@link HttpComponentsClientHttpRequestFactoryBuilder} instance
 	 */
 	public HttpComponentsClientHttpRequestFactoryBuilder withTlsSocketStrategyFactory(
-			Function<SslBundle, TlsSocketStrategy> tlsSocketStrategyFactory) {
+			TlsSocketStrategyFactory tlsSocketStrategyFactory) {
 		Assert.notNull(tlsSocketStrategyFactory, "'tlsSocketStrategyFactory' must not be null");
 		return new HttpComponentsClientHttpRequestFactoryBuilder(getCustomizers(),
 				this.httpClientBuilder.withTlsSocketStrategyFactory(tlsSocketStrategyFactory));
@@ -142,12 +144,24 @@ public final class HttpComponentsClientHttpRequestFactoryBuilder
 				this.httpClientBuilder.withDefaultRequestConfigCustomizer(defaultRequestConfigCustomizer));
 	}
 
+	/**
+	 * Return a new {@link HttpComponentsClientHttpRequestFactoryBuilder} that applies the
+	 * given customizer. This can be useful for applying pre-packaged customizations.
+	 * @param customizer the customizer to apply
+	 * @return a new {@link HttpComponentsClientHttpRequestFactoryBuilder}
+	 * @since 4.0.0
+	 */
+	public HttpComponentsClientHttpRequestFactoryBuilder with(
+			UnaryOperator<HttpComponentsClientHttpRequestFactoryBuilder> customizer) {
+		return customizer.apply(this);
+	}
+
 	@Override
 	protected HttpComponentsClientHttpRequestFactory createClientHttpRequestFactory(
 			ClientHttpRequestFactorySettings settings) {
 		HttpClient httpClient = this.httpClientBuilder.build(asHttpClientSettings(settings.withConnectTimeout(null)));
 		HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		map.from(settings::connectTimeout).asInt(Duration::toMillis).to(factory::setConnectTimeout);
 		return factory;
 	}
@@ -156,7 +170,7 @@ public final class HttpComponentsClientHttpRequestFactoryBuilder
 
 		static final String HTTP_CLIENTS = "org.apache.hc.client5.http.impl.classic.HttpClients";
 
-		static boolean present(ClassLoader classLoader) {
+		static boolean present(@Nullable ClassLoader classLoader) {
 			return ClassUtils.isPresent(HTTP_CLIENTS, classLoader);
 		}
 

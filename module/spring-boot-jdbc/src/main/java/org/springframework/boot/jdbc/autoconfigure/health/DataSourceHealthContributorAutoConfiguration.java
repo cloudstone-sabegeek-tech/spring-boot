@@ -26,6 +26,8 @@ import java.util.stream.Stream;
 
 import javax.sql.DataSource;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -68,14 +70,14 @@ import org.springframework.util.Assert;
 @ConditionalOnBean(DataSource.class)
 @ConditionalOnEnabledHealthIndicator("db")
 @EnableConfigurationProperties(DataSourceHealthIndicatorProperties.class)
-public class DataSourceHealthContributorAutoConfiguration implements InitializingBean {
+public final class DataSourceHealthContributorAutoConfiguration implements InitializingBean {
 
 	private final Collection<DataSourcePoolMetadataProvider> metadataProviders;
 
+	@SuppressWarnings("NullAway.Init")
 	private DataSourcePoolMetadataProvider poolMetadataProvider;
 
-	public DataSourceHealthContributorAutoConfiguration(
-			ObjectProvider<DataSourcePoolMetadataProvider> metadataProviders) {
+	DataSourceHealthContributorAutoConfiguration(ObjectProvider<DataSourcePoolMetadataProvider> metadataProviders) {
 		this.metadataProviders = metadataProviders.orderedStream().toList();
 	}
 
@@ -86,7 +88,7 @@ public class DataSourceHealthContributorAutoConfiguration implements Initializin
 
 	@Bean
 	@ConditionalOnMissingBean(name = { "dbHealthIndicator", "dbHealthContributor" })
-	public HealthContributor dbHealthContributor(ConfigurableListableBeanFactory beanFactory,
+	HealthContributor dbHealthContributor(ConfigurableListableBeanFactory beanFactory,
 			DataSourceHealthIndicatorProperties dataSourceHealthIndicatorProperties) {
 		Map<String, DataSource> dataSources = SimpleAutowireCandidateResolver.resolveAutowireCandidates(beanFactory,
 				DataSource.class, false, true);
@@ -115,7 +117,7 @@ public class DataSourceHealthContributorAutoConfiguration implements Initializin
 		return new DataSourceHealthIndicator(source, getValidationQuery(source));
 	}
 
-	private String getValidationQuery(DataSource source) {
+	private @Nullable String getValidationQuery(DataSource source) {
 		DataSourcePoolMetadata poolMetadata = this.poolMetadataProvider.getDataSourcePoolMetadata(source);
 		return (poolMetadata != null) ? poolMetadata.getValidationQuery() : null;
 	}
@@ -166,7 +168,7 @@ public class DataSourceHealthContributorAutoConfiguration implements Initializin
 		}
 
 		@Override
-		public HealthContributor getContributor(String name) {
+		public @Nullable HealthContributor getContributor(String name) {
 			return this.delegate.getContributor(name);
 		}
 

@@ -18,6 +18,7 @@ package org.springframework.boot.test.autoconfigure.filter;
 
 import java.lang.annotation.Annotation;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.annotation.MergedAnnotations.SearchStrategy;
+import org.springframework.util.Assert;
 
 /**
  * {@link AnnotationCustomizableTypeExcludeFilter} that can be used to any test annotation
@@ -77,7 +79,14 @@ public abstract class StandardAnnotationCustomizableTypeExcludeFilter<A extends 
 	}
 
 	@Override
-	protected Set<Class<?>> getDefaultIncludes() {
+	protected final Set<Class<?>> getDefaultIncludes() {
+		Set<Class<?>> defaultIncludes = new HashSet<>();
+		defaultIncludes.addAll(getKnownIncludes());
+		defaultIncludes.addAll(TypeIncludes.load(this.annotation.getType(), getClass().getClassLoader()).getIncludes());
+		return defaultIncludes;
+	}
+
+	protected Set<Class<?>> getKnownIncludes() {
 		return Collections.emptySet();
 	}
 
@@ -90,7 +99,9 @@ public abstract class StandardAnnotationCustomizableTypeExcludeFilter<A extends 
 	protected Class<A> getAnnotationType() {
 		ResolvableType type = ResolvableType.forClass(StandardAnnotationCustomizableTypeExcludeFilter.class,
 				getClass());
-		return (Class<A>) type.resolveGeneric();
+		Class<A> generic = (Class<A>) type.resolveGeneric();
+		Assert.state(generic != null, "'generic' must not be null");
+		return generic;
 	}
 
 }

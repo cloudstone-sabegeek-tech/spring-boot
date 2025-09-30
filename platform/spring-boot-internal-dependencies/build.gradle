@@ -27,13 +27,6 @@ bom {
 			issueLabels = ["type: task"]
 		}
 	}
-	library("Android JSON", "0.0.20131108.vaadin1") {
-		group("com.vaadin.external.google") {
-			modules = [
-				"android-json"
-			]
-		}
-	}
 	library("API Guardian", "1.1.2") {
 		group("org.apiguardian") {
 			modules = [
@@ -90,7 +83,12 @@ bom {
 				"jsr305"
 			]
 		}
-	}	
+	}
+	library("gRPC", "1.73.0") {
+		group("io.grpc") {
+			bom("grpc-bom")
+		}
+	}
 	library("Janino", "3.1.12") {
 		group("org.codehaus.janino") {
 			bom("janino") {
@@ -188,7 +186,7 @@ bom {
 			]
 		}
 	}
-	library("OkHttp", "4.12.0") {
+	library("OkHttp", "5.1.0") {
 		group("com.squareup.okhttp3") {
 			modules = [
 				"mockwebserver"

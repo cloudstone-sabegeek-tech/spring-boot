@@ -27,6 +27,8 @@ import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.boot.context.properties.PropertyMapper;
@@ -37,6 +39,7 @@ import org.springframework.boot.logging.StackTracePrinter;
 import org.springframework.boot.logging.StandardStackTracePrinter;
 import org.springframework.boot.util.Instantiator;
 import org.springframework.core.env.Environment;
+import org.springframework.util.Assert;
 
 /**
  * Properties that can be used to customize structured logging JSON.
@@ -53,11 +56,19 @@ import org.springframework.core.env.Environment;
  * @author Yanming Zhou
  */
 record StructuredLoggingJsonProperties(Set<String> include, Set<String> exclude, Map<String, String> rename,
-		Map<String, String> add, StackTrace stackTrace, Context context,
+		Map<String, String> add, @Nullable StackTrace stackTrace, @Nullable Context context,
 		Set<Class<? extends StructuredLoggingJsonMembersCustomizer<?>>> customizer) {
 
-	StructuredLoggingJsonProperties {
-		customizer = (customizer != null) ? customizer : Collections.emptySet();
+	StructuredLoggingJsonProperties(Set<String> include, Set<String> exclude, Map<String, String> rename,
+			Map<String, String> add, @Nullable StackTrace stackTrace, @Nullable Context context,
+			@Nullable Set<Class<? extends StructuredLoggingJsonMembersCustomizer<?>>> customizer) {
+		this.include = include;
+		this.exclude = exclude;
+		this.rename = rename;
+		this.add = add;
+		this.stackTrace = stackTrace;
+		this.context = context;
+		this.customizer = (customizer != null) ? customizer : Collections.emptySet();
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -65,7 +76,7 @@ record StructuredLoggingJsonProperties(Set<String> include, Set<String> exclude,
 		return (List) customizer().stream().map(instantiator::instantiateType).toList();
 	}
 
-	static StructuredLoggingJsonProperties get(Environment environment) {
+	static @Nullable StructuredLoggingJsonProperties get(Environment environment) {
 		return Binder.get(environment)
 			.bind("logging.structured.json", StructuredLoggingJsonProperties.class)
 			.orElse(null);
@@ -87,10 +98,11 @@ record StructuredLoggingJsonProperties(Set<String> include, Set<String> exclude,
 	 * @param includeCommonFrames whether common frames should be included
 	 * @param includeHashes whether stack trace hashes should be included
 	 */
-	record StackTrace(String printer, Root root, Integer maxLength, Integer maxThrowableDepth,
-			Boolean includeCommonFrames, Boolean includeHashes) {
+	record StackTrace(@Nullable String printer, @Nullable Root root, @Nullable Integer maxLength,
+			@Nullable Integer maxThrowableDepth, @Nullable Boolean includeCommonFrames,
+			@Nullable Boolean includeHashes) {
 
-		StackTracePrinter createPrinter() {
+		@Nullable StackTracePrinter createPrinter() {
 			String name = sanitizePrinter();
 			if ("loggingsystem".equals(name) || (name.isEmpty() && !hasAnyOtherProperty())) {
 				return null;
@@ -99,6 +111,7 @@ record StructuredLoggingJsonProperties(Set<String> include, Set<String> exclude,
 			if ("standard".equals(name) || name.isEmpty()) {
 				return standardPrinter;
 			}
+			Assert.state(printer() != null, "'printer' must not be null");
 			return (StackTracePrinter) new Instantiator<>(StackTracePrinter.class,
 					(parameters) -> parameters.add(StandardStackTracePrinter.class, standardPrinter))
 				.instantiate(printer());
@@ -124,7 +137,7 @@ record StructuredLoggingJsonProperties(Set<String> include, Set<String> exclude,
 		private StandardStackTracePrinter createStandardPrinter() {
 			StandardStackTracePrinter printer = (root() == Root.FIRST) ? StandardStackTracePrinter.rootFirst()
 					: StandardStackTracePrinter.rootLast();
-			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+			PropertyMapper map = PropertyMapper.get();
 			printer = map.from(this::maxLength).to(printer, StandardStackTracePrinter::withMaximumLength);
 			printer = map.from(this::maxThrowableDepth)
 				.to(printer, StandardStackTracePrinter::withMaximumThrowableDepth);
@@ -158,14 +171,14 @@ record StructuredLoggingJsonProperties(Set<String> include, Set<String> exclude,
 	 * @param prefix the prefix to use for context elements
 	 * @since 3.5.0
 	 */
-	record Context(@DefaultValue("true") boolean include, String prefix) {
+	record Context(@DefaultValue("true") boolean include, @Nullable String prefix) {
 
 	}
 
 	static class StructuredLoggingJsonPropertiesRuntimeHints implements RuntimeHintsRegistrar {
 
 		@Override
-		public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+		public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
 			BindableRuntimeHintsRegistrar.forTypes(StructuredLoggingJsonProperties.class)
 				.registerHints(hints, classLoader);
 		}

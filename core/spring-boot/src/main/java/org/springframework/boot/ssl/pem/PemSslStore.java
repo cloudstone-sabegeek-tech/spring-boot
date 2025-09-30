@@ -21,6 +21,8 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.io.ApplicationResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.Assert;
@@ -40,13 +42,13 @@ public interface PemSslStore {
 	 * will use {@link KeyStore#getDefaultType()}).
 	 * @return the key store type
 	 */
-	String type();
+	@Nullable String type();
 
 	/**
 	 * The alias used when setting entries in the {@link KeyStore}.
 	 * @return the alias
 	 */
-	String alias();
+	@Nullable String alias();
 
 	/**
 	 * The password used when
@@ -54,7 +56,7 @@ public interface PemSslStore {
 	 * setting key entries} in the {@link KeyStore}.
 	 * @return the password
 	 */
-	String password();
+	@Nullable String password();
 
 	/**
 	 * The certificates for this store. When a {@link #privateKey() private key} is
@@ -62,21 +64,23 @@ public interface PemSslStore {
 	 * treated a list of certificates that should all be registered.
 	 * @return the X509 certificates
 	 */
-	List<X509Certificate> certificates();
+	@Nullable List<X509Certificate> certificates();
 
 	/**
 	 * The private key for this store or {@code null}.
 	 * @return the private key
 	 */
-	PrivateKey privateKey();
+	@Nullable PrivateKey privateKey();
 
 	/**
 	 * Return a new {@link PemSslStore} instance with a new alias.
 	 * @param alias the new alias
 	 * @return a new {@link PemSslStore} instance
 	 */
-	default PemSslStore withAlias(String alias) {
-		return of(type(), alias, password(), certificates(), privateKey());
+	default PemSslStore withAlias(@Nullable String alias) {
+		List<X509Certificate> certificates = certificates();
+		Assert.notNull(certificates, "'certificates' must not be null");
+		return of(type(), alias, password(), certificates, privateKey());
 	}
 
 	/**
@@ -84,8 +88,10 @@ public interface PemSslStore {
 	 * @param password the new password
 	 * @return a new {@link PemSslStore} instance
 	 */
-	default PemSslStore withPassword(String password) {
-		return of(type(), alias(), password, certificates(), privateKey());
+	default PemSslStore withPassword(@Nullable String password) {
+		List<X509Certificate> certificates = certificates();
+		Assert.notNull(certificates, "'certificates' must not be null");
+		return of(type(), alias(), password, certificates, privateKey());
 	}
 
 	/**
@@ -94,7 +100,7 @@ public interface PemSslStore {
 	 * @param details the PEM store details
 	 * @return a loaded {@link PemSslStore} or {@code null}.
 	 */
-	static PemSslStore load(PemSslStoreDetails details) {
+	static @Nullable PemSslStore load(@Nullable PemSslStoreDetails details) {
 		return load(details, ApplicationResourceLoader.get());
 	}
 
@@ -106,7 +112,7 @@ public interface PemSslStore {
 	 * @return a loaded {@link PemSslStore} or {@code null}.
 	 * @since 3.3.5
 	 */
-	static PemSslStore load(PemSslStoreDetails details, ResourceLoader resourceLoader) {
+	static @Nullable PemSslStore load(@Nullable PemSslStoreDetails details, ResourceLoader resourceLoader) {
 		if (details == null || details.isEmpty()) {
 			return null;
 		}
@@ -121,7 +127,7 @@ public interface PemSslStore {
 	 * @param privateKey the private key
 	 * @return a new {@link PemSslStore} instance
 	 */
-	static PemSslStore of(String type, List<X509Certificate> certificates, PrivateKey privateKey) {
+	static PemSslStore of(@Nullable String type, List<X509Certificate> certificates, @Nullable PrivateKey privateKey) {
 		return of(type, null, null, certificates, privateKey);
 	}
 
@@ -132,7 +138,7 @@ public interface PemSslStore {
 	 * @param privateKey the private key
 	 * @return a new {@link PemSslStore} instance
 	 */
-	static PemSslStore of(List<X509Certificate> certificates, PrivateKey privateKey) {
+	static PemSslStore of(List<X509Certificate> certificates, @Nullable PrivateKey privateKey) {
 		return of(null, null, null, certificates, privateKey);
 	}
 
@@ -148,23 +154,23 @@ public interface PemSslStore {
 	 * @param privateKey the private key
 	 * @return a new {@link PemSslStore} instance
 	 */
-	static PemSslStore of(String type, String alias, String password, List<X509Certificate> certificates,
-			PrivateKey privateKey) {
+	static PemSslStore of(@Nullable String type, @Nullable String alias, @Nullable String password,
+			List<X509Certificate> certificates, @Nullable PrivateKey privateKey) {
 		Assert.notEmpty(certificates, "'certificates' must not be empty");
 		return new PemSslStore() {
 
 			@Override
-			public String type() {
+			public @Nullable String type() {
 				return type;
 			}
 
 			@Override
-			public String alias() {
+			public @Nullable String alias() {
 				return alias;
 			}
 
 			@Override
-			public String password() {
+			public @Nullable String password() {
 				return password;
 			}
 
@@ -174,7 +180,7 @@ public interface PemSslStore {
 			}
 
 			@Override
-			public PrivateKey privateKey() {
+			public @Nullable PrivateKey privateKey() {
 				return privateKey;
 			}
 

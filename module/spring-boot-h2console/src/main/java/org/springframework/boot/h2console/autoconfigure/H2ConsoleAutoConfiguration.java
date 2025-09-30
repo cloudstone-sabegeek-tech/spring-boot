@@ -25,6 +25,7 @@ import javax.sql.DataSource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.h2.server.web.JakartaWebServlet;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -53,7 +54,7 @@ import org.springframework.core.log.LogMessage;
 @ConditionalOnClass(JakartaWebServlet.class)
 @ConditionalOnBooleanProperty("spring.h2.console.enabled")
 @EnableConfigurationProperties(H2ConsoleProperties.class)
-public class H2ConsoleAutoConfiguration {
+public final class H2ConsoleAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(H2ConsoleAutoConfiguration.class);
 
@@ -64,7 +65,7 @@ public class H2ConsoleAutoConfiguration {
 	}
 
 	@Bean
-	public ServletRegistrationBean<JakartaWebServlet> h2Console() {
+	ServletRegistrationBean<JakartaWebServlet> h2Console() {
 		String path = this.properties.getPath();
 		String urlMapping = path + (path.endsWith("/") ? "*" : "/*");
 		ServletRegistrationBean<JakartaWebServlet> registration = new ServletRegistrationBean<>(new JakartaWebServlet(),
@@ -118,7 +119,7 @@ public class H2ConsoleAutoConfiguration {
 				.toList();
 		}
 
-		private String getConnectionUrl(DataSource dataSource) {
+		private @Nullable String getConnectionUrl(DataSource dataSource) {
 			try (Connection connection = dataSource.getConnection()) {
 				return "'" + connection.getMetaData().getURL() + "'";
 			}

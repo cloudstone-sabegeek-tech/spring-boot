@@ -16,20 +16,19 @@
 
 package org.springframework.boot.webclient.autoconfigure.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.boot.http.client.autoconfigure.reactive.ClientHttpConnectors;
 import org.springframework.boot.http.client.autoconfigure.reactive.HttpReactiveClientProperties;
 import org.springframework.boot.http.client.reactive.ClientHttpConnectorBuilder;
 import org.springframework.boot.http.client.reactive.ClientHttpConnectorSettings;
 import org.springframework.boot.ssl.SslBundles;
+import org.springframework.boot.webclient.autoconfigure.PropertiesWebClientCustomizer;
 import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.web.client.ApiVersionFormatter;
+import org.springframework.web.client.ApiVersionInserter;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientHttpServiceGroupConfigurer;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -49,24 +48,29 @@ class WebClientPropertiesHttpServiceGroupConfigurer implements WebClientHttpServ
 
 	private final ObjectProvider<SslBundles> sslBundles;
 
-	private final HttpReactiveClientProperties clientProperties;
-
 	private final ReactiveHttpClientServiceProperties serviceProperties;
 
 	private final ObjectProvider<ClientHttpConnectorBuilder<?>> clientConnectorBuilder;
 
 	private final ObjectProvider<ClientHttpConnectorSettings> clientConnectorSettings;
 
+	private final @Nullable ApiVersionInserter apiVersionInserter;
+
+	private final @Nullable ApiVersionFormatter apiVersionFormatter;
+
 	WebClientPropertiesHttpServiceGroupConfigurer(ClassLoader classLoader, ObjectProvider<SslBundles> sslBundles,
-			HttpReactiveClientProperties clientProperties, ReactiveHttpClientServiceProperties serviceProperties,
+			ReactiveHttpClientServiceProperties serviceProperties,
 			ObjectProvider<ClientHttpConnectorBuilder<?>> clientConnectorBuilder,
-			ObjectProvider<ClientHttpConnectorSettings> clientConnectorSettings) {
+			ObjectProvider<ClientHttpConnectorSettings> clientConnectorSettings,
+			ObjectProvider<ApiVersionInserter> apiVersionInserter,
+			ObjectProvider<ApiVersionFormatter> apiVersionFormatter) {
 		this.classLoader = classLoader;
 		this.sslBundles = sslBundles;
-		this.clientProperties = clientProperties;
 		this.serviceProperties = serviceProperties;
 		this.clientConnectorBuilder = clientConnectorBuilder;
 		this.clientConnectorSettings = clientConnectorSettings;
+		this.apiVersionInserter = apiVersionInserter.getIfAvailable();
+		this.apiVersionFormatter = apiVersionFormatter.getIfAvailable();
 	}
 
 	@Override
@@ -82,25 +86,22 @@ class WebClientPropertiesHttpServiceGroupConfigurer implements WebClientHttpServ
 	private void configureClient(HttpServiceGroup group, WebClient.Builder builder) {
 		ReactiveHttpClientServiceProperties.Group groupProperties = this.serviceProperties.getGroup().get(group.name());
 		builder.clientConnector(getClientConnector(groupProperties));
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
-		map.from(this.serviceProperties::getBaseUrl).whenHasText().to(builder::baseUrl);
-		map.from(this.serviceProperties::getDefaultHeader).as(this::putAllHeaders).to(builder::defaultHeaders);
-		if (groupProperties != null) {
-			map.from(groupProperties::getBaseUrl).whenHasText().to(builder::baseUrl);
-			map.from(groupProperties::getDefaultHeader).as(this::putAllHeaders).to(builder::defaultHeaders);
-		}
+		getPropertiesWebClientCustomizer(groupProperties).customize(builder);
 	}
 
-	private Consumer<HttpHeaders> putAllHeaders(Map<String, List<String>> defaultHeaders) {
-		return (httpHeaders) -> httpHeaders.putAll(defaultHeaders);
+	private PropertiesWebClientCustomizer getPropertiesWebClientCustomizer(
+			ReactiveHttpClientServiceProperties.@Nullable Group groupProperties) {
+		return new PropertiesWebClientCustomizer(this.apiVersionInserter, this.apiVersionFormatter, groupProperties,
+				this.serviceProperties);
 	}
 
-	private ClientHttpConnector getClientConnector(ReactiveHttpClientServiceProperties.Group groupProperties) {
-		ClientHttpConnectors connectors = new ClientHttpConnectors(this.sslBundles, groupProperties,
-				this.serviceProperties, this.clientProperties);
-		ClientHttpConnectorBuilder<?> builder = this.clientConnectorBuilder
-			.getIfAvailable(() -> connectors.builder(this.classLoader));
-		ClientHttpConnectorSettings settings = this.clientConnectorSettings.getIfAvailable(connectors::settings);
+	private ClientHttpConnector getClientConnector(
+			ReactiveHttpClientServiceProperties.@Nullable Group groupProperties) {
+		ClientHttpConnectors connectors = new ClientHttpConnectors(this.clientConnectorBuilder.getIfAvailable(),
+				this.clientConnectorSettings.getIfAvailable(), this.sslBundles, groupProperties,
+				this.serviceProperties);
+		ClientHttpConnectorBuilder<?> builder = connectors.builder(this.classLoader);
+		ClientHttpConnectorSettings settings = connectors.settings();
 		return builder.build(settings);
 	}
 

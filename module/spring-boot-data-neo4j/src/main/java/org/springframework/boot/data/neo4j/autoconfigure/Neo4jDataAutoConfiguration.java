@@ -26,9 +26,9 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.domain.EntityScanner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.neo4j.autoconfigure.Neo4jAutoConfiguration;
+import org.springframework.boot.persistence.autoconfigure.EntityScanner;
 import org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration;
 import org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizationAutoConfiguration;
 import org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizers;
@@ -62,13 +62,13 @@ import org.springframework.transaction.TransactionManager;
 @AutoConfiguration(before = TransactionAutoConfiguration.class,
 		after = { Neo4jAutoConfiguration.class, TransactionManagerCustomizationAutoConfiguration.class })
 @ConditionalOnClass({ Driver.class, Neo4jTransactionManager.class, PlatformTransactionManager.class })
-@EnableConfigurationProperties(Neo4jDataProperties.class)
+@EnableConfigurationProperties(DataNeo4jProperties.class)
 @ConditionalOnBean(Driver.class)
-public class Neo4jDataAutoConfiguration {
+public final class Neo4jDataAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public Neo4jConversions neo4jConversions() {
+	Neo4jConversions neo4jConversions() {
 		return new Neo4jConversions();
 	}
 
@@ -82,7 +82,7 @@ public class Neo4jDataAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public Neo4jMappingContext neo4jMappingContext(Neo4jManagedTypes managedTypes, Neo4jConversions neo4jConversions) {
+	Neo4jMappingContext neo4jMappingContext(Neo4jManagedTypes managedTypes, Neo4jConversions neo4jConversions) {
 		Neo4jMappingContext context = new Neo4jMappingContext(neo4jConversions);
 		context.setManagedTypes(managedTypes);
 		return context;
@@ -90,7 +90,7 @@ public class Neo4jDataAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public DatabaseSelectionProvider databaseSelectionProvider(Neo4jDataProperties properties) {
+	DatabaseSelectionProvider databaseSelectionProvider(DataNeo4jProperties properties) {
 		String database = properties.getDatabase();
 		return (database != null) ? DatabaseSelectionProvider.createStaticDatabaseSelectionProvider(database)
 				: DatabaseSelectionProvider.getDefaultSelectionProvider();
@@ -98,19 +98,19 @@ public class Neo4jDataAutoConfiguration {
 
 	@Bean(Neo4jRepositoryConfigurationExtension.DEFAULT_NEO4J_CLIENT_BEAN_NAME)
 	@ConditionalOnMissingBean
-	public Neo4jClient neo4jClient(Driver driver, DatabaseSelectionProvider databaseNameProvider) {
+	Neo4jClient neo4jClient(Driver driver, DatabaseSelectionProvider databaseNameProvider) {
 		return Neo4jClient.create(driver, databaseNameProvider);
 	}
 
 	@Bean(Neo4jRepositoryConfigurationExtension.DEFAULT_NEO4J_TEMPLATE_BEAN_NAME)
 	@ConditionalOnMissingBean(Neo4jOperations.class)
-	public Neo4jTemplate neo4jTemplate(Neo4jClient neo4jClient, Neo4jMappingContext neo4jMappingContext) {
+	Neo4jTemplate neo4jTemplate(Neo4jClient neo4jClient, Neo4jMappingContext neo4jMappingContext) {
 		return new Neo4jTemplate(neo4jClient, neo4jMappingContext);
 	}
 
 	@Bean(Neo4jRepositoryConfigurationExtension.DEFAULT_TRANSACTION_MANAGER_BEAN_NAME)
 	@ConditionalOnMissingBean(TransactionManager.class)
-	public Neo4jTransactionManager transactionManager(Driver driver, DatabaseSelectionProvider databaseNameProvider,
+	Neo4jTransactionManager transactionManager(Driver driver, DatabaseSelectionProvider databaseNameProvider,
 			ObjectProvider<TransactionManagerCustomizers> optionalCustomizers) {
 		Neo4jTransactionManager transactionManager = new Neo4jTransactionManager(driver, databaseNameProvider);
 		optionalCustomizers.ifAvailable((customizer) -> customizer.customize(transactionManager));

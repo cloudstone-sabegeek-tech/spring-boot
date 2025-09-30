@@ -27,6 +27,8 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -37,6 +39,7 @@ import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
+import org.springframework.lang.Contract;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -53,9 +56,9 @@ public final class TestPropertyValues {
 
 	private static final TestPropertyValues EMPTY = new TestPropertyValues(Collections.emptyMap());
 
-	private final Map<String, Object> properties;
+	private final Map<String, @Nullable Object> properties;
 
-	private TestPropertyValues(Map<String, Object> properties) {
+	private TestPropertyValues(Map<String, @Nullable Object> properties) {
 		this.properties = Collections.unmodifiableMap(properties);
 	}
 
@@ -76,7 +79,7 @@ public final class TestPropertyValues {
 	 * @return a new {@link TestPropertyValues} instance
 	 * @since 2.4.0
 	 */
-	public TestPropertyValues and(Iterable<String> pairs) {
+	public TestPropertyValues and(@Nullable Iterable<String> pairs) {
 		return (pairs != null) ? and(StreamSupport.stream(pairs.spliterator(), false)) : this;
 	}
 
@@ -87,7 +90,7 @@ public final class TestPropertyValues {
 	 * @return a new {@link TestPropertyValues} instance
 	 * @since 2.4.0
 	 */
-	public TestPropertyValues and(Stream<String> pairs) {
+	public TestPropertyValues and(@Nullable Stream<String> pairs) {
 		return (pairs != null) ? and(pairs, Pair::parse) : this;
 	}
 
@@ -97,7 +100,7 @@ public final class TestPropertyValues {
 	 * @return a new {@link TestPropertyValues} instance
 	 * @since 2.4.0
 	 */
-	public TestPropertyValues and(Map<String, String> map) {
+	public TestPropertyValues and(@Nullable Map<String, String> map) {
 		return (map != null) ? and(map.entrySet().stream(), Pair::fromMapEntry) : this;
 	}
 
@@ -110,11 +113,11 @@ public final class TestPropertyValues {
 	 * @return a new {@link TestPropertyValues} instance
 	 * @since 2.4.0
 	 */
-	public <T> TestPropertyValues and(Stream<T> stream, Function<T, Pair> mapper) {
+	public <T> TestPropertyValues and(@Nullable Stream<T> stream, Function<T, @Nullable Pair> mapper) {
 		if (stream == null) {
 			return this;
 		}
-		Map<String, Object> properties = new LinkedHashMap<>(this.properties);
+		Map<String, @Nullable Object> properties = new LinkedHashMap<>(this.properties);
 		stream.map(mapper).filter(Objects::nonNull).forEach((pair) -> pair.addTo(properties));
 		return new TestPropertyValues(properties);
 	}
@@ -172,7 +175,7 @@ public final class TestPropertyValues {
 	public void applyToSystemProperties(Runnable action) {
 		applyToSystemProperties(() -> {
 			action.run();
-			return null;
+			return new Object();
 		});
 	}
 
@@ -183,7 +186,7 @@ public final class TestPropertyValues {
 	 * @param call the call to make
 	 * @return the result of the call
 	 */
-	public <T> T applyToSystemProperties(Callable<T> call) {
+	public <T extends @Nullable Object> T applyToSystemProperties(Callable<T> call) {
 		try (SystemPropertiesHandler handler = new SystemPropertiesHandler()) {
 			return call.call();
 		}
@@ -200,8 +203,8 @@ public final class TestPropertyValues {
 
 	@SuppressWarnings("unchecked")
 	private void addToSources(MutablePropertySources sources, Type type, String name) {
-		if (sources.contains(name)) {
-			PropertySource<?> propertySource = sources.get(name);
+		PropertySource<?> propertySource = sources.get(name);
+		if (propertySource != null) {
 			if (propertySource.getClass() == type.getSourceClass()) {
 				((Map<String, Object>) propertySource.getSource()).putAll(this.properties);
 				return;
@@ -232,7 +235,7 @@ public final class TestPropertyValues {
 	 * environment
 	 * @return the new instance
 	 */
-	public static TestPropertyValues of(Iterable<String> pairs) {
+	public static TestPropertyValues of(@Nullable Iterable<String> pairs) {
 		return (pairs != null) ? of(StreamSupport.stream(pairs.spliterator(), false)) : empty();
 	}
 
@@ -244,7 +247,7 @@ public final class TestPropertyValues {
 	 * environment
 	 * @return the new instance
 	 */
-	public static TestPropertyValues of(Stream<String> pairs) {
+	public static TestPropertyValues of(@Nullable Stream<String> pairs) {
 		return (pairs != null) ? of(pairs, Pair::parse) : empty();
 	}
 
@@ -254,7 +257,7 @@ public final class TestPropertyValues {
 	 * @param map the map of properties that need to be added to the environment
 	 * @return the new instance
 	 */
-	public static TestPropertyValues of(Map<String, String> map) {
+	public static TestPropertyValues of(@Nullable Map<String, String> map) {
 		return (map != null) ? of(map.entrySet().stream(), Pair::fromMapEntry) : empty();
 	}
 
@@ -267,7 +270,7 @@ public final class TestPropertyValues {
 	 * {@link Pair}
 	 * @return the new instance
 	 */
-	public static <T> TestPropertyValues of(Stream<T> stream, Function<T, Pair> mapper) {
+	public static <T> TestPropertyValues of(@Nullable Stream<T> stream, Function<T, @Nullable Pair> mapper) {
 		return (stream != null) ? empty().and(stream, mapper) : empty();
 	}
 
@@ -297,9 +300,9 @@ public final class TestPropertyValues {
 
 		private final Class<? extends MapPropertySource> sourceClass;
 
-		private final String suffix;
+		private final @Nullable String suffix;
 
-		Type(Class<? extends MapPropertySource> sourceClass, String suffix) {
+		Type(Class<? extends MapPropertySource> sourceClass, @Nullable String suffix) {
 			this.sourceClass = sourceClass;
 			this.suffix = suffix;
 		}
@@ -321,19 +324,19 @@ public final class TestPropertyValues {
 
 		private final String name;
 
-		private final String value;
+		private final @Nullable String value;
 
-		private Pair(String name, String value) {
+		private Pair(String name, @Nullable String value) {
 			Assert.hasLength(name, "'name' must not be empty");
 			this.name = name;
 			this.value = value;
 		}
 
-		public void addTo(Map<String, Object> properties) {
+		public void addTo(Map<String, @Nullable Object> properties) {
 			properties.put(this.name, this.value);
 		}
 
-		public static Pair parse(String pair) {
+		public static @Nullable Pair parse(String pair) {
 			int index = getSeparatorIndex(pair);
 			String name = (index > 0) ? pair.substring(0, index) : pair;
 			String value = (index > 0) ? pair.substring(index + 1) : "";
@@ -358,7 +361,8 @@ public final class TestPropertyValues {
 		 * @return the {@link Pair} instance or {@code null}
 		 * @since 2.4.0
 		 */
-		public static Pair fromMapEntry(Map.Entry<String, String> entry) {
+		@Contract("!null -> !null")
+		public static @Nullable Pair fromMapEntry(Map.@Nullable Entry<String, String> entry) {
 			return (entry != null) ? of(entry.getKey(), entry.getValue()) : null;
 		}
 
@@ -369,8 +373,8 @@ public final class TestPropertyValues {
 		 * @return the {@link Pair} instance or {@code null}
 		 * @since 2.4.0
 		 */
-		public static Pair of(String name, String value) {
-			if (StringUtils.hasLength(name) || StringUtils.hasLength(value)) {
+		public static @Nullable Pair of(@Nullable String name, @Nullable String value) {
+			if (StringUtils.hasLength(name)) {
 				return new Pair(name, value);
 			}
 			return null;

@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -65,7 +66,7 @@ import org.springframework.util.StringUtils;
 @ConditionalOnMissingBean(value = { AuthenticationManager.class, AuthenticationProvider.class, UserDetailsService.class,
 		AuthenticationManagerResolver.class }, type = "org.springframework.security.oauth2.jwt.JwtDecoder")
 @ConditionalOnWebApplication(type = Type.SERVLET)
-public class UserDetailsServiceAutoConfiguration {
+public final class UserDetailsServiceAutoConfiguration {
 
 	private static final String NOOP_PASSWORD_PREFIX = "{noop}";
 
@@ -74,7 +75,7 @@ public class UserDetailsServiceAutoConfiguration {
 	private static final Log logger = LogFactory.getLog(UserDetailsServiceAutoConfiguration.class);
 
 	@Bean
-	public InMemoryUserDetailsManager inMemoryUserDetailsManager(SecurityProperties properties,
+	InMemoryUserDetailsManager inMemoryUserDetailsManager(SecurityProperties properties,
 			ObjectProvider<PasswordEncoder> passwordEncoder) {
 		SecurityProperties.User user = properties.getUser();
 		List<String> roles = user.getRoles();
@@ -84,7 +85,7 @@ public class UserDetailsServiceAutoConfiguration {
 			.build());
 	}
 
-	private String getOrDeducePassword(SecurityProperties.User user, PasswordEncoder encoder) {
+	private String getOrDeducePassword(SecurityProperties.User user, @Nullable PasswordEncoder encoder) {
 		String password = user.getPassword();
 		if (user.isPasswordGenerated()) {
 			logger.warn(String.format(

@@ -17,11 +17,11 @@
 package org.springframework.boot.logging.logback;
 
 import java.io.Console;
-import java.nio.charset.Charset;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import ch.qos.logback.core.util.FileSize;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.logging.LogFile;
 import org.springframework.boot.logging.LoggingSystemProperties;
@@ -54,7 +54,8 @@ public class LogbackLoggingSystemProperties extends LoggingSystemProperties {
 	 * @param setter setter used to apply the property
 	 * @since 2.4.3
 	 */
-	public LogbackLoggingSystemProperties(Environment environment, BiConsumer<String, String> setter) {
+	public LogbackLoggingSystemProperties(Environment environment,
+			@Nullable BiConsumer<String, @Nullable String> setter) {
 		super(environment, setter);
 	}
 
@@ -66,23 +67,19 @@ public class LogbackLoggingSystemProperties extends LoggingSystemProperties {
 	 * properties
 	 * @since 3.2.0
 	 */
-	public LogbackLoggingSystemProperties(Environment environment, Function<String, String> defaultValueResolver,
-			BiConsumer<String, String> setter) {
+	public LogbackLoggingSystemProperties(Environment environment,
+			@Nullable Function<@Nullable String, @Nullable String> defaultValueResolver,
+			@Nullable BiConsumer<String, @Nullable String> setter) {
 		super(environment, defaultValueResolver, setter);
 	}
 
 	@Override
-	protected Console getConsole() {
+	protected @Nullable Console getConsole() {
 		return super.getConsole();
 	}
 
 	@Override
-	protected Charset getDefaultFileCharset() {
-		return Charset.defaultCharset();
-	}
-
-	@Override
-	protected void apply(LogFile logFile, PropertyResolver resolver) {
+	protected void apply(@Nullable LogFile logFile, PropertyResolver resolver) {
 		super.apply(logFile, resolver);
 		applyJBossLoggingProperties();
 		applyRollingPolicyProperties(resolver);
@@ -117,7 +114,7 @@ public class LogbackLoggingSystemProperties extends LoggingSystemProperties {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> T getProperty(PropertyResolver resolver, String key, Class<T> type) {
+	private <T> @Nullable T getProperty(PropertyResolver resolver, String key, Class<T> type) {
 		try {
 			return resolver.getProperty(key, type);
 		}

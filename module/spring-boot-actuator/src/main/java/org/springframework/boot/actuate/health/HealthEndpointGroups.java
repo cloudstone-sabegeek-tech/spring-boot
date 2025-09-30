@@ -20,6 +20,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.actuate.endpoint.web.WebServerNamespace;
 import org.springframework.util.Assert;
 
@@ -48,7 +50,7 @@ public interface HealthEndpointGroups {
 	 * @param name the name of the group
 	 * @return the {@link HealthEndpointGroup} or {@code null}
 	 */
-	HealthEndpointGroup get(String name);
+	@Nullable HealthEndpointGroup get(String name);
 
 	/**
 	 * Return the group with the specified additional path or {@code null} if no group
@@ -57,10 +59,11 @@ public interface HealthEndpointGroups {
 	 * @return the matching {@link HealthEndpointGroup} or {@code null}
 	 * @since 2.6.0
 	 */
-	default HealthEndpointGroup get(AdditionalHealthEndpointPath path) {
+	default @Nullable HealthEndpointGroup get(AdditionalHealthEndpointPath path) {
 		Assert.notNull(path, "'path' must not be null");
 		for (String name : getNames()) {
 			HealthEndpointGroup group = get(name);
+			Assert.state(group != null, "'group' must not be null");
 			if (path.equals(group.getAdditionalPath())) {
 				return group;
 			}
@@ -80,7 +83,8 @@ public interface HealthEndpointGroups {
 		Set<HealthEndpointGroup> filteredGroups = new LinkedHashSet<>();
 		getNames().stream()
 			.map(this::get)
-			.filter((group) -> group.getAdditionalPath() != null && group.getAdditionalPath().hasNamespace(namespace))
+			.filter((group) -> group != null && group.getAdditionalPath() != null
+					&& group.getAdditionalPath().hasNamespace(namespace))
 			.forEach(filteredGroups::add);
 		return filteredGroups;
 	}
@@ -107,7 +111,7 @@ public interface HealthEndpointGroups {
 			}
 
 			@Override
-			public HealthEndpointGroup get(String name) {
+			public @Nullable HealthEndpointGroup get(String name) {
 				return additional.get(name);
 			}
 

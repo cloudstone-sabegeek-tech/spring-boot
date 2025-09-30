@@ -21,23 +21,14 @@ plugins {
 description = "Starter for testing Spring Boot applications with libraries including JUnit Jupiter, Hamcrest and Mockito"
 
 dependencies {
+	api(project(":starter:spring-boot-starter"))
+
 	api(project(":core:spring-boot-test"))
-	api(project(":module:spring-boot-http-client")) {
-		transitive = false
-	}
-	api(project(":module:spring-boot-http-codec")) {
-		transitive = false
-	}
-	api(project(":module:spring-boot-restclient")) {
-		transitive = false
-	}
+
 	api(project(":module:spring-boot-restclient-test"))
 	api(project(":module:spring-boot-test-autoconfigure"))
 	api(project(":module:spring-boot-web-server-test"))
-	api(project(":module:spring-boot-webclient"))  {
-		transitive = false
-	}
-	api(project(":starter:spring-boot-starter"))
+
 	api("com.jayway.jsonpath:json-path")
 	api("jakarta.xml.bind:jakarta.xml.bind-api")
 	api("net.minidev:json-smart")

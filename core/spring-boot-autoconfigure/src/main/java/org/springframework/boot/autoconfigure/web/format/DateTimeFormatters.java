@@ -19,6 +19,8 @@ package org.springframework.boot.autoconfigure.web.format;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.StringUtils;
 
 /**
@@ -30,20 +32,20 @@ import org.springframework.util.StringUtils;
  */
 public class DateTimeFormatters {
 
-	private DateTimeFormatter dateFormatter;
+	private @Nullable DateTimeFormatter dateFormatter;
 
-	private String datePattern;
+	private @Nullable String datePattern;
 
-	private DateTimeFormatter timeFormatter;
+	private @Nullable DateTimeFormatter timeFormatter;
 
-	private DateTimeFormatter dateTimeFormatter;
+	private @Nullable DateTimeFormatter dateTimeFormatter;
 
 	/**
 	 * Configures the date format using the given {@code pattern}.
 	 * @param pattern the pattern for formatting dates
 	 * @return {@code this} for chained method invocation
 	 */
-	public DateTimeFormatters dateFormat(String pattern) {
+	public DateTimeFormatters dateFormat(@Nullable String pattern) {
 		if (isIso(pattern)) {
 			this.dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
 			this.datePattern = "yyyy-MM-dd";
@@ -60,7 +62,7 @@ public class DateTimeFormatters {
 	 * @param pattern the pattern for formatting times
 	 * @return {@code this} for chained method invocation
 	 */
-	public DateTimeFormatters timeFormat(String pattern) {
+	public DateTimeFormatters timeFormat(@Nullable String pattern) {
 		this.timeFormatter = isIso(pattern) ? DateTimeFormatter.ISO_LOCAL_TIME
 				: (isIsoOffset(pattern) ? DateTimeFormatter.ISO_OFFSET_TIME : formatter(pattern));
 		return this;
@@ -71,25 +73,25 @@ public class DateTimeFormatters {
 	 * @param pattern the pattern for formatting date-times
 	 * @return {@code this} for chained method invocation
 	 */
-	public DateTimeFormatters dateTimeFormat(String pattern) {
+	public DateTimeFormatters dateTimeFormat(@Nullable String pattern) {
 		this.dateTimeFormatter = isIso(pattern) ? DateTimeFormatter.ISO_LOCAL_DATE_TIME
 				: (isIsoOffset(pattern) ? DateTimeFormatter.ISO_OFFSET_DATE_TIME : formatter(pattern));
 		return this;
 	}
 
-	DateTimeFormatter getDateFormatter() {
+	@Nullable DateTimeFormatter getDateFormatter() {
 		return this.dateFormatter;
 	}
 
-	String getDatePattern() {
+	@Nullable String getDatePattern() {
 		return this.datePattern;
 	}
 
-	DateTimeFormatter getTimeFormatter() {
+	@Nullable DateTimeFormatter getTimeFormatter() {
 		return this.timeFormatter;
 	}
 
-	DateTimeFormatter getDateTimeFormatter() {
+	@Nullable DateTimeFormatter getDateTimeFormatter() {
 		return this.dateTimeFormatter;
 	}
 
@@ -97,16 +99,16 @@ public class DateTimeFormatters {
 		return this.dateFormatter != null || this.timeFormatter != null || this.dateTimeFormatter != null;
 	}
 
-	private static DateTimeFormatter formatter(String pattern) {
+	private static @Nullable DateTimeFormatter formatter(@Nullable String pattern) {
 		return StringUtils.hasText(pattern)
 				? DateTimeFormatter.ofPattern(pattern).withResolverStyle(ResolverStyle.SMART) : null;
 	}
 
-	private static boolean isIso(String pattern) {
+	private static boolean isIso(@Nullable String pattern) {
 		return "iso".equalsIgnoreCase(pattern);
 	}
 
-	private static boolean isIsoOffset(String pattern) {
+	private static boolean isIsoOffset(@Nullable String pattern) {
 		return "isooffset".equalsIgnoreCase(pattern) || "iso-offset".equalsIgnoreCase(pattern);
 	}
 

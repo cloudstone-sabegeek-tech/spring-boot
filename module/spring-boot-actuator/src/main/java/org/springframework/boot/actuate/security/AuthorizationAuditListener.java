@@ -20,6 +20,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.actuate.audit.AuditEvent;
 import org.springframework.security.authorization.event.AuthorizationDeniedEvent;
 import org.springframework.security.authorization.event.AuthorizationEvent;
@@ -48,7 +50,7 @@ public class AuthorizationAuditListener extends AbstractAuthorizationAuditListen
 
 	private void onAuthorizationDeniedEvent(AuthorizationDeniedEvent<?> event) {
 		String name = getName(event.getAuthentication());
-		Map<String, Object> data = new LinkedHashMap<>();
+		Map<String, @Nullable Object> data = new LinkedHashMap<>();
 		Object details = getDetails(event.getAuthentication());
 		if (details != null) {
 			data.put("details", details);
@@ -65,7 +67,7 @@ public class AuthorizationAuditListener extends AbstractAuthorizationAuditListen
 		}
 	}
 
-	private Object getDetails(Supplier<Authentication> authentication) {
+	private @Nullable Object getDetails(Supplier<Authentication> authentication) {
 		try {
 			return authentication.get().getDetails();
 		}

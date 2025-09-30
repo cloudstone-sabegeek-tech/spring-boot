@@ -19,6 +19,8 @@ package org.springframework.boot.amqp.autoconfigure;
 import java.util.List;
 import java.util.concurrent.Executor;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.amqp.rabbit.config.AbstractRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -26,7 +28,9 @@ import org.springframework.amqp.rabbit.retry.MessageRecoverer;
 import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.amqp.autoconfigure.RabbitProperties.ListenerRetry;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.boot.amqp.autoconfigure.RabbitProperties.Retry;
+import org.springframework.boot.retry.RetryPolicySettings;
+import org.springframework.core.retry.RetryPolicy;
 import org.springframework.util.Assert;
 
 /**
@@ -40,15 +44,15 @@ import org.springframework.util.Assert;
  */
 public abstract class AbstractRabbitListenerContainerFactoryConfigurer<T extends AbstractRabbitListenerContainerFactory<?>> {
 
-	private MessageConverter messageConverter;
+	private @Nullable MessageConverter messageConverter;
 
-	private MessageRecoverer messageRecoverer;
+	private @Nullable MessageRecoverer messageRecoverer;
 
-	private List<RabbitRetryTemplateCustomizer> retryTemplateCustomizers;
+	private @Nullable List<RabbitListenerRetrySettingsCustomizer> retrySettingsCustomizers;
 
 	private final RabbitProperties rabbitProperties;
 
-	private Executor taskExecutor;
+	private @Nullable Executor taskExecutor;
 
 	/**
 	 * Creates a new configurer that will use the given {@code rabbitProperties}.
@@ -63,7 +67,7 @@ public abstract class AbstractRabbitListenerContainerFactoryConfigurer<T extends
 	 * converter should be used.
 	 * @param messageConverter the {@link MessageConverter}
 	 */
-	protected void setMessageConverter(MessageConverter messageConverter) {
+	protected void setMessageConverter(@Nullable MessageConverter messageConverter) {
 		this.messageConverter = messageConverter;
 	}
 
@@ -71,23 +75,24 @@ public abstract class AbstractRabbitListenerContainerFactoryConfigurer<T extends
 	 * Set the {@link MessageRecoverer} to use or {@code null} to rely on the default.
 	 * @param messageRecoverer the {@link MessageRecoverer}
 	 */
-	protected void setMessageRecoverer(MessageRecoverer messageRecoverer) {
+	protected void setMessageRecoverer(@Nullable MessageRecoverer messageRecoverer) {
 		this.messageRecoverer = messageRecoverer;
 	}
 
 	/**
-	 * Set the {@link RabbitRetryTemplateCustomizer} instances to use.
-	 * @param retryTemplateCustomizers the retry template customizers
+	 * Set the {@link RabbitListenerRetrySettingsCustomizer} instances to use.
+	 * @param retrySettingsCustomizers the retry settings customizers
 	 */
-	protected void setRetryTemplateCustomizers(List<RabbitRetryTemplateCustomizer> retryTemplateCustomizers) {
-		this.retryTemplateCustomizers = retryTemplateCustomizers;
+	protected void setRetrySettingsCustomizers(
+			@Nullable List<RabbitListenerRetrySettingsCustomizer> retrySettingsCustomizers) {
+		this.retrySettingsCustomizers = retrySettingsCustomizers;
 	}
 
 	/**
 	 * Set the task executor to use.
 	 * @param taskExecutor the task executor
 	 */
-	public void setTaskExecutor(Executor taskExecutor) {
+	public void setTaskExecutor(@Nullable Executor taskExecutor) {
 		this.taskExecutor = taskExecutor;
 	}
 
@@ -137,14 +142,22 @@ public abstract class AbstractRabbitListenerContainerFactoryConfigurer<T extends
 		if (retryConfig.isEnabled()) {
 			RetryInterceptorBuilder<?, ?> builder = (retryConfig.isStateless()) ? RetryInterceptorBuilder.stateless()
 					: RetryInterceptorBuilder.stateful();
-			RetryTemplate retryTemplate = new RetryTemplateFactory(this.retryTemplateCustomizers)
-				.createRetryTemplate(retryConfig, RabbitRetryTemplateCustomizer.Target.LISTENER);
-			builder.retryOperations(retryTemplate);
+			builder.retryPolicy(createRetryPolicy(retryConfig));
 			MessageRecoverer recoverer = (this.messageRecoverer != null) ? this.messageRecoverer
 					: new RejectAndDontRequeueRecoverer();
 			builder.recoverer(recoverer);
 			factory.setAdviceChain(builder.build());
 		}
+	}
+
+	private RetryPolicy createRetryPolicy(Retry retryProperties) {
+		RetryPolicySettings retrySettings = retryProperties.initializeRetryPolicySettings();
+		if (this.retrySettingsCustomizers != null) {
+			for (RabbitListenerRetrySettingsCustomizer customizer : this.retrySettingsCustomizers) {
+				customizer.customize(retrySettings);
+			}
+		}
+		return retrySettings.createRetryPolicy();
 	}
 
 }

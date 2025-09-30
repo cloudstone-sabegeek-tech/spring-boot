@@ -23,6 +23,8 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.Assert;
 
 /**
@@ -55,7 +57,7 @@ public interface SanitizingFunction {
 	 * @since 3.5.0
 	 * @see #applyUnlessFiltered(SanitizableData)
 	 */
-	default Predicate<SanitizableData> filter() {
+	default @Nullable Predicate<SanitizableData> filter() {
 		return null;
 	}
 
@@ -66,7 +68,8 @@ public interface SanitizingFunction {
 	 * @since 3.5.0
 	 */
 	default SanitizableData applyUnlessFiltered(SanitizableData data) {
-		return (filter() == null || filter().test(data)) ? apply(data) : data;
+		Predicate<SanitizableData> filter = filter();
+		return (filter == null || filter.test(data)) ? apply(data) : data;
 	}
 
 	/**
@@ -335,7 +338,7 @@ public interface SanitizingFunction {
 	 * @see #filter()
 	 * @see #sanitizeValue()
 	 */
-	default SanitizingFunction ifValueMatches(Predicate<Object> predicate) {
+	default SanitizingFunction ifValueMatches(Predicate<@Nullable Object> predicate) {
 		Assert.notNull(predicate, "'predicate' must not be null");
 		return ifMatches((data) -> predicate.test(data.getValue()));
 	}
@@ -355,6 +358,7 @@ public interface SanitizingFunction {
 		for (Predicate<SanitizableData> predicate : predicates) {
 			combined = (combined != null) ? combined.or(predicate) : predicate;
 		}
+		Assert.state(combined != null, "'combined' must not be null");
 		return ifMatches(combined);
 	}
 
@@ -369,12 +373,13 @@ public interface SanitizingFunction {
 	 */
 	default SanitizingFunction ifMatches(Predicate<SanitizableData> predicate) {
 		Assert.notNull(predicate, "'predicate' must not be null");
-		Predicate<SanitizableData> filter = (filter() != null) ? filter().or(predicate) : predicate;
+		Predicate<SanitizableData> filter = filter();
+		Predicate<SanitizableData> newFilter = (filter != null) ? filter.or(predicate) : predicate;
 		return new SanitizingFunction() {
 
 			@Override
 			public Predicate<SanitizableData> filter() {
-				return filter;
+				return newFilter;
 			}
 
 			@Override
@@ -394,13 +399,12 @@ public interface SanitizingFunction {
 		Assert.notNull(predicate, "'predicate' must not be null");
 		Assert.notNull(value, "'value' must not be null");
 		String lowerCaseValue = value.toLowerCase(Locale.getDefault());
-		return (data) -> nullSafeTest(data.getLowerCaseKey(),
-				(lowerCaseKey) -> predicate.test(lowerCaseKey, lowerCaseValue));
+		return (data) -> predicate.test(data.getLowerCaseKey(), lowerCaseValue);
 	}
 
 	private Predicate<SanitizableData> onKey(Predicate<String> predicate) {
 		Assert.notNull(predicate, "'predicate' must not be null");
-		return (data) -> nullSafeTest(data.getKey(), predicate);
+		return (data) -> predicate.test(data.getKey());
 	}
 
 	private Predicate<SanitizableData> onValue(Predicate<Object> predicate) {
@@ -413,7 +417,7 @@ public interface SanitizingFunction {
 		return (data) -> nullSafeTest((data.getValue() != null) ? data.getValue().toString() : null, predicate);
 	}
 
-	private <T> boolean nullSafeTest(T value, Predicate<T> predicate) {
+	private <T> boolean nullSafeTest(@Nullable T value, Predicate<T> predicate) {
 		return value != null && predicate.test(value);
 	}
 

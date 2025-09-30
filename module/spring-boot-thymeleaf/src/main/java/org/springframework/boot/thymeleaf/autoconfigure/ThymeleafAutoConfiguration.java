@@ -75,7 +75,7 @@ import org.springframework.web.servlet.view.AbstractCachingViewResolver;
 @ConditionalOnClass({ TemplateMode.class, SpringTemplateEngine.class })
 @Import({ TemplateEngineConfigurations.ReactiveTemplateEngineConfiguration.class,
 		TemplateEngineConfigurations.DefaultTemplateEngineConfiguration.class })
-public class ThymeleafAutoConfiguration {
+public final class ThymeleafAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnMissingBean(name = "defaultTemplateResolver")
@@ -207,7 +207,7 @@ public class ThymeleafAutoConfiguration {
 
 		private void mapReactiveProperties(Reactive properties, ThymeleafReactiveViewResolver resolver) {
 			PropertyMapper map = PropertyMapper.get();
-			map.from(properties::getMediaTypes).whenNonNull().to(resolver::setSupportedMediaTypes);
+			map.from(properties::getMediaTypes).to(resolver::setSupportedMediaTypes);
 			map.from(properties::getMaxChunkSize)
 				.asInt(DataSize::toBytes)
 				.when((size) -> size > 0)

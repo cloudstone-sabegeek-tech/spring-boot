@@ -34,13 +34,14 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProjectHelper;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.loader.tools.DefaultLaunchScript;
 import org.springframework.boot.loader.tools.LaunchScript;
 import org.springframework.boot.loader.tools.LayoutFactory;
 import org.springframework.boot.loader.tools.Libraries;
-import org.springframework.boot.loader.tools.LoaderImplementation;
 import org.springframework.boot.loader.tools.Repackager;
+import org.springframework.lang.Contract;
 import org.springframework.util.StringUtils;
 
 /**
@@ -67,13 +68,15 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * @since 1.0.0
 	 */
 	@Parameter(defaultValue = "${project.build.directory}", required = true)
+	@SuppressWarnings("NullAway.Init")
 	private File outputDirectory;
 
 	/**
 	 * Name of the generated archive.
 	 * @since 1.0.0
 	 */
-	@Parameter(defaultValue = "${project.build.finalName}", readonly = true)
+	@Parameter(defaultValue = "${project.build.finalName}", readonly = true, required = true)
+	@SuppressWarnings("NullAway.Init")
 	private String finalName;
 
 	/**
@@ -96,7 +99,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * @since 1.0.0
 	 */
 	@Parameter
-	private String classifier;
+	private @Nullable String classifier;
 
 	/**
 	 * Attach the repackaged archive to be installed into your local Maven repository or
@@ -117,7 +120,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * @since 1.1.0
 	 */
 	@Parameter
-	private List<Dependency> requiresUnpack;
+	private @Nullable List<Dependency> requiresUnpack;
 
 	/**
 	 * Make a fully executable jar for *nix machines by prepending a launch script to the
@@ -139,14 +142,14 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * @since 1.3.0
 	 */
 	@Parameter
-	private File embeddedLaunchScript;
+	private @Nullable File embeddedLaunchScript;
 
 	/**
 	 * Properties that should be expanded in the embedded launch script.
 	 * @since 1.3.0
 	 */
 	@Parameter
-	private Properties embeddedLaunchScriptProperties;
+	private @Nullable Properties embeddedLaunchScriptProperties;
 
 	/**
 	 * Timestamp for reproducible output archive entries, either formatted as ISO 8601
@@ -155,7 +158,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * @since 2.3.0
 	 */
 	@Parameter(defaultValue = "${project.build.outputTimestamp}")
-	private String outputTimestamp;
+	private @Nullable String outputTimestamp;
 
 	/**
 	 * The type of archive (which corresponds to how the dependencies are laid out inside
@@ -164,14 +167,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * @since 1.0.0
 	 */
 	@Parameter(property = "spring-boot.repackage.layout")
-	private LayoutType layout;
-
-	/**
-	 * The loader implementation that should be used.
-	 * @since 3.2.0
-	 */
-	@Parameter
-	private LoaderImplementation loaderImplementation;
+	private @Nullable LayoutType layout;
 
 	/**
 	 * The layout factory that will be used to create the executable archive if no
@@ -180,7 +176,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * @since 1.5.0
 	 */
 	@Parameter
-	private LayoutFactory layoutFactory;
+	private @Nullable LayoutFactory layoutFactory;
 
 	@Inject
 	public RepackageMojo(MavenProjectHelper projectHelper) {
@@ -193,13 +189,8 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * is not provided
 	 */
 	@Override
-	protected LayoutType getLayout() {
+	protected @Nullable LayoutType getLayout() {
 		return this.layout;
-	}
-
-	@Override
-	protected LoaderImplementation getLoaderImplementation() {
-		return this.loaderImplementation;
 	}
 
 	/**
@@ -209,7 +200,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 	 * parameter is not provided
 	 */
 	@Override
-	protected LayoutFactory getLayoutFactory() {
+	protected @Nullable LayoutFactory getLayoutFactory() {
 		return this.layoutFactory;
 	}
 
@@ -245,7 +236,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 		updateArtifact(source, target, repackager.getBackupFile());
 	}
 
-	private FileTime parseOutputTimestamp() throws MojoExecutionException {
+	private @Nullable FileTime parseOutputTimestamp() throws MojoExecutionException {
 		try {
 			return new MavenBuildOutputTimestamp(this.outputTimestamp).toFileTime();
 		}
@@ -258,7 +249,7 @@ public class RepackageMojo extends AbstractPackagerMojo {
 		return getConfiguredPackager(() -> new Repackager(source));
 	}
 
-	private LaunchScript getLaunchScript() throws IOException {
+	private @Nullable LaunchScript getLaunchScript() throws IOException {
 		if (this.executable || this.embeddedLaunchScript != null) {
 			return new DefaultLaunchScript(this.embeddedLaunchScript, buildLaunchScriptProperties());
 		}
@@ -277,7 +268,8 @@ public class RepackageMojo extends AbstractPackagerMojo {
 		return properties;
 	}
 
-	private String removeLineBreaks(String description) {
+	@Contract("!null -> !null")
+	private @Nullable String removeLineBreaks(@Nullable String description) {
 		return (description != null) ? WHITE_SPACE_PATTERN.matcher(description).replaceAll(" ") : null;
 	}
 

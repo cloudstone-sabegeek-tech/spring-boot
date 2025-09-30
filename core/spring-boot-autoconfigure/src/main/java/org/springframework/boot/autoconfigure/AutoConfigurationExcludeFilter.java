@@ -19,6 +19,8 @@ package org.springframework.boot.autoconfigure;
 import java.io.IOException;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.boot.context.annotation.ImportCandidates;
 import org.springframework.context.annotation.Configuration;
@@ -35,9 +37,10 @@ import org.springframework.core.type.filter.TypeFilter;
  */
 public class AutoConfigurationExcludeFilter implements TypeFilter, BeanClassLoaderAware {
 
+	@SuppressWarnings("NullAway.Init")
 	private ClassLoader beanClassLoader;
 
-	private volatile List<String> autoConfigurations;
+	private volatile @Nullable List<String> autoConfigurations;
 
 	@Override
 	public void setBeanClassLoader(ClassLoader beanClassLoader) {
@@ -62,11 +65,13 @@ public class AutoConfigurationExcludeFilter implements TypeFilter, BeanClassLoad
 	}
 
 	protected List<String> getAutoConfigurations() {
-		if (this.autoConfigurations == null) {
+		List<String> autoConfigurations = this.autoConfigurations;
+		if (autoConfigurations == null) {
 			ImportCandidates importCandidates = ImportCandidates.load(AutoConfiguration.class, this.beanClassLoader);
-			this.autoConfigurations = importCandidates.getCandidates();
+			autoConfigurations = importCandidates.getCandidates();
+			this.autoConfigurations = autoConfigurations;
 		}
-		return this.autoConfigurations;
+		return autoConfigurations;
 	}
 
 }

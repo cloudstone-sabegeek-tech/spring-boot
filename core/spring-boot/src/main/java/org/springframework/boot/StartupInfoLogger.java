@@ -19,6 +19,7 @@ package org.springframework.boot;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.aot.AotDetector;
 import org.springframework.boot.SpringApplication.Startup;
@@ -39,11 +40,11 @@ import org.springframework.util.StringUtils;
  */
 class StartupInfoLogger {
 
-	private final Class<?> sourceClass;
+	private final @Nullable Class<?> sourceClass;
 
 	private final Environment environment;
 
-	StartupInfoLogger(Class<?> sourceClass, Environment environment) {
+	StartupInfoLogger(@Nullable Class<?> sourceClass, Environment environment) {
 		this.sourceClass = sourceClass;
 		this.environment = environment;
 	}
@@ -136,11 +137,11 @@ class StartupInfoLogger {
 		append(message, "using Java ", () -> System.getProperty("java.version"));
 	}
 
-	private void append(StringBuilder message, String prefix, Callable<Object> call) {
+	private void append(StringBuilder message, String prefix, Callable<@Nullable Object> call) {
 		append(message, prefix, call, "");
 	}
 
-	private void append(StringBuilder message, String prefix, Callable<Object> call, String defaultValue) {
+	private void append(StringBuilder message, String prefix, Callable<@Nullable Object> call, String defaultValue) {
 		Object result = callIfPossible(call);
 		String value = (result != null) ? result.toString() : null;
 		if (!StringUtils.hasLength(value)) {
@@ -153,7 +154,7 @@ class StartupInfoLogger {
 		}
 	}
 
-	private Object callIfPossible(Callable<Object> call) {
+	private @Nullable Object callIfPossible(Callable<@Nullable Object> call) {
 		try {
 			return call.call();
 		}

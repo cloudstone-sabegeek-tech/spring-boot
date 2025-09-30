@@ -16,6 +16,8 @@
 
 package org.springframework.boot.origin;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * An interface that may be implemented by an object that can lookup {@link Origin}
  * information from a given key. Can be used to add origin support to existing classes.
@@ -33,30 +35,7 @@ public interface OriginLookup<K> {
 	 * @param key the key to lookup
 	 * @return the origin of the key or {@code null}
 	 */
-	Origin getOrigin(K key);
-
-	/**
-	 * Return {@code true} if this lookup is immutable and has contents that will never
-	 * change.
-	 * @return if the lookup is immutable
-	 * @since 2.2.0
-	 */
-	default boolean isImmutable() {
-		return false;
-	}
-
-	/**
-	 * Return the implicit prefix that is applied when performing a lookup or {@code null}
-	 * if no prefix is used. Prefixes can be used to disambiguate keys that would
-	 * otherwise clash. For example, if multiple applications are running on the same
-	 * machine a different prefix can be set on each application to ensure that different
-	 * environment variables are used.
-	 * @return the prefix applied by the lookup class or {@code null}.
-	 * @since 2.5.0
-	 */
-	default String getPrefix() {
-		return null;
-	}
+	@Nullable Origin getOrigin(K key);
 
 	/**
 	 * Attempt to look up the origin from the given source. If the source is not a
@@ -68,7 +47,7 @@ public interface OriginLookup<K> {
 	 * @return an {@link Origin} or {@code null}
 	 */
 	@SuppressWarnings("unchecked")
-	static <K> Origin getOrigin(Object source, K key) {
+	static <K> @Nullable Origin getOrigin(@Nullable Object source, K key) {
 		if (!(source instanceof OriginLookup)) {
 			return null;
 		}

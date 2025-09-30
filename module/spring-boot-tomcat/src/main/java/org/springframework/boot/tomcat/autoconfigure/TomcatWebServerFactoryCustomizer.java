@@ -92,7 +92,7 @@ public class TomcatWebServerFactoryCustomizer
 	@Override
 	@SuppressWarnings("removal")
 	public void customize(ConfigurableTomcatWebServerFactory factory) {
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		map.from(this.tomcatProperties::getBasedir).to(factory::setBaseDirectory);
 		map.from(this.tomcatProperties::getBackgroundProcessorDelay)
 			.as(Duration::getSeconds)
@@ -380,10 +380,8 @@ public class TomcatWebServerFactoryCustomizer
 		factory.addContextCustomizers((context) -> context.addLifecycleListener((event) -> {
 			if (event.getType().equals(Lifecycle.CONFIGURE_START_EVENT)) {
 				context.getResources().setCachingAllowed(resource.isAllowCaching());
-				if (resource.getCacheTtl() != null) {
-					long ttl = resource.getCacheTtl().toMillis();
-					context.getResources().setCacheTtl(ttl);
-				}
+				context.getResources().setCacheMaxSize(resource.getCacheMaxSize().toKilobytes());
+				context.getResources().setCacheTtl(resource.getCacheTtl().toMillis());
 			}
 		}));
 	}

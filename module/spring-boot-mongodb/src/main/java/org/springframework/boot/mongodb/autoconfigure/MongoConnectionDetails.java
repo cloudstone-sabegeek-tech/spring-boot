@@ -17,6 +17,7 @@
 package org.springframework.boot.mongodb.autoconfigure;
 
 import com.mongodb.ConnectionString;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.autoconfigure.service.connection.ConnectionDetails;
 import org.springframework.boot.ssl.SslBundle;
@@ -41,57 +42,8 @@ public interface MongoConnectionDetails extends ConnectionDetails {
 	 * SSL bundle to use.
 	 * @return the SSL bundle to use
 	 */
-	default SslBundle getSslBundle() {
+	default @Nullable SslBundle getSslBundle() {
 		return null;
-	}
-
-	/**
-	 * GridFS configuration.
-	 * @return the GridFS configuration or {@code null}
-	 */
-	default GridFs getGridFs() {
-		return null;
-	}
-
-	/**
-	 * GridFS configuration.
-	 */
-	interface GridFs {
-
-		/**
-		 * GridFS database name.
-		 * @return the GridFS database name or {@code null}
-		 */
-		String getDatabase();
-
-		/**
-		 * GridFS bucket name.
-		 * @return the GridFS bucket name or {@code null}
-		 */
-		String getBucket();
-
-		/**
-		 * Factory method to create a new {@link GridFs} instance.
-		 * @param database the database
-		 * @param bucket the bucket name
-		 * @return a new {@link GridFs} instance
-		 */
-		static GridFs of(String database, String bucket) {
-			return new GridFs() {
-
-				@Override
-				public String getDatabase() {
-					return database;
-				}
-
-				@Override
-				public String getBucket() {
-					return bucket;
-				}
-
-			};
-		}
-
 	}
 
 }

@@ -34,6 +34,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginLookup;
@@ -74,7 +76,8 @@ import org.springframework.util.StringUtils;
  * @author Phillip Webb
  * @since 2.4.0
  */
-public class ConfigTreePropertySource extends EnumerablePropertySource<Path> implements OriginLookup<String> {
+public class ConfigTreePropertySource extends EnumerablePropertySource<Path>
+		implements PropertySourceInfo, OriginLookup<String> {
 
 	private static final int MAX_DEPTH = 100;
 
@@ -120,13 +123,13 @@ public class ConfigTreePropertySource extends EnumerablePropertySource<Path> imp
 	}
 
 	@Override
-	public Value getProperty(String name) {
+	public @Nullable Value getProperty(String name) {
 		PropertyFile propertyFile = this.propertyFiles.get(name);
 		return (propertyFile != null) ? propertyFile.getContent() : null;
 	}
 
 	@Override
-	public Origin getOrigin(String name) {
+	public @Nullable Origin getOrigin(String name) {
 		PropertyFile propertyFile = this.propertyFiles.get(name);
 		return (propertyFile != null) ? propertyFile.getOrigin() : null;
 	}
@@ -182,7 +185,7 @@ public class ConfigTreePropertySource extends EnumerablePropertySource<Path> imp
 
 		private final Origin origin;
 
-		private final PropertyFileContent cachedContent;
+		private final @Nullable PropertyFileContent cachedContent;
 
 		private final boolean autoTrimTrailingNewLine;
 
@@ -273,7 +276,7 @@ public class ConfigTreePropertySource extends EnumerablePropertySource<Path> imp
 
 		private final boolean autoTrimTrailingNewLine;
 
-		private volatile byte[] content;
+		private volatile byte @Nullable [] content;
 
 		private PropertyFileContent(Path path, Resource resource, Origin origin, boolean cacheContent,
 				boolean autoTrimTrailingNewLine) {
@@ -346,19 +349,22 @@ public class ConfigTreePropertySource extends EnumerablePropertySource<Path> imp
 					assertStillExists();
 					return FileCopyUtils.copyToByteArray(this.resource.getInputStream());
 				}
-				if (this.content == null) {
+				byte[] content = this.content;
+				if (content == null) {
 					assertStillExists();
 					this.resourceLock.lock();
 					try {
-						if (this.content == null) {
-							this.content = FileCopyUtils.copyToByteArray(this.resource.getInputStream());
+						content = this.content;
+						if (content == null) {
+							content = FileCopyUtils.copyToByteArray(this.resource.getInputStream());
+							this.content = content;
 						}
 					}
 					finally {
 						this.resourceLock.unlock();
 					}
 				}
-				return this.content;
+				return content;
 			}
 			catch (IOException ex) {
 				throw new IllegalStateException(ex);

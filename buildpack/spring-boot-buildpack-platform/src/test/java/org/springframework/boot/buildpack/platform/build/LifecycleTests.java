@@ -26,9 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.sun.jna.Platform;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,11 +34,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.mockito.stubbing.Answer;
 import org.skyscreamer.jsonassert.JSONAssert;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
 
 import org.springframework.boot.buildpack.platform.docker.DockerApi;
 import org.springframework.boot.buildpack.platform.docker.DockerApi.ContainerApi;
 import org.springframework.boot.buildpack.platform.docker.DockerApi.ImageApi;
 import org.springframework.boot.buildpack.platform.docker.DockerApi.VolumeApi;
+import org.springframework.boot.buildpack.platform.docker.ImagePlatform;
 import org.springframework.boot.buildpack.platform.docker.configuration.DockerConnectionConfiguration;
 import org.springframework.boot.buildpack.platform.docker.configuration.ResolvedDockerHost;
 import org.springframework.boot.buildpack.platform.docker.type.Binding;
@@ -49,7 +49,6 @@ import org.springframework.boot.buildpack.platform.docker.type.ContainerConfig;
 import org.springframework.boot.buildpack.platform.docker.type.ContainerContent;
 import org.springframework.boot.buildpack.platform.docker.type.ContainerReference;
 import org.springframework.boot.buildpack.platform.docker.type.ContainerStatus;
-import org.springframework.boot.buildpack.platform.docker.type.ImagePlatform;
 import org.springframework.boot.buildpack.platform.docker.type.ImageReference;
 import org.springframework.boot.buildpack.platform.docker.type.VolumeName;
 import org.springframework.boot.buildpack.platform.io.IOConsumer;
@@ -482,7 +481,7 @@ class LifecycleTests {
 		return (invocation) -> {
 			ContainerConfig config = invocation.getArgument(0, ContainerConfig.class);
 			ArrayNode command = getCommand(config);
-			String name = command.get(0).asText().substring(1).replaceAll("/", "-");
+			String name = command.get(0).asString().substring(1).replaceAll("/", "-");
 			this.configs.put(name, config);
 			if (invocation.getArguments().length > 2) {
 				this.content.put(name, invocation.getArgument(2, ContainerContent.class));
@@ -491,7 +490,7 @@ class LifecycleTests {
 		};
 	}
 
-	private ArrayNode getCommand(ContainerConfig config) throws JsonProcessingException {
+	private ArrayNode getCommand(ContainerConfig config) {
 		JsonNode node = SharedObjectMapper.get().readTree(config.toString());
 		return (ArrayNode) node.at("/Cmd");
 	}

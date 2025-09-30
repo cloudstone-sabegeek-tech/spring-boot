@@ -561,6 +561,19 @@ class FlywayAutoConfigurationTests {
 	}
 
 	@Test
+	@WithResource(name = "com/example/h2/beforeEachMigrate.sql", content = "DROP TABLE IF EXISTS TEMP;")
+	void useOneCallbackLocationWithVendorSpecificPackage() {
+		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
+			.withPropertyValues("spring.flyway.callback-locations=classpath:com.example.{vendor}")
+			.run((context) -> {
+				assertThat(context).hasSingleBean(Flyway.class);
+				Flyway flyway = context.getBean(Flyway.class);
+				assertThat(flyway.getConfiguration().getCallbackLocations())
+					.containsExactly(new Location("classpath:com.example.h2"));
+			});
+	}
+
+	@Test
 	void callbacksAreConfiguredAndOrderedByName() {
 		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class, CallbackConfiguration.class)
 			.run((context) -> {
@@ -638,7 +651,7 @@ class FlywayAutoConfigurationTests {
 			.run((context) -> assertThat(context.getBean(Flyway.class)
 				.getConfiguration()
 				.getPluginRegister()
-				.getPlugin(OracleConfigurationExtension.class)
+				.getExact(OracleConfigurationExtension.class)
 				.getSqlplus()).isTrue());
 
 	}
@@ -650,7 +663,7 @@ class FlywayAutoConfigurationTests {
 			.run((context) -> assertThat(context.getBean(Flyway.class)
 				.getConfiguration()
 				.getPluginRegister()
-				.getPlugin(OracleConfigurationExtension.class)
+				.getExact(OracleConfigurationExtension.class)
 				.getSqlplusWarn()).isTrue());
 	}
 
@@ -661,7 +674,7 @@ class FlywayAutoConfigurationTests {
 			.run((context) -> assertThat(context.getBean(Flyway.class)
 				.getConfiguration()
 				.getPluginRegister()
-				.getPlugin(OracleConfigurationExtension.class)
+				.getExact(OracleConfigurationExtension.class)
 				.getWalletLocation()).isEqualTo("/tmp/my.wallet"));
 	}
 
@@ -672,7 +685,7 @@ class FlywayAutoConfigurationTests {
 			.run((context) -> assertThat(context.getBean(Flyway.class)
 				.getConfiguration()
 				.getPluginRegister()
-				.getPlugin(OracleConfigurationExtension.class)
+				.getExact(OracleConfigurationExtension.class)
 				.getKerberosCacheFile()).isEqualTo("/tmp/cache"));
 	}
 
@@ -749,6 +762,14 @@ class FlywayAutoConfigurationTests {
 	}
 
 	@Test
+	void powershellExecutableIsCorrectlyMapped() {
+		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
+			.withPropertyValues("spring.flyway.powershell-executable=my-pwsh")
+			.run((context) -> assertThat(context.getBean(Flyway.class).getConfiguration().getPowershellExecutable())
+				.isEqualTo("my-pwsh"));
+	}
+
+	@Test
 	void postgresqlExtensionIsNotLoadedByDefault() {
 		FluentConfiguration configuration = mock(FluentConfiguration.class);
 		new PostgresqlFlywayConfigurationCustomizer(new FlywayProperties()).customize(configuration);
@@ -762,7 +783,7 @@ class FlywayAutoConfigurationTests {
 			.run((context) -> assertThat(context.getBean(Flyway.class)
 				.getConfiguration()
 				.getPluginRegister()
-				.getPlugin(PostgreSQLConfigurationExtension.class)
+				.getExact(PostgreSQLConfigurationExtension.class)
 				.isTransactionalLock()).isFalse());
 	}
 
@@ -780,7 +801,7 @@ class FlywayAutoConfigurationTests {
 			.run((context) -> assertThat(context.getBean(Flyway.class)
 				.getConfiguration()
 				.getPluginRegister()
-				.getPlugin(SQLServerConfigurationExtension.class)
+				.getExact(SQLServerConfigurationExtension.class)
 				.getKerberos()
 				.getLogin()
 				.getFile()).isEqualTo("/tmp/config"));
@@ -887,6 +908,21 @@ class FlywayAutoConfigurationTests {
 			.withPropertyValues("spring.flyway.ignore-migration-patterns=*:missing")
 			.run((context) -> assertThat(context.getBean(Flyway.class).getConfiguration().getIgnoreMigrationPatterns())
 				.containsExactly(ValidatePattern.fromPattern("*:missing")));
+	}
+
+	@Test
+	void ignoreMigrationPatternsUsesDefaultValuesWhenNotSet() {
+		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
+			.run((context) -> assertThat(context.getBean(Flyway.class).getConfiguration().getIgnoreMigrationPatterns())
+				.containsExactly(new FluentConfiguration().getIgnoreMigrationPatterns()));
+	}
+
+	@Test
+	void ignoreMigrationPatternsWhenEmpty() {
+		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
+			.withPropertyValues("spring.flyway.ignore-migration-patterns=")
+			.run((context) -> assertThat(context.getBean(Flyway.class).getConfiguration().getIgnoreMigrationPatterns())
+				.isEmpty());
 	}
 
 	private ContextConsumer<AssertableApplicationContext> validateFlywayTeamsPropertyOnly(String propertyName) {

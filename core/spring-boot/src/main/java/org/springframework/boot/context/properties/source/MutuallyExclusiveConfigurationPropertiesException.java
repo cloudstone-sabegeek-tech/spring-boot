@@ -26,6 +26,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.Nullable;
+
+import org.springframework.lang.Contract;
 import org.springframework.util.Assert;
 
 /**
@@ -78,7 +81,8 @@ public class MutuallyExclusiveConfigurationPropertiesException extends RuntimeEx
 		return this.mutuallyExclusiveNames;
 	}
 
-	private static Set<String> asSet(Collection<String> collection) {
+	@Contract("null -> null; !null -> !null")
+	private static @Nullable Set<String> asSet(@Nullable Collection<String> collection) {
 		return (collection != null) ? new LinkedHashSet<>(collection) : null;
 	}
 
@@ -97,8 +101,9 @@ public class MutuallyExclusiveConfigurationPropertiesException extends RuntimeEx
 	 * non-null values are defined in a set of entries.
 	 * @param entries a consumer used to populate the entries to check
 	 */
-	public static void throwIfMultipleNonNullValuesIn(Consumer<Map<String, Object>> entries) {
-		throwIfMultipleMatchingValuesIn(entries, Objects::nonNull);
+	public static void throwIfMultipleNonNullValuesIn(Consumer<Map<String, @Nullable Object>> entries) {
+		Predicate<@Nullable Object> isNonNull = Objects::nonNull;
+		throwIfMultipleMatchingValuesIn(entries, isNonNull);
 	}
 
 	/**
@@ -109,7 +114,8 @@ public class MutuallyExclusiveConfigurationPropertiesException extends RuntimeEx
 	 * @param predicate the predicate used to check for matching values
 	 * @since 3.3.7
 	 */
-	public static <V> void throwIfMultipleMatchingValuesIn(Consumer<Map<String, V>> entries, Predicate<V> predicate) {
+	public static <V> void throwIfMultipleMatchingValuesIn(Consumer<Map<String, @Nullable V>> entries,
+			Predicate<@Nullable V> predicate) {
 		Map<String, V> map = new LinkedHashMap<>();
 		entries.accept(map);
 		Set<String> configuredNames = map.entrySet()

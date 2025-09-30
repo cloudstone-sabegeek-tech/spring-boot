@@ -29,10 +29,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import org.springframework.boot.buildpack.platform.io.Content;
 import org.springframework.boot.buildpack.platform.io.IOConsumer;
@@ -72,20 +73,21 @@ public class ImageArchive implements TarArchive {
 
 	private final Instant createDate;
 
-	private final ImageReference tag;
+	private final @Nullable ImageReference tag;
 
 	private final String os;
 
-	private final String architecture;
+	private final @Nullable String architecture;
 
-	private final String variant;
+	private final @Nullable String variant;
 
 	private final List<LayerId> existingLayers;
 
 	private final List<Layer> newLayers;
 
-	ImageArchive(ObjectMapper objectMapper, ImageConfig imageConfig, Instant createDate, ImageReference tag, String os,
-			String architecture, String variant, List<LayerId> existingLayers, List<Layer> newLayers) {
+	ImageArchive(ObjectMapper objectMapper, ImageConfig imageConfig, Instant createDate, @Nullable ImageReference tag,
+			String os, @Nullable String architecture, @Nullable String variant, List<LayerId> existingLayers,
+			List<Layer> newLayers) {
 		this.objectMapper = objectMapper;
 		this.imageConfig = imageConfig;
 		this.createDate = createDate;
@@ -117,7 +119,7 @@ public class ImageArchive implements TarArchive {
 	 * Return the tag of the archive.
 	 * @return the tag
 	 */
-	public ImageReference getTag() {
+	public @Nullable ImageReference getTag() {
 		return this.tag;
 	}
 
@@ -171,11 +173,11 @@ public class ImageArchive implements TarArchive {
 	private ObjectNode createConfig(List<LayerId> writtenLayers) {
 		ObjectNode config = this.objectMapper.createObjectNode();
 		config.set("Config", this.imageConfig.getNodeCopy());
-		config.set("Created", config.textNode(getCreatedDate()));
+		config.set("Created", config.stringNode(getCreatedDate()));
 		config.set("History", createHistory(writtenLayers));
-		config.set("Os", config.textNode(this.os));
-		config.set("Architecture", config.textNode(this.architecture));
-		config.set("Variant", config.textNode(this.variant));
+		config.set("Os", config.stringNode(this.os));
+		config.set("Architecture", config.stringNode(this.architecture));
+		config.set("Variant", config.stringNode(this.variant));
 		config.set("RootFS", createRootFs(writtenLayers));
 		return config;
 	}
@@ -210,7 +212,7 @@ public class ImageArchive implements TarArchive {
 	private ArrayNode createManifest(String config, List<LayerId> writtenLayers) {
 		ArrayNode manifest = this.objectMapper.createArrayNode();
 		ObjectNode entry = manifest.addObject();
-		entry.set("Config", entry.textNode(config));
+		entry.set("Config", entry.stringNode(config));
 		entry.set("Layers", getManifestLayers(writtenLayers));
 		if (this.tag != null) {
 			entry.set("RepoTags", entry.arrayNode().add(this.tag.toString()));
@@ -257,9 +259,9 @@ public class ImageArchive implements TarArchive {
 
 		private ImageConfig config;
 
-		private Instant createDate;
+		private @Nullable Instant createDate;
 
-		private ImageReference tag;
+		private @Nullable ImageReference tag;
 
 		private final List<Layer> newLayers = new ArrayList<>();
 

@@ -18,11 +18,12 @@ package org.springframework.boot.context.properties.bind;
 
 import java.lang.annotation.Annotation;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.context.properties.bind.Binder.Context;
 import org.springframework.boot.context.properties.source.ConfigurationProperty;
@@ -55,7 +56,7 @@ abstract class IndexedElementsBinder<T> extends AggregateBinder<T> {
 	}
 
 	@Override
-	protected boolean isAllowRecursiveBinding(ConfigurationPropertySource source) {
+	protected boolean isAllowRecursiveBinding(@Nullable ConfigurationPropertySource source) {
 		return source == null || source instanceof IterableConfigurationPropertySource;
 	}
 
@@ -93,19 +94,21 @@ abstract class IndexedElementsBinder<T> extends AggregateBinder<T> {
 	}
 
 	private void bindValue(Bindable<?> target, Collection<Object> collection, ResolvableType aggregateType,
-			ResolvableType elementType, Object value) {
+			ResolvableType elementType, @Nullable Object value) {
 		if (value == null || (value instanceof CharSequence charSequence && charSequence.isEmpty())) {
 			return;
 		}
 		Object aggregate = convert(value, aggregateType, target.getAnnotations());
 		ResolvableType collectionType = ResolvableType.forClassWithGenerics(collection.getClass(), elementType);
 		Collection<Object> elements = convert(aggregate, collectionType);
-		collection.addAll(elements);
+		if (elements != null) {
+			collection.addAll(elements);
+		}
 	}
 
 	private void bindIndexed(ConfigurationPropertySource source, ConfigurationPropertyName root,
 			AggregateElementBinder elementBinder, IndexedCollectionSupplier collection, ResolvableType elementType) {
-		Set<String> knownIndexedChildren = Collections.emptySet();
+		Set<String> knownIndexedChildren = new HashSet<>();
 		if (source instanceof IterableConfigurationPropertySource iterableSource) {
 			knownIndexedChildren = getKnownIndexedChildren(iterableSource, root);
 		}
@@ -157,7 +160,7 @@ abstract class IndexedElementsBinder<T> extends AggregateBinder<T> {
 		return root.append((i < INDEXES.length) ? INDEXES[i] : "[" + i + "]");
 	}
 
-	private <C> C convert(Object value, ResolvableType type, Annotation... annotations) {
+	private <C> @Nullable C convert(@Nullable Object value, ResolvableType type, Annotation... annotations) {
 		value = getContext().getPlaceholdersResolver().resolvePlaceholders(value);
 		return getContext().getConverter().convert(value, type, annotations);
 	}

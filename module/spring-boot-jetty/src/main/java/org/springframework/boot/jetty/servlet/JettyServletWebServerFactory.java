@@ -31,18 +31,18 @@ import java.util.UUID;
 import jakarta.servlet.http.Cookie;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.eclipse.jetty.ee10.servlet.ErrorHandler;
-import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
-import org.eclipse.jetty.ee10.servlet.ListenerHolder;
-import org.eclipse.jetty.ee10.servlet.ServletHandler;
-import org.eclipse.jetty.ee10.servlet.ServletHolder;
-import org.eclipse.jetty.ee10.servlet.ServletMapping;
-import org.eclipse.jetty.ee10.servlet.SessionHandler;
-import org.eclipse.jetty.ee10.servlet.Source;
-import org.eclipse.jetty.ee10.webapp.AbstractConfiguration;
-import org.eclipse.jetty.ee10.webapp.Configuration;
-import org.eclipse.jetty.ee10.webapp.WebAppContext;
-import org.eclipse.jetty.ee10.webapp.WebInfConfiguration;
+import org.eclipse.jetty.ee11.servlet.ErrorHandler;
+import org.eclipse.jetty.ee11.servlet.ErrorPageErrorHandler;
+import org.eclipse.jetty.ee11.servlet.ListenerHolder;
+import org.eclipse.jetty.ee11.servlet.ServletHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
+import org.eclipse.jetty.ee11.servlet.ServletMapping;
+import org.eclipse.jetty.ee11.servlet.SessionHandler;
+import org.eclipse.jetty.ee11.servlet.Source;
+import org.eclipse.jetty.ee11.webapp.AbstractConfiguration;
+import org.eclipse.jetty.ee11.webapp.Configuration;
+import org.eclipse.jetty.ee11.webapp.WebAppContext;
+import org.eclipse.jetty.ee11.webapp.WebInfConfiguration;
 import org.eclipse.jetty.http.CookieCompliance;
 import org.eclipse.jetty.http.HttpCookie;
 import org.eclipse.jetty.http.HttpField;
@@ -50,12 +50,11 @@ import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpFields.Mutable;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.MimeTypes;
-import org.eclipse.jetty.http.MimeTypes.Wrapper;
 import org.eclipse.jetty.http.SetCookieParser;
-import org.eclipse.jetty.server.ConnectionLimit;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpCookieUtils;
+import org.eclipse.jetty.server.NetworkConnectionLimit;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
@@ -67,6 +66,7 @@ import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.resource.URLResourceFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.jetty.ConfigurableJettyWebServerFactory;
 import org.springframework.boot.jetty.ForwardHeadersCustomizer;
@@ -123,6 +123,7 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 
 	private final ServletWebServerSettings settings = new ServletWebServerSettings();
 
+	@SuppressWarnings("NullAway.Init")
 	private ResourceLoader resourceLoader;
 
 	/**
@@ -163,7 +164,7 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 		server.setHandler(addHandlerWrappers(context));
 		logger.info("Server initialized with port: " + port);
 		if (this.getMaxConnections() > -1) {
-			server.addBean(new ConnectionLimit(this.getMaxConnections(), server.getConnectors()));
+			server.addBean(new NetworkConnectionLimit(this.getMaxConnections(), server.getConnectors()));
 		}
 		if (Ssl.isEnabled(getSsl())) {
 			customizeSsl(server, address);
@@ -262,7 +263,7 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 		}
 	}
 
-	private boolean isNegative(Duration sessionTimeout) {
+	private boolean isNegative(@Nullable Duration sessionTimeout) {
 		return sessionTimeout == null || sessionTimeout.isNegative();
 	}
 
@@ -271,7 +272,7 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 			.forEach((locale, charset) -> context.addLocaleEncoding(locale.toString(), charset.toString()));
 	}
 
-	private File getTempDirectory(WebAppContext context) {
+	private @Nullable File getTempDirectory(WebAppContext context) {
 		String temp = System.getProperty("java.io.tmpdir");
 		return (temp != null) ? new File(temp, getTempDirectoryPrefix(context) + UUID.randomUUID()) : null;
 	}
@@ -312,8 +313,8 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 		}
 	}
 
-	private Resource createResource(URL url, ResourceFactory resourceFactory, URLResourceFactory urlResourceFactory)
-			throws Exception {
+	private @Nullable Resource createResource(URL url, ResourceFactory resourceFactory,
+			URLResourceFactory urlResourceFactory) throws Exception {
 		if ("file".equals(url.getProtocol())) {
 			File file = new File(url.toURI());
 			if (file.isFile()) {
@@ -334,7 +335,7 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 		Assert.notNull(context, "'context' must not be null");
 		ServletHolder holder = new ServletHolder();
 		holder.setName("default");
-		holder.setClassName("org.eclipse.jetty.ee10.servlet.DefaultServlet");
+		holder.setClassName("org.eclipse.jetty.ee11.servlet.DefaultServlet");
 		holder.setInitParameter("dirAllowed", "false");
 		holder.setInitOrder(1);
 		context.getServletHandler().addServletWithMapping(holder, "/");
@@ -404,8 +405,8 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 
 			@Override
 			public void configure(WebAppContext context) throws Exception {
-				MimeTypes.Wrapper mimeTypes = (Wrapper) context.getMimeTypes();
-				mimeTypes.setWrapped(new MimeTypes(null));
+				MimeTypes.Mutable mimeTypes = context.getMimeTypes();
+				mimeTypes.clear();
 				for (MimeMappings.Mapping mapping : getSettings().getMimeMappings()) {
 					mimeTypes.addMimeMapping(mapping.getExtension(), mapping.getMimeType());
 				}
@@ -591,11 +592,11 @@ public class JettyServletWebServerFactory extends JettyWebServerFactory
 					.build();
 			}
 
-			private SameSite getSameSite(HttpCookie cookie) {
+			private @Nullable SameSite getSameSite(HttpCookie cookie) {
 				return getSameSite(asServletCookie(cookie));
 			}
 
-			private SameSite getSameSite(Cookie cookie) {
+			private @Nullable SameSite getSameSite(Cookie cookie) {
 				return SuppliedSameSiteCookieHandlerWrapper.this.suppliers.stream()
 					.map((supplier) -> supplier.getSameSite(cookie))
 					.filter(Objects::nonNull)

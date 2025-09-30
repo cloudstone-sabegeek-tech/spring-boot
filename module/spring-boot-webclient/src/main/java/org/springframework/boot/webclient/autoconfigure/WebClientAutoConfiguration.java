@@ -23,6 +23,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.http.client.autoconfigure.reactive.ClientHttpConnectorAutoConfiguration;
 import org.springframework.boot.http.client.reactive.ClientHttpConnectorBuilder;
 import org.springframework.boot.http.client.reactive.ClientHttpConnectorSettings;
@@ -36,6 +37,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.web.client.ApiVersionFormatter;
+import org.springframework.web.client.ApiVersionInserter;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
@@ -52,13 +55,19 @@ import org.springframework.web.reactive.function.client.WebClient;
  */
 @AutoConfiguration(after = { ClientHttpConnectorAutoConfiguration.class, CodecsAutoConfiguration.class })
 @ConditionalOnClass(WebClient.class)
-public class WebClientAutoConfiguration {
+@EnableConfigurationProperties(WebClientProperties.class)
+public final class WebClientAutoConfiguration {
 
 	@Bean
 	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 	@ConditionalOnMissingBean
-	public WebClient.Builder webClientBuilder(ObjectProvider<WebClientCustomizer> customizerProvider) {
+	WebClient.Builder webClientBuilder(ObjectProvider<WebClientCustomizer> customizerProvider,
+			ObjectProvider<ApiVersionInserter> apiVersionInserter,
+			ObjectProvider<ApiVersionFormatter> apiVersionFormatter, WebClientProperties webClientProperties) {
 		WebClient.Builder builder = WebClient.builder();
+		PropertiesWebClientCustomizer propertiesCustomizer = new PropertiesWebClientCustomizer(
+				apiVersionInserter.getIfAvailable(), apiVersionFormatter.getIfAvailable(), webClientProperties);
+		propertiesCustomizer.customize(builder);
 		customizerProvider.orderedStream().forEach((customizer) -> customizer.customize(builder));
 		return builder;
 	}
@@ -67,7 +76,7 @@ public class WebClientAutoConfiguration {
 	@Lazy
 	@Order(0)
 	@ConditionalOnBean(ClientHttpConnector.class)
-	public WebClientCustomizer webClientHttpConnectorCustomizer(ClientHttpConnector clientHttpConnector) {
+	WebClientCustomizer webClientHttpConnectorCustomizer(ClientHttpConnector clientHttpConnector) {
 		return (builder) -> builder.clientConnector(clientHttpConnector);
 	}
 
@@ -86,7 +95,7 @@ public class WebClientAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		@Order(0)
-		public WebClientCodecCustomizer exchangeStrategiesCustomizer(ObjectProvider<CodecCustomizer> codecCustomizers) {
+		WebClientCodecCustomizer exchangeStrategiesCustomizer(ObjectProvider<CodecCustomizer> codecCustomizers) {
 			return new WebClientCodecCustomizer(codecCustomizers.orderedStream().toList());
 		}
 

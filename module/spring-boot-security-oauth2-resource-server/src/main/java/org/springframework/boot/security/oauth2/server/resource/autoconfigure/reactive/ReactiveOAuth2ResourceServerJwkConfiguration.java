@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -54,6 +56,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtGrantedAuthoritiesConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -89,8 +92,9 @@ class ReactiveOAuth2ResourceServerJwkConfiguration {
 		@Bean
 		@ConditionalOnProperty(name = "spring.security.oauth2.resourceserver.jwt.jwk-set-uri")
 		ReactiveJwtDecoder jwtDecoder(ObjectProvider<JwkSetUriReactiveJwtDecoderBuilderCustomizer> customizers) {
-			JwkSetUriReactiveJwtDecoderBuilder builder = NimbusReactiveJwtDecoder
-				.withJwkSetUri(this.properties.getJwkSetUri())
+			String jwkSetUri = this.properties.getJwkSetUri();
+			Assert.state(jwkSetUri != null, "'jwkSetUri' must not be null");
+			JwkSetUriReactiveJwtDecoderBuilder builder = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri)
 				.jwsAlgorithms(this::jwsAlgorithms);
 			customizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
 			NimbusReactiveJwtDecoder nimbusReactiveJwtDecoder = builder.build();
@@ -125,7 +129,7 @@ class ReactiveOAuth2ResourceServerJwkConfiguration {
 			return new JwtClaimValidator<>(JwtClaimNames.AUD, (aud) -> nullSafeDisjoint(aud, audiences));
 		}
 
-		private boolean nullSafeDisjoint(List<String> c1, List<String> c2) {
+		private boolean nullSafeDisjoint(@Nullable List<String> c1, List<String> c2) {
 			return c1 != null && !Collections.disjoint(c1, c2);
 		}
 
@@ -162,12 +166,12 @@ class ReactiveOAuth2ResourceServerJwkConfiguration {
 		SupplierReactiveJwtDecoder jwtDecoderByIssuerUri(
 				ObjectProvider<JwkSetUriReactiveJwtDecoderBuilderCustomizer> customizers) {
 			return new SupplierReactiveJwtDecoder(() -> {
-				JwkSetUriReactiveJwtDecoderBuilder builder = NimbusReactiveJwtDecoder
-					.withIssuerLocation(this.properties.getIssuerUri());
+				String issuerUri = this.properties.getIssuerUri();
+				Assert.state(issuerUri != null, "'issuerUri' must not be null");
+				JwkSetUriReactiveJwtDecoderBuilder builder = NimbusReactiveJwtDecoder.withIssuerLocation(issuerUri);
 				customizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
 				NimbusReactiveJwtDecoder jwtDecoder = builder.build();
-				jwtDecoder.setJwtValidator(
-						getValidators(JwtValidators.createDefaultWithIssuer(this.properties.getIssuerUri())));
+				jwtDecoder.setJwtValidator(getValidators(JwtValidators.createDefaultWithIssuer(issuerUri)));
 				return jwtDecoder;
 			});
 		}
@@ -188,7 +192,7 @@ class ReactiveOAuth2ResourceServerJwkConfiguration {
 		@Bean
 		ReactiveJwtAuthenticationConverter reactiveJwtAuthenticationConverter() {
 			JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+			PropertyMapper map = PropertyMapper.get();
 			map.from(this.properties.getAuthorityPrefix()).to(grantedAuthoritiesConverter::setAuthorityPrefix);
 			map.from(this.properties.getAuthoritiesClaimDelimiter())
 				.to(grantedAuthoritiesConverter::setAuthoritiesClaimDelimiter);

@@ -28,9 +28,11 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.ansi.AnsiPropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
@@ -40,6 +42,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.log.LogMessage;
 import org.springframework.util.Assert;
 import org.springframework.util.StreamUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Banner implementation that prints from a source text {@link Resource}.
@@ -64,7 +67,7 @@ public class ResourceBanner implements Banner {
 	}
 
 	@Override
-	public void printBanner(Environment environment, Class<?> sourceClass, PrintStream out) {
+	public void printBanner(Environment environment, @Nullable Class<?> sourceClass, PrintStream out) {
 		try (InputStream input = this.resource.getInputStream()) {
 			String banner = StreamUtils.copyToString(input,
 					environment.getProperty("spring.banner.charset", Charset.class, StandardCharsets.UTF_8));
@@ -86,36 +89,36 @@ public class ResourceBanner implements Banner {
 	 * @param sourceClass the source class
 	 * @return a mutable list of property resolvers
 	 */
-	protected List<PropertyResolver> getPropertyResolvers(Environment environment, Class<?> sourceClass) {
+	protected List<PropertyResolver> getPropertyResolvers(Environment environment, @Nullable Class<?> sourceClass) {
 		List<PropertyResolver> resolvers = new ArrayList<>();
 		resolvers.add(new PropertySourcesPropertyResolver(createNullDefaultSources(environment, sourceClass)));
 		resolvers.add(new PropertySourcesPropertyResolver(createEmptyDefaultSources(environment, sourceClass)));
 		return resolvers;
 	}
 
-	private MutablePropertySources createNullDefaultSources(Environment environment, Class<?> sourceClass) {
+	private MutablePropertySources createNullDefaultSources(Environment environment, @Nullable Class<?> sourceClass) {
 		MutablePropertySources nullDefaultSources = new MutablePropertySources();
 		if (environment instanceof ConfigurableEnvironment configurableEnvironment) {
 			configurableEnvironment.getPropertySources().forEach(nullDefaultSources::addLast);
 		}
 		nullDefaultSources.addLast(getTitleSource(sourceClass, null));
 		nullDefaultSources.addLast(getAnsiSource());
-		nullDefaultSources.addLast(getVersionSource(sourceClass, environment, null));
+		nullDefaultSources.addLast(getVersionSource(environment, null));
 		return nullDefaultSources;
 	}
 
-	private MutablePropertySources createEmptyDefaultSources(Environment environment, Class<?> sourceClass) {
+	private MutablePropertySources createEmptyDefaultSources(Environment environment, @Nullable Class<?> sourceClass) {
 		MutablePropertySources emptyDefaultSources = new MutablePropertySources();
 		emptyDefaultSources.addLast(getTitleSource(sourceClass, ""));
-		emptyDefaultSources.addLast(getVersionSource(sourceClass, environment, ""));
+		emptyDefaultSources.addLast(getVersionSource(environment, ""));
 		return emptyDefaultSources;
 	}
 
-	private MapPropertySource getTitleSource(Class<?> sourceClass, String defaultValue) {
+	private MapWithNullsPropertySource getTitleSource(@Nullable Class<?> sourceClass, @Nullable String defaultValue) {
 		String applicationTitle = getApplicationTitle(sourceClass);
-		Map<String, Object> titleMap = Collections.singletonMap("application.title",
+		Map<String, @Nullable Object> titleMap = Collections.singletonMap("application.title",
 				(applicationTitle != null) ? applicationTitle : defaultValue);
-		return new MapPropertySource("title", titleMap);
+		return new MapWithNullsPropertySource("title", titleMap);
 	}
 
 	/**
@@ -124,7 +127,7 @@ public class ResourceBanner implements Banner {
 	 * @param sourceClass the source class
 	 * @return the application title
 	 */
-	protected String getApplicationTitle(Class<?> sourceClass) {
+	protected @Nullable String getApplicationTitle(@Nullable Class<?> sourceClass) {
 		Package sourcePackage = (sourceClass != null) ? sourceClass.getPackage() : null;
 		return (sourcePackage != null) ? sourcePackage.getImplementationTitle() : null;
 	}
@@ -133,14 +136,14 @@ public class ResourceBanner implements Banner {
 		return new AnsiPropertySource("ansi", true);
 	}
 
-	private MapPropertySource getVersionSource(Class<?> sourceClass, Environment environment, String defaultValue) {
-		return new MapPropertySource("version", getVersionsMap(sourceClass, environment, defaultValue));
+	private MapWithNullsPropertySource getVersionSource(Environment environment, @Nullable String defaultValue) {
+		return new MapWithNullsPropertySource("version", getVersionsMap(environment, defaultValue));
 	}
 
-	private Map<String, Object> getVersionsMap(Class<?> sourceClass, Environment environment, String defaultValue) {
+	private Map<String, @Nullable Object> getVersionsMap(Environment environment, @Nullable String defaultValue) {
 		String appVersion = getApplicationVersion(environment);
 		String bootVersion = getBootVersion();
-		Map<String, Object> versions = new HashMap<>();
+		Map<String, @Nullable Object> versions = new HashMap<>();
 		versions.put("application.version", getVersionString(appVersion, false, defaultValue));
 		versions.put("spring-boot.version", getVersionString(bootVersion, false, defaultValue));
 		versions.put("application.formatted-version", getVersionString(appVersion, true, defaultValue));
@@ -148,19 +151,45 @@ public class ResourceBanner implements Banner {
 		return versions;
 	}
 
-	private String getApplicationVersion(Environment environment) {
+	private @Nullable String getApplicationVersion(Environment environment) {
 		return environment.getProperty("spring.application.version");
 	}
 
-	protected String getBootVersion() {
+	protected @Nullable String getBootVersion() {
 		return SpringBootVersion.getVersion();
 	}
 
-	private String getVersionString(String version, boolean format, String fallback) {
+	private @Nullable String getVersionString(@Nullable String version, boolean format, @Nullable String fallback) {
 		if (version == null) {
 			return fallback;
 		}
 		return format ? " (v" + version + ")" : version;
+	}
+
+	/**
+	 * Like {@link MapPropertySource}, but allows {@code null} as map values.
+	 */
+	private static class MapWithNullsPropertySource extends EnumerablePropertySource<Map<String, @Nullable Object>> {
+
+		MapWithNullsPropertySource(String name, Map<String, @Nullable Object> source) {
+			super(name, source);
+		}
+
+		@Override
+		public String[] getPropertyNames() {
+			return StringUtils.toStringArray(this.source.keySet());
+		}
+
+		@Override
+		public @Nullable Object getProperty(String name) {
+			return this.source.get(name);
+		}
+
+		@Override
+		public boolean containsProperty(String name) {
+			return this.source.containsKey(name);
+		}
+
 	}
 
 }

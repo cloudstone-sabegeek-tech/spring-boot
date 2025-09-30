@@ -22,6 +22,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -38,7 +40,7 @@ import org.springframework.util.ClassUtils;
  */
 public final class AnnotatedClassFinder {
 
-	private static final Map<String, Class<?>> cache = Collections.synchronizedMap(new Cache(40));
+	private static final Map<String, @Nullable Class<?>> cache = Collections.synchronizedMap(new Cache(40));
 
 	private final Class<? extends Annotation> annotationType;
 
@@ -63,7 +65,7 @@ public final class AnnotatedClassFinder {
 	 * @return the first {@link Class} annotated with the target annotation within the
 	 * hierarchy defined by the given {@code source} or {@code null} if none is found.
 	 */
-	public Class<?> findFromClass(Class<?> source) {
+	public @Nullable Class<?> findFromClass(Class<?> source) {
 		Assert.notNull(source, "'source' must not be null");
 		return findFromPackage(ClassUtils.getPackageName(source));
 	}
@@ -75,7 +77,7 @@ public final class AnnotatedClassFinder {
 	 * @return the first {@link Class} annotated with the target annotation within the
 	 * hierarchy defined by the given {@code source} or {@code null} if none is found.
 	 */
-	public Class<?> findFromPackage(String source) {
+	public @Nullable Class<?> findFromPackage(String source) {
 		Assert.notNull(source, "'source' must not be null");
 		Class<?> configuration = cache.get(source);
 		if (configuration == null) {
@@ -85,13 +87,15 @@ public final class AnnotatedClassFinder {
 		return configuration;
 	}
 
-	private Class<?> scanPackage(String source) {
+	private @Nullable Class<?> scanPackage(String source) {
 		while (!source.isEmpty()) {
 			Set<BeanDefinition> components = this.scanner.findCandidateComponents(source);
 			if (!components.isEmpty()) {
 				Assert.state(components.size() == 1, () -> "Found multiple @" + this.annotationType.getSimpleName()
 						+ " annotated classes " + components);
-				return ClassUtils.resolveClassName(components.iterator().next().getBeanClassName(), null);
+				String beanClassName = components.iterator().next().getBeanClassName();
+				Assert.state(beanClassName != null, "'beanClassName' must not be null");
+				return ClassUtils.resolveClassName(beanClassName, null);
 			}
 			source = getParentPackage(source);
 		}
@@ -106,7 +110,7 @@ public final class AnnotatedClassFinder {
 	/**
 	 * Cache implementation based on {@link LinkedHashMap}.
 	 */
-	private static class Cache extends LinkedHashMap<String, Class<?>> {
+	private static class Cache extends LinkedHashMap<String, @Nullable Class<?>> {
 
 		private final int maxSize;
 
@@ -116,7 +120,7 @@ public final class AnnotatedClassFinder {
 		}
 
 		@Override
-		protected boolean removeEldestEntry(Map.Entry<String, Class<?>> eldest) {
+		protected boolean removeEldestEntry(Map.Entry<String, @Nullable Class<?>> eldest) {
 			return size() > this.maxSize;
 		}
 

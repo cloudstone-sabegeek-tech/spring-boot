@@ -86,7 +86,7 @@ We like to know the Spring Boot version, operating system, and JVM version you'r
 == Building from Source
 
 You don't need to build from source to use Spring Boot (binaries in https://repo.spring.io[repo.spring.io]), but if you want to try out the latest and greatest, Spring Boot can be built and published to your local Maven cache using the https://docs.gradle.org/current/userguide/gradle_wrapper.html[Gradle wrapper].
-You also need JDK 17.
+You also need JDK 24.
 
 [source,shell]
 ----
@@ -116,7 +116,7 @@ The main library providing features that support the other parts of Spring Boot.
 
 * The `SpringApplication` class, providing static convenience methods that can be used to write a stand-alone Spring Application.
   Its sole job is to create and refresh an appropriate Spring `ApplicationContext`.
-* Embedded web applications with a choice of container (Tomcat, Jetty, or Undertow).
+* Embedded web applications with a choice of container (Tomcat, Jetty).
 * First-class externalized configuration support.
 * Convenience `ApplicationContext` initializers, including support for sensible logging defaults.
 

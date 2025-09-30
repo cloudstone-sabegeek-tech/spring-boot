@@ -20,9 +20,10 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.actuate.endpoint.OperationResponseBody;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
-import org.springframework.boot.actuate.endpoint.annotation.OptionalParameter;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.util.Assert;
 
@@ -43,13 +44,13 @@ public class AuditEventsEndpoint {
 	}
 
 	@ReadOperation
-	public AuditEventsDescriptor events(@OptionalParameter String principal, @OptionalParameter OffsetDateTime after,
-			@OptionalParameter String type) {
+	public AuditEventsDescriptor events(@Nullable String principal, @Nullable OffsetDateTime after,
+			@Nullable String type) {
 		List<AuditEvent> events = this.auditEventRepository.find(principal, getInstant(after), type);
 		return new AuditEventsDescriptor(events);
 	}
 
-	private Instant getInstant(OffsetDateTime offsetDateTime) {
+	private @Nullable Instant getInstant(@Nullable OffsetDateTime offsetDateTime) {
 		return (offsetDateTime != null) ? offsetDateTime.toInstant() : null;
 	}
 

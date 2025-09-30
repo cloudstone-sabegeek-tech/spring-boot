@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 import com.gradle.develocity.agent.gradle.test.DevelocityTestConfiguration;
 import com.gradle.develocity.agent.gradle.test.PredictiveTestSelectionConfiguration;
 import com.gradle.develocity.agent.gradle.test.TestRetryConfiguration;
+import io.spring.gradle.nullability.NullabilityPlugin;
+import io.spring.gradle.nullability.NullabilityPluginExtension;
 import io.spring.javaformat.gradle.SpringJavaFormatPlugin;
 import io.spring.javaformat.gradle.tasks.CheckFormat;
 import io.spring.javaformat.gradle.tasks.Format;
@@ -68,8 +70,8 @@ import org.springframework.util.StringUtils;
  * <ul>
  * <li>The project is configured with source and target compatibility of 17
  * <li>{@link SpringJavaFormatPlugin Spring Java Format}, {@link CheckstylePlugin
- * Checkstyle}, {@link TestFailuresPlugin Test Failures}, and {@link ArchitecturePlugin
- * Architecture} plugins are applied
+ * Checkstyle}, {@link TestFailuresPlugin Test Failures}, {@link ArchitecturePlugin
+ * Architecture} and {@link NullabilityPlugin} plugins are applied
  * <li>{@link Test} tasks are configured:
  * <ul>
  * <li>to use JUnit Platform
@@ -140,6 +142,7 @@ class JavaConventions {
 			configureToolchain(project);
 			configureProhibitedDependencyChecks(project);
 			configureFactoriesFilesChecks(project);
+			configureNullability(project);
 		});
 	}
 
@@ -254,7 +257,8 @@ class JavaConventions {
 		project.getTasks().withType(Format.class, (Format) -> Format.setEncoding("UTF-8"));
 		project.getPlugins().apply(CheckstylePlugin.class);
 		CheckstyleExtension checkstyle = project.getExtensions().getByType(CheckstyleExtension.class);
-		checkstyle.setToolVersion("10.12.4");
+		String checkstyleToolVersion = (String) project.findProperty("checkstyleToolVersion");
+		checkstyle.setToolVersion(checkstyleToolVersion);
 		checkstyle.getConfigDirectory().set(project.getRootProject().file("config/checkstyle"));
 		String version = SpringJavaFormatPlugin.class.getPackage().getImplementationVersion();
 		DependencySet checkstyleDependencies = project.getConfigurations().getByName("checkstyle").getDependencies();
@@ -333,6 +337,19 @@ class JavaConventions {
 					});
 				check.configure((task) -> task.dependsOn(checkSpringFactories));
 			});
+	}
+
+	private void configureNullability(Project project) {
+		project.getPlugins().apply(NullabilityPlugin.class);
+		NullabilityPluginExtension extension = project.getExtensions().getByType(NullabilityPluginExtension.class);
+		String nullAwayVersion = (String) project.findProperty("nullAwayVersion");
+		if (nullAwayVersion != null) {
+			extension.getNullAwayVersion().set(nullAwayVersion);
+		}
+		String errorProneVersion = (String) project.findProperty("errorProneVersion");
+		if (errorProneVersion != null) {
+			extension.getErrorProneVersion().set(errorProneVersion);
+		}
 	}
 
 }

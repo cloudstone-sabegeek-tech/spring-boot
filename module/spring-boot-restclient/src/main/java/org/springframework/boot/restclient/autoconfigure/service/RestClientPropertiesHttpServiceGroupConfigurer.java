@@ -16,20 +16,19 @@
 
 package org.springframework.boot.restclient.autoconfigure.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.boot.http.client.autoconfigure.ClientHttpRequestFactories;
 import org.springframework.boot.http.client.autoconfigure.HttpClientProperties;
+import org.springframework.boot.restclient.autoconfigure.PropertiesRestClientCustomizer;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.web.client.ApiVersionFormatter;
+import org.springframework.web.client.ApiVersionInserter;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientHttpServiceGroupConfigurer;
 import org.springframework.web.service.registry.HttpServiceGroup;
@@ -47,24 +46,29 @@ class RestClientPropertiesHttpServiceGroupConfigurer implements RestClientHttpSe
 
 	private final ObjectProvider<SslBundles> sslBundles;
 
-	private final HttpClientProperties clientProperties;
-
 	private final HttpClientServiceProperties serviceProperties;
 
 	private final ObjectProvider<ClientHttpRequestFactoryBuilder<?>> requestFactoryBuilder;
 
 	private final ObjectProvider<ClientHttpRequestFactorySettings> requestFactorySettings;
 
+	private final @Nullable ApiVersionInserter apiVersionInserter;
+
+	private final @Nullable ApiVersionFormatter apiVersionFormatter;
+
 	RestClientPropertiesHttpServiceGroupConfigurer(ClassLoader classLoader, ObjectProvider<SslBundles> sslBundles,
-			HttpClientProperties clientProperties, HttpClientServiceProperties serviceProperties,
+			HttpClientServiceProperties serviceProperties,
 			ObjectProvider<ClientHttpRequestFactoryBuilder<?>> requestFactoryBuilder,
-			ObjectProvider<ClientHttpRequestFactorySettings> requestFactorySettings) {
+			ObjectProvider<ClientHttpRequestFactorySettings> requestFactorySettings,
+			ObjectProvider<ApiVersionInserter> apiVersionInserter,
+			ObjectProvider<ApiVersionFormatter> apiVersionFormatter) {
 		this.classLoader = classLoader;
 		this.sslBundles = sslBundles;
-		this.clientProperties = clientProperties;
 		this.serviceProperties = serviceProperties;
 		this.requestFactoryBuilder = requestFactoryBuilder;
 		this.requestFactorySettings = requestFactorySettings;
+		this.apiVersionInserter = apiVersionInserter.getIfAvailable();
+		this.apiVersionFormatter = apiVersionFormatter.getIfAvailable();
 	}
 
 	@Override
@@ -80,25 +84,21 @@ class RestClientPropertiesHttpServiceGroupConfigurer implements RestClientHttpSe
 	private void configureClient(HttpServiceGroup group, RestClient.Builder builder) {
 		HttpClientServiceProperties.Group groupProperties = this.serviceProperties.getGroup().get(group.name());
 		builder.requestFactory(getRequestFactory(groupProperties));
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
-		map.from(this.serviceProperties::getBaseUrl).whenHasText().to(builder::baseUrl);
-		map.from(this.serviceProperties::getDefaultHeader).as(this::putAllHeaders).to(builder::defaultHeaders);
-		if (groupProperties != null) {
-			map.from(groupProperties::getBaseUrl).whenHasText().to(builder::baseUrl);
-			map.from(groupProperties::getDefaultHeader).as(this::putAllHeaders).to(builder::defaultHeaders);
-		}
+		getPropertiesRestClientCustomizer(groupProperties).customize(builder);
 	}
 
-	private Consumer<HttpHeaders> putAllHeaders(Map<String, List<String>> defaultHeaders) {
-		return (httpHeaders) -> httpHeaders.putAll(defaultHeaders);
+	private PropertiesRestClientCustomizer getPropertiesRestClientCustomizer(
+			HttpClientServiceProperties.@Nullable Group groupProperties) {
+		return new PropertiesRestClientCustomizer(this.apiVersionInserter, this.apiVersionFormatter, groupProperties,
+				this.serviceProperties);
 	}
 
-	private ClientHttpRequestFactory getRequestFactory(HttpClientServiceProperties.Group groupProperties) {
-		ClientHttpRequestFactories factories = new ClientHttpRequestFactories(this.sslBundles, groupProperties,
-				this.serviceProperties, this.clientProperties);
-		ClientHttpRequestFactoryBuilder<?> builder = this.requestFactoryBuilder
-			.getIfAvailable(() -> factories.builder(this.classLoader));
-		ClientHttpRequestFactorySettings settings = this.requestFactorySettings.getIfAvailable(factories::settings);
+	private ClientHttpRequestFactory getRequestFactory(HttpClientServiceProperties.@Nullable Group groupProperties) {
+		ClientHttpRequestFactories factories = new ClientHttpRequestFactories(
+				this.requestFactoryBuilder.getIfAvailable(), this.requestFactorySettings.getIfAvailable(),
+				this.sslBundles, groupProperties, this.serviceProperties);
+		ClientHttpRequestFactoryBuilder<?> builder = factories.builder(this.classLoader);
+		ClientHttpRequestFactorySettings settings = factories.settings();
 		return builder.build(settings);
 	}
 

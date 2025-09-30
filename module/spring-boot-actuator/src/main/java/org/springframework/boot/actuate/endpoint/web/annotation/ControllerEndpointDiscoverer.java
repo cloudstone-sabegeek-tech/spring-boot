@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -51,7 +53,7 @@ import org.springframework.core.annotation.MergedAnnotations.SearchStrategy;
 public class ControllerEndpointDiscoverer extends EndpointDiscoverer<ExposableControllerEndpoint, Operation>
 		implements ControllerEndpointsSupplier {
 
-	private final List<PathMapper> endpointPathMappers;
+	private final @Nullable List<PathMapper> endpointPathMappers;
 
 	/**
 	 * Create a new {@link ControllerEndpointDiscoverer} instance.
@@ -59,7 +61,8 @@ public class ControllerEndpointDiscoverer extends EndpointDiscoverer<ExposableCo
 	 * @param endpointPathMappers the endpoint path mappers
 	 * @param filters filters to apply
 	 */
-	public ControllerEndpointDiscoverer(ApplicationContext applicationContext, List<PathMapper> endpointPathMappers,
+	public ControllerEndpointDiscoverer(ApplicationContext applicationContext,
+			@Nullable List<PathMapper> endpointPathMappers,
 			Collection<EndpointFilter<ExposableControllerEndpoint>> filters) {
 		super(applicationContext, ParameterValueMapper.NONE, Collections.emptyList(), filters, Collections.emptyList());
 		this.endpointPathMappers = endpointPathMappers;
@@ -97,7 +100,7 @@ public class ControllerEndpointDiscoverer extends EndpointDiscoverer<ExposableCo
 	static class ControllerEndpointDiscovererRuntimeHints implements RuntimeHintsRegistrar {
 
 		@Override
-		public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+		public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
 			hints.reflection()
 				.registerType(ControllerEndpointFilter.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
 		}

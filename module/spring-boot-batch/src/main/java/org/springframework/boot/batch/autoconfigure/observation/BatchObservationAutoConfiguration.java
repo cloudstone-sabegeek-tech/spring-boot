@@ -33,10 +33,11 @@ import org.springframework.context.annotation.Bean;
  * @author Mark Bonnekessel
  * @since 4.0.0
  */
-@AutoConfiguration(afterName = "org.springframework.boot.observation.autoconfigure.ObservationAutoConfiguration")
+@AutoConfiguration(
+		afterName = "org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration")
 @ConditionalOnBean(ObservationRegistry.class)
 @ConditionalOnClass({ ObservationRegistry.class, BatchObservabilityBeanPostProcessor.class })
-public class BatchObservationAutoConfiguration {
+public final class BatchObservationAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean

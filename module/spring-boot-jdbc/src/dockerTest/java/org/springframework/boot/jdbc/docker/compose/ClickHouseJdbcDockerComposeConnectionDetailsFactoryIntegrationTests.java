@@ -41,13 +41,6 @@ class ClickHouseJdbcDockerComposeConnectionDetailsFactoryIntegrationTests {
 		checkDatabaseAccess(connectionDetails);
 	}
 
-	@DockerComposeTest(composeFile = "clickhouse-bitnami-compose.yaml", image = TestImage.BITNAMI_CLICKHOUSE)
-	void runWithBitnamiImageCreatesConnectionDetails(JdbcConnectionDetails connectionDetails) {
-		assertConnectionDetails(connectionDetails);
-		// See https://github.com/bitnami/containers/issues/73550
-		// checkDatabaseAccess(connectionDetails);
-	}
-
 	private void assertConnectionDetails(JdbcConnectionDetails connectionDetails) {
 		assertThat(connectionDetails.getUsername()).isEqualTo("myuser");
 		assertThat(connectionDetails.getPassword()).isEqualTo("secret");

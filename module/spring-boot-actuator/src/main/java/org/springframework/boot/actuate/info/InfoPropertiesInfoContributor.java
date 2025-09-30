@@ -16,16 +16,22 @@
 
 package org.springframework.boot.actuate.info;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.info.InfoProperties;
 import org.springframework.core.env.PropertySource;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
@@ -90,8 +96,18 @@ public abstract class InfoPropertiesInfoContributor<T extends InfoProperties> im
 	 * @return the raw content
 	 */
 	protected Map<String, Object> extractContent(PropertySource<?> propertySource) {
-		return new Binder(ConfigurationPropertySources.from(propertySource)).bind("", STRING_OBJECT_MAP)
-			.orElseGet(LinkedHashMap::new);
+		Iterable<@Nullable ConfigurationPropertySource> adapted = ConfigurationPropertySources.from(propertySource);
+		return new Binder(ensureNonNullContent(adapted)).bind("", STRING_OBJECT_MAP).orElseGet(LinkedHashMap::new);
+	}
+
+	private Iterable<ConfigurationPropertySource> ensureNonNullContent(
+			Iterable<@Nullable ConfigurationPropertySource> sources) {
+		List<ConfigurationPropertySource> nonNullSources = new ArrayList<>(1);
+		for (ConfigurationPropertySource source : sources) {
+			Assert.notNull(source, "'source' must not be null");
+			nonNullSources.add(source);
+		}
+		return nonNullSources;
 	}
 
 	/**
@@ -131,7 +147,7 @@ public abstract class InfoPropertiesInfoContributor<T extends InfoProperties> im
 	 * @param key the property to replace
 	 * @param value the new value
 	 */
-	protected void replaceValue(Map<String, Object> content, String key, Object value) {
+	protected void replaceValue(Map<String, Object> content, String key, @Nullable Object value) {
 		if (content.containsKey(key) && value != null) {
 			content.put(key, value);
 		}

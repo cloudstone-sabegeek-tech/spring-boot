@@ -37,6 +37,8 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.io.entity.AbstractHttpEntity;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.core.JacksonException;
 
 import org.springframework.boot.buildpack.platform.io.Content;
 import org.springframework.boot.buildpack.platform.io.IOConsumer;
@@ -95,7 +97,7 @@ abstract class HttpClientTransport implements HttpTransport {
 	 * @return the operation response
 	 */
 	@Override
-	public Response post(URI uri, String registryAuth) {
+	public Response post(URI uri, @Nullable String registryAuth) {
 		return execute(new HttpPost(uri), registryAuth);
 	}
 
@@ -148,7 +150,7 @@ abstract class HttpClientTransport implements HttpTransport {
 		return execute(request);
 	}
 
-	private Response execute(HttpUriRequestBase request, String registryAuth) {
+	private Response execute(HttpUriRequestBase request, @Nullable String registryAuth) {
 		if (StringUtils.hasText(registryAuth)) {
 			request.setHeader(REGISTRY_AUTH_HEADER, registryAuth);
 		}
@@ -178,7 +180,7 @@ abstract class HttpClientTransport implements HttpTransport {
 	protected void beforeExecute(HttpRequest request) {
 	}
 
-	private byte[] readContent(ClassicHttpResponse response) throws IOException {
+	private byte @Nullable [] readContent(ClassicHttpResponse response) throws IOException {
 		HttpEntity entity = response.getEntity();
 		if (entity == null) {
 			return null;
@@ -188,19 +190,19 @@ abstract class HttpClientTransport implements HttpTransport {
 		}
 	}
 
-	private Errors deserializeErrors(byte[] content) {
+	private @Nullable Errors deserializeErrors(byte @Nullable [] content) {
 		if (content == null) {
 			return null;
 		}
 		try {
 			return SharedObjectMapper.get().readValue(content, Errors.class);
 		}
-		catch (IOException ex) {
+		catch (JacksonException ex) {
 			return null;
 		}
 	}
 
-	private Message deserializeMessage(byte[] content) {
+	private @Nullable Message deserializeMessage(byte @Nullable [] content) {
 		if (content == null) {
 			return null;
 		}
@@ -208,7 +210,7 @@ abstract class HttpClientTransport implements HttpTransport {
 			Message message = SharedObjectMapper.get().readValue(content, Message.class);
 			return (message.getMessage() != null) ? message : null;
 		}
-		catch (IOException ex) {
+		catch (JacksonException ex) {
 			return null;
 		}
 	}

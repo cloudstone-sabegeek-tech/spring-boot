@@ -29,6 +29,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jspecify.annotations.Nullable;
+
+import org.springframework.util.Assert;
+
 /**
  * Default implementation of {@link LaunchScript}. Provides the default Spring Boot launch
  * script or can load a specific script File. Also support mustache style template
@@ -54,14 +58,16 @@ public class DefaultLaunchScript implements LaunchScript {
 	 * @param properties an optional set of script properties used for variable expansion
 	 * @throws IOException if the script cannot be loaded
 	 */
-	public DefaultLaunchScript(File file, Map<?, ?> properties) throws IOException {
+	public DefaultLaunchScript(@Nullable File file, Map<?, ?> properties) throws IOException {
 		String content = loadContent(file);
 		this.content = expandPlaceholders(content, properties);
 	}
 
-	private String loadContent(File file) throws IOException {
+	private String loadContent(@Nullable File file) throws IOException {
 		if (file == null) {
-			return loadContent(getClass().getResourceAsStream("launch.script"));
+			InputStream stream = getClass().getResourceAsStream("launch.script");
+			Assert.state(stream != null, "Unable to load resource 'launch.script'");
+			return loadContent(stream);
 		}
 		return loadContent(new FileInputStream(file));
 	}
@@ -83,7 +89,7 @@ public class DefaultLaunchScript implements LaunchScript {
 		outputStream.flush();
 	}
 
-	private String expandPlaceholders(String content, Map<?, ?> properties) throws IOException {
+	private String expandPlaceholders(String content, @Nullable Map<?, ?> properties) throws IOException {
 		StringBuilder expanded = new StringBuilder();
 		Matcher matcher = PLACEHOLDER_PATTERN.matcher(content);
 		while (matcher.find()) {

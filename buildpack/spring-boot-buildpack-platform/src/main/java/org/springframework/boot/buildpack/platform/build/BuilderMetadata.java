@@ -23,9 +23,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import org.springframework.boot.buildpack.platform.docker.type.Image;
 import org.springframework.boot.buildpack.platform.docker.type.ImageConfig;
@@ -59,11 +60,29 @@ class BuilderMetadata extends MappedObject {
 
 	BuilderMetadata(JsonNode node) {
 		super(node, MethodHandles.lookup());
-		this.stack = valueAt("/stack", Stack.class);
+		this.stack = extractStack();
 		this.runImages = childrenAt("/images", RunImage::new);
-		this.lifecycle = valueAt("/lifecycle", Lifecycle.class);
-		this.createdBy = valueAt("/createdBy", CreatedBy.class);
+		this.lifecycle = extractLifecycle();
+		this.createdBy = extractCreatedBy();
 		this.buildpacks = extractBuildpacks(getNode().at("/buildpacks"));
+	}
+
+	private CreatedBy extractCreatedBy() {
+		CreatedBy result = valueAt("/createdBy", CreatedBy.class);
+		Assert.state(result != null, "'result' must not be null");
+		return result;
+	}
+
+	private Lifecycle extractLifecycle() {
+		Lifecycle result = valueAt("/lifecycle", Lifecycle.class);
+		Assert.state(result != null, "'result' must not be null");
+		return result;
+	}
+
+	private Stack extractStack() {
+		Stack result = valueAt("/stack", Stack.class);
+		Assert.state(result != null, "'result' must not be null");
+		return result;
 	}
 
 	private List<BuildpackMetadata> extractBuildpacks(JsonNode node) {
@@ -133,7 +152,7 @@ class BuilderMetadata extends MappedObject {
 			String json = SharedObjectMapper.get().writeValueAsString(getNode());
 			update.withLabel(LABEL_NAME, json);
 		}
-		catch (JsonProcessingException ex) {
+		catch (JacksonException ex) {
 			throw new IllegalStateException(ex);
 		}
 	}
@@ -219,8 +238,14 @@ class BuilderMetadata extends MappedObject {
 		 */
 		RunImage(JsonNode node) {
 			super(node, MethodHandles.lookup());
-			this.image = valueAt("/image", String.class);
-			this.mirrors = childrenAt("/mirrors", JsonNode::asText);
+			this.image = extractImage();
+			this.mirrors = childrenAt("/mirrors", JsonNode::asString);
+		}
+
+		private String extractImage() {
+			String result = valueAt("/image", String.class);
+			Assert.state(result != null, "'result' must not be null");
+			return result;
 		}
 
 		String getImage() {
@@ -284,7 +309,7 @@ class BuilderMetadata extends MappedObject {
 			 * Return the supported buildpack API versions.
 			 * @return the buildpack versions
 			 */
-			default String[] getBuildpack() {
+			default String @Nullable [] getBuildpack() {
 				return valueAt(this, "/buildpack/supported", String[].class);
 			}
 
@@ -292,7 +317,7 @@ class BuilderMetadata extends MappedObject {
 			 * Return the supported platform API versions.
 			 * @return the platform versions
 			 */
-			default String[] getPlatform() {
+			default String @Nullable [] getPlatform() {
 				return valueAt(this, "/platform/supported", String[].class);
 			}
 
@@ -327,7 +352,7 @@ class BuilderMetadata extends MappedObject {
 		private final ObjectNode copy;
 
 		private Update(BuilderMetadata source) {
-			this.copy = source.getNode().deepCopy();
+			this.copy = (ObjectNode) source.getNode().deepCopy();
 		}
 
 		private BuilderMetadata run(Consumer<Update> update) {

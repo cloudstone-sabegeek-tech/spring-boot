@@ -23,12 +23,15 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.json.JsonWriter.Members;
 import org.springframework.boot.logging.StackTracePrinter;
 import org.springframework.boot.logging.structured.StructuredLoggingJsonProperties.Context;
 import org.springframework.boot.util.Instantiator;
 import org.springframework.boot.util.Instantiator.AvailableParameters;
 import org.springframework.boot.util.Instantiator.FailureHandler;
+import org.springframework.boot.util.LambdaSafe;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.SpringFactoriesLoader;
@@ -72,20 +75,24 @@ public class StructuredLogFormatterFactory<E> {
 	 * @param commonFormatters callback used to define supported common formatters
 	 */
 	public StructuredLogFormatterFactory(Class<E> logEventType, Environment environment,
-			Consumer<AvailableParameters> availableParameters, Consumer<CommonFormatters<E>> commonFormatters) {
+			@Nullable Consumer<AvailableParameters> availableParameters,
+			Consumer<CommonFormatters<E>> commonFormatters) {
 		this(SpringFactoriesLoader.forDefaultResourceLocation(), logEventType, environment, availableParameters,
 				commonFormatters);
 	}
 
 	StructuredLogFormatterFactory(SpringFactoriesLoader factoriesLoader, Class<E> logEventType, Environment environment,
-			Consumer<AvailableParameters> availableParameters, Consumer<CommonFormatters<E>> commonFormatters) {
+			@Nullable Consumer<AvailableParameters> availableParameters,
+			Consumer<CommonFormatters<E>> commonFormatters) {
 		StructuredLoggingJsonProperties properties = StructuredLoggingJsonProperties.get(environment);
 		this.factoriesLoader = factoriesLoader;
 		this.logEventType = logEventType;
 		this.instantiator = new Instantiator<>(Object.class, (allAvailableParameters) -> {
 			allAvailableParameters.add(Environment.class, environment);
 			allAvailableParameters.add(StructuredLoggingJsonMembersCustomizer.class,
-					(type) -> getStructuredLoggingJsonMembersCustomizer(properties));
+					new JsonMembersCustomizerBuilder(properties).build());
+			allAvailableParameters.add(StructuredLoggingJsonMembersCustomizer.Builder.class,
+					new JsonMembersCustomizerBuilder(properties));
 			allAvailableParameters.add(StackTracePrinter.class, (type) -> getStackTracePrinter(properties));
 			allAvailableParameters.add(ContextPairs.class, (type) -> getContextPairs(properties));
 			if (availableParameters != null) {
@@ -96,35 +103,11 @@ public class StructuredLogFormatterFactory<E> {
 		commonFormatters.accept(this.commonFormatters);
 	}
 
-	StructuredLoggingJsonMembersCustomizer<?> getStructuredLoggingJsonMembersCustomizer(
-			StructuredLoggingJsonProperties properties) {
-		List<StructuredLoggingJsonMembersCustomizer<?>> customizers = new ArrayList<>();
-		if (properties != null) {
-			customizers.add(new StructuredLoggingJsonPropertiesJsonMembersCustomizer(this.instantiator, properties));
-		}
-		customizers.addAll(loadStructuredLoggingJsonMembersCustomizers());
-		return (members) -> invokeCustomizers(customizers, members);
-	}
-
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private List<StructuredLoggingJsonMembersCustomizer<?>> loadStructuredLoggingJsonMembersCustomizers() {
-		return (List) this.factoriesLoader.load(StructuredLoggingJsonMembersCustomizer.class,
-				ArgumentResolver.from(this.instantiator::getArg));
-	}
-
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void invokeCustomizers(List<StructuredLoggingJsonMembersCustomizer<?>> customizers,
-			Members<Object> members) {
-		for (StructuredLoggingJsonMembersCustomizer<?> customizer : customizers) {
-			((StructuredLoggingJsonMembersCustomizer) customizer).customize(members);
-		}
-	}
-
-	private StackTracePrinter getStackTracePrinter(StructuredLoggingJsonProperties properties) {
+	private @Nullable StackTracePrinter getStackTracePrinter(@Nullable StructuredLoggingJsonProperties properties) {
 		return (properties != null && properties.stackTrace() != null) ? properties.stackTrace().createPrinter() : null;
 	}
 
-	private ContextPairs getContextPairs(StructuredLoggingJsonProperties properties) {
+	private ContextPairs getContextPairs(@Nullable StructuredLoggingJsonProperties properties) {
 		Context contextProperties = (properties != null) ? properties.context() : null;
 		contextProperties = (contextProperties != null) ? contextProperties : new Context(true, null);
 		return new ContextPairs(contextProperties.include(), contextProperties.prefix());
@@ -149,7 +132,7 @@ public class StructuredLogFormatterFactory<E> {
 	}
 
 	@SuppressWarnings("unchecked")
-	private StructuredLogFormatter<E> getUsingClassName(String className) {
+	private @Nullable StructuredLogFormatter<E> getUsingClassName(String className) {
 		Object formatter = this.instantiator.instantiate(className);
 		if (formatter != null) {
 			Assert.state(formatter instanceof StructuredLogFormatter,
@@ -192,7 +175,7 @@ public class StructuredLogFormatterFactory<E> {
 			return this.factories.keySet().stream().map(CommonStructuredLogFormat::getId).toList();
 		}
 
-		StructuredLogFormatter<E> get(Instantiator<?> instantiator, String format) {
+		@Nullable StructuredLogFormatter<E> get(Instantiator<?> instantiator, String format) {
 			CommonStructuredLogFormat commonFormat = CommonStructuredLogFormat.forId(format);
 			CommonFormatterFactory<E> factory = (commonFormat != null) ? this.factories.get(commonFormat) : null;
 			return (factory != null) ? factory.createFormatter(instantiator) : null;
@@ -215,6 +198,55 @@ public class StructuredLogFormatterFactory<E> {
 		 * @return a new {@link StructuredLogFormatter} instance
 		 */
 		StructuredLogFormatter<E> createFormatter(Instantiator<?> instantiator);
+
+	}
+
+	/**
+	 * {@link StructuredLoggingJsonMembersCustomizer.Builder} implementation.
+	 */
+	class JsonMembersCustomizerBuilder implements StructuredLoggingJsonMembersCustomizer.Builder<E> {
+
+		private final @Nullable StructuredLoggingJsonProperties properties;
+
+		private boolean nested;
+
+		JsonMembersCustomizerBuilder(@Nullable StructuredLoggingJsonProperties properties) {
+			this.properties = properties;
+		}
+
+		@Override
+		public JsonMembersCustomizerBuilder nested(boolean nested) {
+			this.nested = nested;
+			return this;
+		}
+
+		@Override
+		public StructuredLoggingJsonMembersCustomizer<E> build() {
+			return (members) -> {
+				List<StructuredLoggingJsonMembersCustomizer<?>> customizers = new ArrayList<>();
+				if (this.properties != null) {
+					customizers.add(new StructuredLoggingJsonPropertiesJsonMembersCustomizer(
+							StructuredLogFormatterFactory.this.instantiator, this.properties, this.nested));
+				}
+				customizers.addAll(loadStructuredLoggingJsonMembersCustomizers());
+				invokeCustomizers(members, customizers);
+			};
+		}
+
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		private List<StructuredLoggingJsonMembersCustomizer<?>> loadStructuredLoggingJsonMembersCustomizers() {
+			return (List) StructuredLogFormatterFactory.this.factoriesLoader.load(
+					StructuredLoggingJsonMembersCustomizer.class,
+					ArgumentResolver.from(StructuredLogFormatterFactory.this.instantiator::getArg));
+		}
+
+		@SuppressWarnings("unchecked")
+		private void invokeCustomizers(Members<E> members,
+				List<StructuredLoggingJsonMembersCustomizer<?>> customizers) {
+			LambdaSafe.callbacks(StructuredLoggingJsonMembersCustomizer.class, customizers, members)
+				.withFilter(LambdaSafe.Filter.allowAll())
+				.invoke((customizer) -> customizer.customize(members));
+		}
 
 	}
 

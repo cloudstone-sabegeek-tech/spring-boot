@@ -21,6 +21,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.LoggerContextAware;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.lookup.StrLookup;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
@@ -35,20 +36,21 @@ import org.springframework.util.Assert;
 @Plugin(name = "spring", category = StrLookup.CATEGORY)
 class SpringEnvironmentLookup implements LoggerContextAware, StrLookup {
 
-	private volatile Environment environment;
+	private volatile @Nullable Environment environment;
 
 	@Override
-	public String lookup(LogEvent event, String key) {
+	public @Nullable String lookup(LogEvent event, String key) {
 		return lookup(key);
 	}
 
 	@Override
-	public String lookup(String key) {
-		Assert.state(this.environment != null,
+	public @Nullable String lookup(String key) {
+		Environment environment = this.environment;
+		Assert.state(environment != null,
 				"Unable to obtain Spring Environment from LoggerContext. "
 						+ "This can happen if your log4j2 configuration filename does not end with '-spring' "
 						+ "(for example using 'log4j2.xml' instead of 'log4j2-spring.xml')");
-		return this.environment.getProperty(key);
+		return environment.getProperty(key);
 	}
 
 	@Override

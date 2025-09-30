@@ -16,6 +16,7 @@
 
 plugins {
 	id "java-library"
+	id "org.springframework.boot.auto-configuration"
 	id "org.springframework.boot.deployed"
 	id "org.springframework.boot.optional-dependencies"
 }
@@ -25,14 +26,16 @@ description = "Spring Boot Health"
 dependencies {
 	api(project(":core:spring-boot"))
 
+	compileOnly("com.google.code.findbugs:jsr305")
+
 	optional(project(":core:spring-boot-autoconfigure"))
 	optional("io.projectreactor:reactor-core")
 	optional("com.fasterxml.jackson.core:jackson-annotations")
 
 	testImplementation(project(":core:spring-boot-test"))
 	testImplementation(project(":test-support:spring-boot-test-support"))
-	testImplementation("com.fasterxml.jackson.core:jackson-databind")
 	testImplementation("io.projectreactor:reactor-test")
+	testImplementation("tools.jackson.core:jackson-databind")
 
 	testRuntimeOnly("ch.qos.logback:logback-classic")
 }

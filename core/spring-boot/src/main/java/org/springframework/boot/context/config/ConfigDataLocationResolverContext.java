@@ -16,9 +16,11 @@
 
 package org.springframework.boot.context.config;
 
-import org.springframework.boot.ConfigurableBootstrapContext;
+import org.jspecify.annotations.Nullable;
+
+import org.springframework.boot.EnvironmentPostProcessor;
+import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
 import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.boot.env.EnvironmentPostProcessor;
 
 /**
  * Context provided to {@link ConfigDataLocationResolver} methods.
@@ -41,7 +43,7 @@ public interface ConfigDataLocationResolverContext {
 	 * or {@code null} if there is no available parent.
 	 * @return the parent location
 	 */
-	ConfigDataResource getParent();
+	@Nullable ConfigDataResource getParent();
 
 	/**
 	 * Provides access to the {@link ConfigurableBootstrapContext} shared across all

@@ -19,8 +19,9 @@ package org.springframework.boot;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.boot.origin.Origin;
-import org.springframework.boot.origin.OriginLookup;
+import org.jspecify.annotations.Nullable;
+
+import org.springframework.boot.env.PropertySourceInfo;
 import org.springframework.boot.system.ApplicationPid;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -34,21 +35,16 @@ import org.springframework.util.StringUtils;
  *
  * @author Moritz Halbritter
  */
-class ApplicationInfoPropertySource extends MapPropertySource implements OriginLookup<String> {
+class ApplicationInfoPropertySource extends MapPropertySource implements PropertySourceInfo {
 
 	static final String NAME = "applicationInfo";
 
-	ApplicationInfoPropertySource(Class<?> mainClass) {
+	ApplicationInfoPropertySource(@Nullable Class<?> mainClass) {
 		super(NAME, getProperties(readVersion(mainClass)));
 	}
 
-	ApplicationInfoPropertySource(String applicationVersion) {
+	ApplicationInfoPropertySource(@Nullable String applicationVersion) {
 		super(NAME, getProperties(applicationVersion));
-	}
-
-	@Override
-	public Origin getOrigin(String key) {
-		return null;
 	}
 
 	@Override
@@ -56,19 +52,20 @@ class ApplicationInfoPropertySource extends MapPropertySource implements OriginL
 		return true;
 	}
 
-	private static Map<String, Object> getProperties(String applicationVersion) {
+	private static Map<String, Object> getProperties(@Nullable String applicationVersion) {
 		Map<String, Object> result = new HashMap<>();
 		if (StringUtils.hasText(applicationVersion)) {
 			result.put("spring.application.version", applicationVersion);
 		}
 		ApplicationPid applicationPid = new ApplicationPid();
-		if (applicationPid.isAvailable()) {
-			result.put("spring.application.pid", applicationPid.toLong());
+		Long pid = applicationPid.toLong();
+		if (pid != null) {
+			result.put("spring.application.pid", pid);
 		}
 		return result;
 	}
 
-	private static String readVersion(Class<?> applicationClass) {
+	private static @Nullable String readVersion(@Nullable Class<?> applicationClass) {
 		Package sourcePackage = (applicationClass != null) ? applicationClass.getPackage() : null;
 		return (sourcePackage != null) ? sourcePackage.getImplementationVersion() : null;
 	}

@@ -22,11 +22,12 @@ import java.util.Collections;
 import java.util.function.Supplier;
 
 import org.apache.commons.logging.Log;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.boot.ConfigurableBootstrapContext;
-import org.springframework.boot.DefaultBootstrapContext;
+import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
+import org.springframework.boot.bootstrap.DefaultBootstrapContext;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -63,7 +64,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 
 	private final ConfigurableBootstrapContext bootstrapContext;
 
-	private final ConfigDataEnvironmentUpdateListener environmentUpdateListener;
+	private final @Nullable ConfigDataEnvironmentUpdateListener environmentUpdateListener;
 
 	public ConfigDataEnvironmentPostProcessor(DeferredLogFactory logFactory,
 			ConfigurableBootstrapContext bootstrapContext) {
@@ -72,7 +73,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 
 	private ConfigDataEnvironmentPostProcessor(DeferredLogFactory logFactory,
 			ConfigurableBootstrapContext bootstrapContext,
-			ConfigDataEnvironmentUpdateListener environmentUpdateListener) {
+			@Nullable ConfigDataEnvironmentUpdateListener environmentUpdateListener) {
 		this.logFactory = logFactory;
 		this.logger = logFactory.getLog(getClass());
 		this.bootstrapContext = bootstrapContext;
@@ -89,7 +90,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 		postProcessEnvironment(environment, application.getResourceLoader(), application.getAdditionalProfiles());
 	}
 
-	void postProcessEnvironment(ConfigurableEnvironment environment, ResourceLoader resourceLoader,
+	void postProcessEnvironment(ConfigurableEnvironment environment, @Nullable ResourceLoader resourceLoader,
 			Collection<String> additionalProfiles) {
 		this.logger.trace("Post-processing environment to add config data");
 		resourceLoader = (resourceLoader != null) ? resourceLoader : new DefaultResourceLoader();
@@ -123,7 +124,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 	 * @param additionalProfiles any additional profiles that should be applied
 	 */
 	public static void applyTo(ConfigurableEnvironment environment, ResourceLoader resourceLoader,
-			ConfigurableBootstrapContext bootstrapContext, String... additionalProfiles) {
+			@Nullable ConfigurableBootstrapContext bootstrapContext, String... additionalProfiles) {
 		applyTo(environment, resourceLoader, bootstrapContext, Arrays.asList(additionalProfiles));
 	}
 
@@ -137,8 +138,8 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 	 * throw-away context
 	 * @param additionalProfiles any additional profiles that should be applied
 	 */
-	public static void applyTo(ConfigurableEnvironment environment, ResourceLoader resourceLoader,
-			ConfigurableBootstrapContext bootstrapContext, Collection<String> additionalProfiles) {
+	public static void applyTo(ConfigurableEnvironment environment, @Nullable ResourceLoader resourceLoader,
+			@Nullable ConfigurableBootstrapContext bootstrapContext, Collection<String> additionalProfiles) {
 		DeferredLogFactory logFactory = Supplier::get;
 		bootstrapContext = (bootstrapContext != null) ? bootstrapContext : new DefaultBootstrapContext();
 		ConfigDataEnvironmentPostProcessor postProcessor = new ConfigDataEnvironmentPostProcessor(logFactory,
@@ -159,8 +160,8 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 	 * {@link ConfigDataEnvironmentUpdateListener} that can be used to track
 	 * {@link Environment} updates.
 	 */
-	public static void applyTo(ConfigurableEnvironment environment, ResourceLoader resourceLoader,
-			ConfigurableBootstrapContext bootstrapContext, Collection<String> additionalProfiles,
+	public static void applyTo(ConfigurableEnvironment environment, @Nullable ResourceLoader resourceLoader,
+			@Nullable ConfigurableBootstrapContext bootstrapContext, Collection<String> additionalProfiles,
 			ConfigDataEnvironmentUpdateListener environmentUpdateListener) {
 		DeferredLogFactory logFactory = Supplier::get;
 		bootstrapContext = (bootstrapContext != null) ? bootstrapContext : new DefaultBootstrapContext();

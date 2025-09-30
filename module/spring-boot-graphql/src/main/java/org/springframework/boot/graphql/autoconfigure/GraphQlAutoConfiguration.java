@@ -28,10 +28,10 @@ import graphql.execution.instrumentation.Instrumentation;
 import graphql.introspection.Introspection;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
-import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -79,19 +79,13 @@ import org.springframework.graphql.execution.SubscriptionExceptionResolver;
 @ConditionalOnGraphQlSchema
 @EnableConfigurationProperties(GraphQlProperties.class)
 @ImportRuntimeHints(GraphQlAutoConfiguration.GraphQlResourcesRuntimeHints.class)
-public class GraphQlAutoConfiguration {
+public final class GraphQlAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlAutoConfiguration.class);
 
-	private final ListableBeanFactory beanFactory;
-
-	public GraphQlAutoConfiguration(ListableBeanFactory beanFactory) {
-		this.beanFactory = beanFactory;
-	}
-
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQlSource graphQlSource(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
+	GraphQlSource graphQlSource(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
 			ObjectProvider<DataFetcherExceptionResolver> exceptionResolvers,
 			ObjectProvider<SubscriptionExceptionResolver> subscriptionExceptionResolvers,
 			ObjectProvider<Instrumentation> instrumentations, ObjectProvider<RuntimeWiringConfigurer> wiringConfigurers,
@@ -143,13 +137,13 @@ public class GraphQlAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public BatchLoaderRegistry batchLoaderRegistry() {
+	BatchLoaderRegistry batchLoaderRegistry() {
 		return new DefaultBatchLoaderRegistry();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ExecutionGraphQlService executionGraphQlService(GraphQlSource graphQlSource,
+	ExecutionGraphQlService executionGraphQlService(GraphQlSource graphQlSource,
 			BatchLoaderRegistry batchLoaderRegistry) {
 		DefaultExecutionGraphQlService service = new DefaultExecutionGraphQlService(graphQlSource);
 		service.addDataLoaderRegistrar(batchLoaderRegistry);
@@ -158,12 +152,12 @@ public class GraphQlAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public AnnotatedControllerConfigurer annotatedControllerConfigurer(
+	AnnotatedControllerConfigurer annotatedControllerConfigurer(
 			@Qualifier(TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME) ObjectProvider<Executor> executorProvider,
 			ObjectProvider<HandlerMethodArgumentResolver> argumentResolvers) {
 		AnnotatedControllerConfigurer controllerConfigurer = new AnnotatedControllerConfigurer();
 		controllerConfigurer
-			.addFormatterRegistrar((registry) -> ApplicationConversionService.addBeans(registry, this.beanFactory));
+			.configureBinder((options) -> options.conversionService(ApplicationConversionService.getSharedInstance()));
 		executorProvider.ifAvailable(controllerConfigurer::setExecutor);
 		argumentResolvers.orderedStream().forEach(controllerConfigurer::addCustomArgumentResolver);
 		return controllerConfigurer;
@@ -204,7 +198,7 @@ public class GraphQlAutoConfiguration {
 	static class GraphQlResourcesRuntimeHints implements RuntimeHintsRegistrar {
 
 		@Override
-		public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+		public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
 			hints.resources().registerPattern("graphql/**/*.graphqls").registerPattern("graphql/**/*.gqls");
 		}
 

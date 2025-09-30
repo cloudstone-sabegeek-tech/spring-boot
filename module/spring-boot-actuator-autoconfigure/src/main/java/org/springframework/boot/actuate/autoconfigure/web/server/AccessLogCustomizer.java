@@ -16,9 +16,12 @@
 
 package org.springframework.boot.actuate.autoconfigure.web.server;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.web.server.WebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.core.Ordered;
+import org.springframework.lang.Contract;
 
 /**
  * Base class for a {@link WebServerFactoryCustomizer} that customizes the web server's
@@ -31,13 +34,14 @@ import org.springframework.core.Ordered;
 public abstract class AccessLogCustomizer<T extends WebServerFactory>
 		implements WebServerFactoryCustomizer<T>, Ordered {
 
-	private final String prefix;
+	private final @Nullable String prefix;
 
-	protected AccessLogCustomizer(String prefix) {
+	protected AccessLogCustomizer(@Nullable String prefix) {
 		this.prefix = prefix;
 	}
 
-	protected String customizePrefix(String existingPrefix) {
+	@Contract("!null -> !null")
+	protected @Nullable String customizePrefix(@Nullable String existingPrefix) {
 		if (this.prefix == null) {
 			return existingPrefix;
 		}

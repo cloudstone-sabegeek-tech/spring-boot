@@ -43,13 +43,13 @@ import org.springframework.context.annotation.Bean;
  * @since 4.0.0
  */
 @AutoConfiguration(before = MongoAutoConfiguration.class,
-		afterName = "org.springframework.boot.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration")
+		afterName = "org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration")
 @ConditionalOnClass({ MongoClientSettings.class, MeterRegistry.class })
 @ConditionalOnBean(MeterRegistry.class)
-public class MongoMetricsAutoConfiguration {
+public final class MongoMetricsAutoConfiguration {
 
 	@ConditionalOnClass(MongoMetricsCommandListener.class)
-	@ConditionalOnBooleanProperty(name = "management.metrics.mongo.command.enabled", matchIfMissing = true)
+	@ConditionalOnBooleanProperty(name = "management.metrics.mongodb.command.enabled", matchIfMissing = true)
 	static class MongoCommandMetricsConfiguration {
 
 		@Bean
@@ -74,7 +74,7 @@ public class MongoMetricsAutoConfiguration {
 	}
 
 	@ConditionalOnClass(MongoMetricsConnectionPoolListener.class)
-	@ConditionalOnBooleanProperty(name = "management.metrics.mongo.connectionpool.enabled", matchIfMissing = true)
+	@ConditionalOnBooleanProperty(name = "management.metrics.mongodb.connectionpool.enabled", matchIfMissing = true)
 	static class MongoConnectionPoolMetricsConfiguration {
 
 		@Bean

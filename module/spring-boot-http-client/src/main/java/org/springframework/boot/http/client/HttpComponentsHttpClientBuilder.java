@@ -20,7 +20,6 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -29,6 +28,7 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.TlsSocketStrategy;
 import org.apache.hc.core5.http.io.SocketConfig;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.boot.ssl.SslBundle;
@@ -54,7 +54,7 @@ public final class HttpComponentsHttpClientBuilder {
 
 	private final Consumer<RequestConfig.Builder> defaultRequestConfigCustomizer;
 
-	private final Function<SslBundle, TlsSocketStrategy> tlsSocketStrategyFactory;
+	private final TlsSocketStrategyFactory tlsSocketStrategyFactory;
 
 	public HttpComponentsHttpClientBuilder() {
 		this(Empty.consumer(), Empty.consumer(), Empty.consumer(), Empty.consumer(),
@@ -65,7 +65,7 @@ public final class HttpComponentsHttpClientBuilder {
 			Consumer<PoolingHttpClientConnectionManagerBuilder> connectionManagerCustomizer,
 			Consumer<SocketConfig.Builder> socketConfigCustomizer,
 			Consumer<RequestConfig.Builder> defaultRequestConfigCustomizer,
-			Function<SslBundle, TlsSocketStrategy> tlsSocketStrategyFactory) {
+			TlsSocketStrategyFactory tlsSocketStrategyFactory) {
 		this.customizer = customizer;
 		this.connectionManagerCustomizer = connectionManagerCustomizer;
 		this.socketConfigCustomizer = socketConfigCustomizer;
@@ -125,7 +125,7 @@ public final class HttpComponentsHttpClientBuilder {
 	 * @return a new {@link HttpComponentsHttpClientBuilder} instance
 	 */
 	public HttpComponentsHttpClientBuilder withTlsSocketStrategyFactory(
-			Function<SslBundle, TlsSocketStrategy> tlsSocketStrategyFactory) {
+			TlsSocketStrategyFactory tlsSocketStrategyFactory) {
 		Assert.notNull(tlsSocketStrategyFactory, "'tlsSocketStrategyFactory' must not be null");
 		return new HttpComponentsHttpClientBuilder(this.customizer, this.connectionManagerCustomizer,
 				this.socketConfigCustomizer, this.defaultRequestConfigCustomizer, tlsSocketStrategyFactory);
@@ -153,7 +153,7 @@ public final class HttpComponentsHttpClientBuilder {
 	 * @param settings the settings to apply
 	 * @return a new {@link HttpClient} instance
 	 */
-	public CloseableHttpClient build(HttpClientSettings settings) {
+	public CloseableHttpClient build(@Nullable HttpClientSettings settings) {
 		settings = (settings != null) ? settings : HttpClientSettings.DEFAULTS;
 		Assert.isTrue(settings.connectTimeout() == null, "'settings' must not have a 'connectTimeout'");
 		HttpClientBuilder builder = HttpClientBuilder.create()
@@ -170,14 +170,17 @@ public final class HttpComponentsHttpClientBuilder {
 			.useSystemProperties();
 		PropertyMapper map = PropertyMapper.get();
 		builder.setDefaultSocketConfig(createSocketConfig(settings));
-		map.from(settings::sslBundle).as(this.tlsSocketStrategyFactory).whenNonNull().to(builder::setTlsSocketStrategy);
+		map.from(settings::sslBundle)
+			.always()
+			.as(this.tlsSocketStrategyFactory::getTlsSocketStrategy)
+			.to(builder::setTlsSocketStrategy);
 		this.connectionManagerCustomizer.accept(builder);
 		return builder.build();
 	}
 
 	private SocketConfig createSocketConfig(HttpClientSettings settings) {
 		SocketConfig.Builder builder = SocketConfig.custom();
-		PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+		PropertyMapper map = PropertyMapper.get();
 		map.from(settings::readTimeout)
 			.asInt(Duration::toMillis)
 			.to((timeout) -> builder.setSoTimeout(timeout, TimeUnit.MILLISECONDS));
@@ -189,6 +192,23 @@ public final class HttpComponentsHttpClientBuilder {
 		RequestConfig.Builder builder = RequestConfig.custom();
 		this.defaultRequestConfigCustomizer.accept(builder);
 		return builder.build();
+	}
+
+	/**
+	 * Factory that can be used to optionally create a {@link TlsSocketStrategy} given an
+	 * {@link SslBundle}.
+	 *
+	 * @since 4.0.0
+	 */
+	public interface TlsSocketStrategyFactory {
+
+		/**
+		 * Return the {@link TlsSocketStrategy} to use for the given bundle.
+		 * @param sslBundle the SSL bundle or {@code null}
+		 * @return the {@link TlsSocketStrategy} to use or {@code null}
+		 */
+		@Nullable TlsSocketStrategy getTlsSocketStrategy(@Nullable SslBundle sslBundle);
+
 	}
 
 }

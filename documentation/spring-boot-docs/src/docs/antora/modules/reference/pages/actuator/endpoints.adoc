@@ -95,7 +95,7 @@ Subject to xref:actuator/endpoints.adoc#actuator.endpoints.sanitization[sanitiza
 | Performs a thread dump.
 |===
 
-If your application is a web application (Spring MVC, Spring WebFlux, or Jersey), you can use the following additional endpoints:
+If your application is a web application (Spring MVC or Spring WebFlux), you can use the following additional endpoints:
 
 [cols="2,5"]
 |===
@@ -388,8 +388,7 @@ TIP: See javadoc:org.springframework.boot.actuate.autoconfigure.endpoint.web.Cor
 == Implementing Custom Endpoints
 
 If you add a javadoc:org.springframework.context.annotation.Bean[format=annotation] annotated with javadoc:org.springframework.boot.actuate.endpoint.annotation.Endpoint[format=annotation], any methods annotated with javadoc:org.springframework.boot.actuate.endpoint.annotation.ReadOperation[format=annotation], javadoc:org.springframework.boot.actuate.endpoint.annotation.WriteOperation[format=annotation], or javadoc:org.springframework.boot.actuate.endpoint.annotation.DeleteOperation[format=annotation] are automatically exposed over JMX and, in a web application, over HTTP as well.
-Endpoints can be exposed over HTTP by using Jersey, Spring MVC, or Spring WebFlux.
-If both Jersey and Spring MVC are available, Spring MVC is used.
+Endpoints can be exposed over HTTP by using Spring MVC or Spring WebFlux.
 
 The following example exposes a read operation that returns a custom object:
 
@@ -413,7 +412,8 @@ Operations on an endpoint receive input through their parameters.
 When exposed over the web, the values for these parameters are taken from the URL's query parameters and from the JSON request body.
 When exposed over JMX, the parameters are mapped to the parameters of the MBean's operations.
 Parameters are required by default.
-They can be made optional by annotating them with either `@javax.annotation.Nullable` or javadoc:org.springframework.lang.Nullable[format=annotation].
+They can be made optional by annotating them with JSpecify's javadoc:org.jspecify.annotations.Nullable[format=annotation].
+Kotlin null safety is also supported.
 
 You can map each root property in the JSON request body to a parameter of the endpoint.
 Consider the following JSON request body:
@@ -450,8 +450,7 @@ Before calling an operation method, the input received over JMX or HTTP is conve
 [[actuator.endpoints.implementing-custom.web]]
 === Custom Web Endpoints
 
-Operations on an javadoc:org.springframework.boot.actuate.endpoint.annotation.Endpoint[format=annotation], javadoc:org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint[format=annotation], or javadoc:org.springframework.boot.actuate.endpoint.web.annotation.EndpointWebExtension[format=annotation] are automatically exposed over HTTP using Jersey, Spring MVC, or Spring WebFlux.
-If both Jersey and Spring MVC are available, Spring MVC is used.
+Operations on an javadoc:org.springframework.boot.actuate.endpoint.annotation.Endpoint[format=annotation], javadoc:org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint[format=annotation], or javadoc:org.springframework.boot.actuate.endpoint.web.annotation.EndpointWebExtension[format=annotation] are automatically exposed over HTTP using Spring MVC or Spring WebFlux.
 
 
 
@@ -539,15 +538,13 @@ If an operation is invoked without a required parameter or with a parameter that
 You can use an HTTP range request to request part of an HTTP resource.
 When using Spring MVC or Spring Web Flux, operations that return a javadoc:org.springframework.core.io.Resource[] automatically support range requests.
 
-NOTE: Range requests are not supported when using Jersey.
-
 
 
 [[actuator.endpoints.implementing-custom.web.security]]
 ==== Web Endpoint Security
 
 An operation on a web endpoint or a web-specific endpoint extension can receive the current javadoc:java.security.Principal[] or javadoc:org.springframework.boot.actuate.endpoint.SecurityContext[] as a method parameter.
-The former is typically used in conjunction with either `@javax.annotation.Nullable` or javadoc:org.springframework.lang.Nullable[format=annotation] to provide different behavior for authenticated and unauthenticated users.
+The former is typically used in conjunction with javadoc:org.jspecify.annotations.Nullable[format=annotation] to provide different behavior for authenticated and unauthenticated users.
 The latter is typically used to perform authorization checks by using its `isUserInRole(String)` method.
 
 
@@ -675,7 +672,7 @@ TIP: The `ssl` javadoc:org.springframework.boot.actuate.health.HealthIndicator[]
 If an SSL certificate will be invalid within the time span defined by this threshold, the javadoc:org.springframework.boot.actuate.health.HealthIndicator[] will warn you but it will still return HTTP 200 to not disrupt the application.
 You can use this threshold to give yourself enough lead time to rotate the soon to be expired certificate.
 
-Additional javadoc:org.springframework.boot.actuate.health.HealthIndicator[] beans are available but are not enabled by default:
+Additional javadoc:org.springframework.boot.actuate.health.HealthIndicator[] beans are enabled by default:
 
 [cols="3,4,6"]
 |===
@@ -689,6 +686,8 @@ Additional javadoc:org.springframework.boot.actuate.health.HealthIndicator[] bea
 | javadoc:org.springframework.boot.actuate.availability.ReadinessStateHealthIndicator[]
 | Exposes the "`Readiness`" application availability state.
 |===
+
+These can be disabled by using the configprop:management.endpoint.health.probes.enabled[] configuration property.
 
 
 
@@ -955,8 +954,8 @@ readinessProbe:
 NOTE: `<actuator-port>` should be set to the port that the actuator endpoints are available on.
 It could be the main web server port or a separate management port if the `"management.server.port"` property has been set.
 
-These health groups are automatically enabled only if the application xref:how-to:deployment/cloud.adoc#howto.deployment.cloud.kubernetes[runs in a Kubernetes environment].
-You can enable them in any environment by using the configprop:management.endpoint.health.probes.enabled[] configuration property.
+These health groups are automatically enabled.
+You can disable them by using the configprop:management.endpoint.health.probes.enabled[] configuration property.
 
 NOTE: If an application takes longer to start than the configured liveness period, Kubernetes mentions the `"startupProbe"` as a possible solution.
 Generally speaking, the `"startupProbe"` is not necessarily needed here, as the `"readinessProbe"` fails until all startup tasks are done.

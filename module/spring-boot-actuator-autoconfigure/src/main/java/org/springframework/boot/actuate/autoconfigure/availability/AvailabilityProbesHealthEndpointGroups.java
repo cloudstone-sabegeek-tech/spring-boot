@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.actuate.endpoint.EndpointId;
 import org.springframework.boot.actuate.endpoint.web.AdditionalPathsMapper;
 import org.springframework.boot.actuate.endpoint.web.WebServerNamespace;
@@ -101,7 +103,7 @@ class AvailabilityProbesHealthEndpointGroups implements HealthEndpointGroups, Ad
 	}
 
 	@Override
-	public HealthEndpointGroup get(String name) {
+	public @Nullable HealthEndpointGroup get(String name) {
 		HealthEndpointGroup group = this.groups.get(name);
 		if (group == null || isProbeGroup(name)) {
 			group = this.probeGroups.get(name);
@@ -114,13 +116,17 @@ class AvailabilityProbesHealthEndpointGroups implements HealthEndpointGroups, Ad
 	}
 
 	@Override
-	public List<String> getAdditionalPaths(EndpointId endpointId, WebServerNamespace webServerNamespace) {
+	public @Nullable List<String> getAdditionalPaths(EndpointId endpointId, WebServerNamespace webServerNamespace) {
 		if (!HealthEndpoint.ID.equals(endpointId)) {
 			return null;
 		}
 		List<String> additionalPaths = new ArrayList<>();
 		if (this.groups instanceof AdditionalPathsMapper additionalPathsMapper) {
-			additionalPaths.addAll(additionalPathsMapper.getAdditionalPaths(endpointId, webServerNamespace));
+			List<String> mappedAdditionalPaths = getAdditionalPaths(endpointId, webServerNamespace,
+					additionalPathsMapper);
+			if (mappedAdditionalPaths != null) {
+				additionalPaths.addAll(mappedAdditionalPaths);
+			}
 		}
 		additionalPaths.addAll(this.probeGroups.values()
 			.stream()
@@ -130,6 +136,11 @@ class AvailabilityProbesHealthEndpointGroups implements HealthEndpointGroups, Ad
 			.map(AdditionalHealthEndpointPath::getValue)
 			.toList());
 		return additionalPaths;
+	}
+
+	private static @Nullable List<String> getAdditionalPaths(EndpointId endpointId,
+			WebServerNamespace webServerNamespace, AdditionalPathsMapper additionalPathsMapper) {
+		return additionalPathsMapper.getAdditionalPaths(endpointId, webServerNamespace);
 	}
 
 }

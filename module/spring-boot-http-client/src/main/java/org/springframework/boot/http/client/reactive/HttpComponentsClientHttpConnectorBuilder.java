@@ -19,6 +19,7 @@ package org.springframework.boot.http.client.reactive;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -26,6 +27,7 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.http.client.HttpComponentsHttpAsyncClientBuilder;
 import org.springframework.boot.ssl.SslBundle;
@@ -48,7 +50,8 @@ public final class HttpComponentsClientHttpConnectorBuilder
 		this(null, new HttpComponentsHttpAsyncClientBuilder());
 	}
 
-	private HttpComponentsClientHttpConnectorBuilder(List<Consumer<HttpComponentsClientHttpConnector>> customizers,
+	private HttpComponentsClientHttpConnectorBuilder(
+			@Nullable List<Consumer<HttpComponentsClientHttpConnector>> customizers,
 			HttpComponentsHttpAsyncClientBuilder httpClientBuilder) {
 		super(customizers);
 		this.httpClientBuilder = httpClientBuilder;
@@ -103,7 +106,7 @@ public final class HttpComponentsClientHttpConnectorBuilder
 	 * @return a new {@link HttpComponentsClientHttpConnectorBuilder} instance
 	 */
 	public HttpComponentsClientHttpConnectorBuilder withTlsSocketStrategyFactory(
-			Function<SslBundle, TlsStrategy> tlsStrategyFactory) {
+			Function<@Nullable SslBundle, @Nullable TlsStrategy> tlsStrategyFactory) {
 		Assert.notNull(tlsStrategyFactory, "'tlsStrategyFactory' must not be null");
 		return new HttpComponentsClientHttpConnectorBuilder(getCustomizers(),
 				this.httpClientBuilder.withTlsStrategyFactory(tlsStrategyFactory));
@@ -124,6 +127,18 @@ public final class HttpComponentsClientHttpConnectorBuilder
 				this.httpClientBuilder.withDefaultRequestConfigCustomizer(defaultRequestConfigCustomizer));
 	}
 
+	/**
+	 * Return a new {@link HttpComponentsClientHttpConnectorBuilder} that applies the
+	 * given customizer. This can be useful for applying pre-packaged customizations.
+	 * @param customizer the customizer to apply
+	 * @return a new {@link HttpComponentsClientHttpConnectorBuilder}
+	 * @since 4.0.0
+	 */
+	public HttpComponentsClientHttpConnectorBuilder with(
+			UnaryOperator<HttpComponentsClientHttpConnectorBuilder> customizer) {
+		return customizer.apply(this);
+	}
+
 	@Override
 	protected HttpComponentsClientHttpConnector createClientHttpConnector(ClientHttpConnectorSettings settings) {
 		CloseableHttpAsyncClient client = this.httpClientBuilder.build(asHttpClientSettings(settings));
@@ -136,7 +151,7 @@ public final class HttpComponentsClientHttpConnectorBuilder
 
 		static final String REACTIVE_RESPONSE_CONSUMER = "org.apache.hc.core5.reactive.ReactiveResponseConsumer";
 
-		static boolean present(ClassLoader classLoader) {
+		static boolean present(@Nullable ClassLoader classLoader) {
 			return ClassUtils.isPresent(HTTP_CLIENTS, classLoader)
 					&& ClassUtils.isPresent(REACTIVE_RESPONSE_CONSUMER, classLoader);
 		}

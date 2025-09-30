@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.ansi.AnsiOutput;
 import org.springframework.boot.ansi.AnsiOutput.Enabled;
 import org.springframework.util.Assert;
@@ -40,6 +42,7 @@ import org.springframework.util.ClassUtils;
  * @author Phillip Webb
  * @author Andy Wilkinson
  * @author Sam Brannen
+ * @author Daniel Schmidt
  * @see OutputCaptureExtension
  * @see OutputCaptureRule
  */
@@ -47,13 +50,17 @@ class OutputCapture implements CapturedOutput {
 
 	private final Deque<SystemCapture> systemCaptures = new ArrayDeque<>();
 
-	private AnsiOutputState ansiOutputState;
+	private @Nullable AnsiOutputState ansiOutputState;
 
-	private final AtomicReference<String> out = new AtomicReference<>(null);
+	private final AtomicReference<Object> out = new AtomicReference<>();
 
-	private final AtomicReference<String> err = new AtomicReference<>(null);
+	private final AtomicReference<Object> err = new AtomicReference<>();
 
-	private final AtomicReference<String> all = new AtomicReference<>(null);
+	private final AtomicReference<Object> all = new AtomicReference<>();
+
+	OutputCapture() {
+		clearExisting();
+	}
 
 	/**
 	 * Push a new system capture session onto the stack.
@@ -132,24 +139,28 @@ class OutputCapture implements CapturedOutput {
 	 */
 	void reset() {
 		clearExisting();
-		this.systemCaptures.peek().reset();
+		SystemCapture peeked = this.systemCaptures.peek();
+		if (peeked != null) {
+			peeked.reset();
+		}
 	}
 
 	void clearExisting() {
-		this.out.set(null);
-		this.err.set(null);
-		this.all.set(null);
+		this.out.set(new NoOutput());
+		this.err.set(new NoOutput());
+		this.all.set(new NoOutput());
 	}
 
-	private String get(AtomicReference<String> existing, Predicate<Type> filter) {
+	private String get(AtomicReference<Object> existing, Predicate<Type> filter) {
 		Assert.state(!this.systemCaptures.isEmpty(),
 				"No system captures found. Please check your output capture registration.");
-		String result = existing.get();
-		if (result == null) {
-			result = build(filter);
-			existing.compareAndSet(null, result);
+		Object existingOutput = existing.get();
+		if (existingOutput instanceof String) {
+			return (String) existingOutput;
 		}
-		return result;
+		String builtOutput = build(filter);
+		existing.compareAndSet(existingOutput, builtOutput);
+		return builtOutput;
 	}
 
 	String build(Predicate<Type> filter) {
@@ -329,13 +340,17 @@ class OutputCapture implements CapturedOutput {
 			AnsiOutput.setEnabled(this.saved);
 		}
 
-		static AnsiOutputState saveAndDisable() {
+		static @Nullable AnsiOutputState saveAndDisable() {
 			if (!ClassUtils.isPresent("org.springframework.boot.ansi.AnsiOutput",
 					OutputCapture.class.getClassLoader())) {
 				return null;
 			}
 			return new AnsiOutputState();
 		}
+
+	}
+
+	static class NoOutput {
 
 	}
 

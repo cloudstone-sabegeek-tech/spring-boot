@@ -18,7 +18,10 @@ package org.springframework.boot.actuate.endpoint;
 
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.env.PropertySource;
+import org.springframework.util.Assert;
 
 /**
  * Value object that represents the data that can be used by a {@link SanitizingFunction}.
@@ -34,13 +37,13 @@ public final class SanitizableData {
 	 */
 	public static final String SANITIZED_VALUE = "******";
 
-	private final PropertySource<?> propertySource;
+	private final @Nullable PropertySource<?> propertySource;
 
 	private final String key;
 
-	private String lowerCaseKey;
+	private @Nullable String lowerCaseKey;
 
-	private final Object value;
+	private final @Nullable Object value;
 
 	/**
 	 * Create a new {@link SanitizableData} instance.
@@ -48,7 +51,8 @@ public final class SanitizableData {
 	 * @param key the data key
 	 * @param value the data value
 	 */
-	public SanitizableData(PropertySource<?> propertySource, String key, Object value) {
+	public SanitizableData(@Nullable PropertySource<?> propertySource, String key, @Nullable Object value) {
+		Assert.notNull(key, "'key' must not be null");
 		this.propertySource = propertySource;
 		this.key = key;
 		this.value = value;
@@ -59,7 +63,7 @@ public final class SanitizableData {
 	 * not from a {@link PropertySource}.
 	 * @return the property source that provided the data
 	 */
-	public PropertySource<?> getPropertySource() {
+	public @Nullable PropertySource<?> getPropertySource() {
 		return this.propertySource;
 	}
 
@@ -78,7 +82,7 @@ public final class SanitizableData {
 	 */
 	public String getLowerCaseKey() {
 		String result = this.lowerCaseKey;
-		if (result == null && this.key != null) {
+		if (result == null) {
 			result = this.key.toLowerCase(Locale.getDefault());
 			this.lowerCaseKey = result;
 		}
@@ -89,7 +93,7 @@ public final class SanitizableData {
 	 * Return the value of the data.
 	 * @return the data value
 	 */
-	public Object getValue() {
+	public @Nullable Object getValue() {
 		return this.value;
 	}
 
@@ -107,7 +111,7 @@ public final class SanitizableData {
 	 * @param value the new value (often {@link #SANITIZED_VALUE}
 	 * @return a new sanitizable data instance
 	 */
-	public SanitizableData withValue(Object value) {
+	public SanitizableData withValue(@Nullable Object value) {
 		return new SanitizableData(this.propertySource, this.key, value);
 	}
 

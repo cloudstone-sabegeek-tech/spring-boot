@@ -30,6 +30,7 @@ import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.configuration.ClassicConfiguration;
 import org.flywaydb.core.api.configuration.Configuration;
 import org.flywaydb.core.api.configuration.FluentConfiguration;
+import org.flywaydb.core.api.pattern.ValidatePattern;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.BeanWrapper;
@@ -53,6 +54,8 @@ class FlywayPropertiesTests {
 		assertThat(properties.isFailOnMissingLocations()).isEqualTo(configuration.isFailOnMissingLocations());
 		assertThat(properties.getLocations().stream().map(Location::new).toArray(Location[]::new))
 			.isEqualTo(configuration.getLocations());
+		assertThat(properties.getCallbackLocations().stream().map(Location::new).toArray(Location[]::new))
+			.isEqualTo(configuration.getCallbackLocations());
 		assertThat(properties.getEncoding()).isEqualTo(configuration.getEncoding());
 		assertThat(properties.getConnectRetries()).isEqualTo(configuration.getConnectRetries());
 		assertThat(properties.getConnectRetriesInterval()).extracting(Duration::getSeconds)
@@ -71,6 +74,7 @@ class FlywayPropertiesTests {
 		assertThat(properties.getPlaceholderPrefix()).isEqualToIgnoringWhitespace(configuration.getPlaceholderPrefix());
 		assertThat(properties.getPlaceholderSuffix()).isEqualTo(configuration.getPlaceholderSuffix());
 		assertThat(properties.isPlaceholderReplacement()).isEqualTo(configuration.isPlaceholderReplacement());
+		assertThat(properties.getPowershellExecutable()).isEqualTo(configuration.getPowershellExecutable());
 		assertThat(properties.getSqlMigrationPrefix()).isEqualTo(configuration.getSqlMigrationPrefix());
 		assertThat(properties.getSqlMigrationSuffixes()).containsExactly(configuration.getSqlMigrationSuffixes());
 		assertThat(properties.getSqlMigrationSeparator()).isEqualTo(configuration.getSqlMigrationSeparator());
@@ -94,6 +98,8 @@ class FlywayPropertiesTests {
 		assertThat(properties.getScriptPlaceholderSuffix()).isEqualTo(configuration.getScriptPlaceholderSuffix());
 		assertThat(properties.isExecuteInTransaction()).isEqualTo(configuration.isExecuteInTransaction());
 		assertThat(properties.getCommunityDbSupportEnabled()).isNull();
+		assertThat(properties.getIgnoreMigrationPatterns().stream().map(ValidatePattern::fromPattern))
+			.containsExactly(configuration.getIgnoreMigrationPatterns());
 	}
 
 	@Test
@@ -126,7 +132,7 @@ class FlywayPropertiesTests {
 				"environmentProvisionMode", "provisionMode", "cleanOnValidationError");
 		// Handled by the conversion service
 		ignoreProperties(configuration, "baselineVersionAsString", "encodingAsString", "locationsAsStrings",
-				"targetAsString");
+				"callbackLocationsAsStrings", "targetAsString");
 		// Handled as initSql array
 		ignoreProperties(configuration, "initSql");
 		ignoreProperties(properties, "initSqls");

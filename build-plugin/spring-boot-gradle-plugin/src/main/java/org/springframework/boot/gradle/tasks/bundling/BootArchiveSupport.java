@@ -44,8 +44,7 @@ import org.gradle.api.tasks.WorkResult;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.util.PatternSet;
 import org.gradle.util.GradleVersion;
-
-import org.springframework.boot.loader.tools.LoaderImplementation;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Support class for implementations of {@link BootArchive}.
@@ -82,7 +81,7 @@ class BootArchiveSupport {
 
 	private final Function<FileCopyDetails, ZipCompression> compressionResolver;
 
-	private LaunchScriptConfiguration launchScript;
+	private @Nullable LaunchScriptConfiguration launchScript;
 
 	BootArchiveSupport(String loaderMainClass, Spec<FileCopyDetails> librarySpec,
 			Function<FileCopyDetails, ZipCompression> compressionResolver) {
@@ -92,8 +91,9 @@ class BootArchiveSupport {
 		this.requiresUnpack.include(Specs.satisfyNone());
 	}
 
-	void configureManifest(Manifest manifest, String mainClass, String classes, String lib, String classPathIndex,
-			String layersIndex, String jdkVersion, String implementationTitle, Object implementationVersion) {
+	void configureManifest(Manifest manifest, String mainClass, String classes, String lib,
+			@Nullable String classPathIndex, @Nullable String layersIndex, String jdkVersion,
+			String implementationTitle, @Nullable Object implementationVersion) {
 		Attributes attributes = manifest.getAttributes();
 		attributes.putIfAbsent("Main-Class", this.loaderMainClass);
 		attributes.putIfAbsent("Start-Class", mainClass);
@@ -121,14 +121,12 @@ class BootArchiveSupport {
 		return (version != null) ? version : "unknown";
 	}
 
-	CopyAction createCopyAction(Jar jar, ResolvedDependencies resolvedDependencies,
-			LoaderImplementation loaderImplementation, boolean supportsSignatureFile) {
-		return createCopyAction(jar, resolvedDependencies, loaderImplementation, supportsSignatureFile, null, null);
+	CopyAction createCopyAction(Jar jar, ResolvedDependencies resolvedDependencies, boolean supportsSignatureFile) {
+		return createCopyAction(jar, resolvedDependencies, supportsSignatureFile, null, null);
 	}
 
-	CopyAction createCopyAction(Jar jar, ResolvedDependencies resolvedDependencies,
-			LoaderImplementation loaderImplementation, boolean supportsSignatureFile, LayerResolver layerResolver,
-			String jarmodeToolsLocation) {
+	CopyAction createCopyAction(Jar jar, ResolvedDependencies resolvedDependencies, boolean supportsSignatureFile,
+			@Nullable LayerResolver layerResolver, @Nullable String jarmodeToolsLocation) {
 		File output = jar.getArchiveFile().get().getAsFile();
 		Manifest manifest = jar.getManifest();
 		boolean preserveFileTimestamps = jar.isPreserveFileTimestamps();
@@ -143,32 +141,31 @@ class BootArchiveSupport {
 		String encoding = jar.getMetadataCharset();
 		CopyAction action = new BootZipCopyAction(output, manifest, preserveFileTimestamps, dirPermissions,
 				filePermissions, includeDefaultLoader, jarmodeToolsLocation, requiresUnpack, exclusions, launchScript,
-				librarySpec, compressionResolver, encoding, resolvedDependencies, supportsSignatureFile, layerResolver,
-				loaderImplementation);
+				librarySpec, compressionResolver, encoding, resolvedDependencies, supportsSignatureFile, layerResolver);
 		return jar.isReproducibleFileOrder() ? new ReproducibleOrderingCopyAction(action) : action;
 	}
 
-	private Integer getUnixNumericDirPermissions(CopySpec copySpec) {
+	private @Nullable Integer getUnixNumericDirPermissions(CopySpec copySpec) {
 		return (GradleVersion.current().compareTo(GradleVersion.version("8.3")) >= 0)
 				? asUnixNumeric(copySpec.getDirPermissions()) : getDirMode(copySpec);
 	}
 
-	private Integer getUnixNumericFilePermissions(CopySpec copySpec) {
+	private @Nullable Integer getUnixNumericFilePermissions(CopySpec copySpec) {
 		return (GradleVersion.current().compareTo(GradleVersion.version("8.3")) >= 0)
 				? asUnixNumeric(copySpec.getFilePermissions()) : getFileMode(copySpec);
 	}
 
-	private Integer asUnixNumeric(Property<ConfigurableFilePermissions> permissions) {
+	private @Nullable Integer asUnixNumeric(Property<ConfigurableFilePermissions> permissions) {
 		return permissions.isPresent() ? permissions.get().toUnixNumeric() : null;
 	}
 
 	@SuppressWarnings("deprecation")
-	private Integer getDirMode(CopySpec copySpec) {
+	private @Nullable Integer getDirMode(CopySpec copySpec) {
 		return copySpec.getDirMode();
 	}
 
 	@SuppressWarnings("deprecation")
-	private Integer getFileMode(CopySpec copySpec) {
+	private @Nullable Integer getFileMode(CopySpec copySpec) {
 		return copySpec.getFileMode();
 	}
 
@@ -176,7 +173,7 @@ class BootArchiveSupport {
 		return DEFAULT_LAUNCHER_CLASSES.contains(jar.getManifest().getAttributes().get("Main-Class"));
 	}
 
-	LaunchScriptConfiguration getLaunchScript() {
+	@Nullable LaunchScriptConfiguration getLaunchScript() {
 		return this.launchScript;
 	}
 

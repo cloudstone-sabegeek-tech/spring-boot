@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +46,6 @@ import org.springframework.util.MultiValueMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Disabled("https://github.com/spring-projects/spring-security/commit/edb7a642c7747592c58d9013e178ab9595a392ed")
 class SampleOAuth2AuthorizationServerApplicationTests {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new ParameterizedTypeReference<>() {
@@ -72,6 +70,7 @@ class SampleOAuth2AuthorizationServerApplicationTests {
 		assertThat(config.getTokenRevocationEndpoint()).hasToString("https://provider.com/revoke");
 		assertThat(config.getEndSessionEndpoint()).hasToString("https://provider.com/logout");
 		assertThat(config.getTokenIntrospectionEndpoint()).hasToString("https://provider.com/introspect");
+		assertThat(config.getPushedAuthorizationRequestEndpoint()).hasToString("https://provider.com/par");
 		assertThat(config.getUserInfoEndpoint()).hasToString("https://provider.com/user");
 		// OIDC Client Registration is disabled by default
 		assertThat(config.getClientRegistrationEndpoint()).isNull();
@@ -90,6 +89,7 @@ class SampleOAuth2AuthorizationServerApplicationTests {
 		assertThat(config.getJwkSetUrl()).hasToString("https://provider.com/jwks");
 		assertThat(config.getTokenRevocationEndpoint()).hasToString("https://provider.com/revoke");
 		assertThat(config.getTokenIntrospectionEndpoint()).hasToString("https://provider.com/introspect");
+		assertThat(config.getPushedAuthorizationRequestEndpoint()).hasToString("https://provider.com/par");
 		// OIDC Client Registration is disabled by default
 		assertThat(config.getClientRegistrationEndpoint()).isNull();
 	}

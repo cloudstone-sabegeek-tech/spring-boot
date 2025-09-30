@@ -20,8 +20,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.ObjectMapper;
+
+import org.springframework.lang.Contract;
 
 /**
  * {@link JmxOperationResponseMapper} that delegates to a Jackson {@link ObjectMapper} to
@@ -38,7 +41,7 @@ public class JacksonJmxOperationResponseMapper implements JmxOperationResponseMa
 
 	private final JavaType mapType;
 
-	public JacksonJmxOperationResponseMapper(ObjectMapper objectMapper) {
+	public JacksonJmxOperationResponseMapper(@Nullable ObjectMapper objectMapper) {
 		this.objectMapper = (objectMapper != null) ? objectMapper : new ObjectMapper();
 		this.listType = this.objectMapper.getTypeFactory().constructParametricType(List.class, Object.class);
 		this.mapType = this.objectMapper.getTypeFactory()
@@ -57,7 +60,8 @@ public class JacksonJmxOperationResponseMapper implements JmxOperationResponseMa
 	}
 
 	@Override
-	public Object mapResponse(Object response) {
+	@Contract("!null -> !null")
+	public @Nullable Object mapResponse(@Nullable Object response) {
 		if (response == null) {
 			return null;
 		}

@@ -16,7 +16,9 @@
 
 package org.springframework.boot.logging.logback;
 
+import java.io.Console;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
@@ -31,6 +33,7 @@ import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.spi.ScanException;
 import ch.qos.logback.core.util.FileSize;
 import ch.qos.logback.core.util.OptionHelper;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.ansi.AnsiColor;
 import org.springframework.boot.ansi.AnsiElement;
@@ -54,7 +57,7 @@ import org.springframework.util.StringUtils;
  */
 class DefaultLogbackConfiguration {
 
-	private static final String DEFAULT_CHARSET = Charset.defaultCharset().name();
+	private static final String DEFAULT_CHARSET = StandardCharsets.UTF_8.name();
 
 	private static final String NAME_AND_GROUP = "%esb(){APPLICATION_NAME}%esb{APPLICATION_GROUP}";
 
@@ -73,9 +76,9 @@ class DefaultLogbackConfiguration {
 
 	static final String FILE_LOG_PATTERN = "${FILE_LOG_PATTERN:-" + DEFAULT_FILE_LOG_PATTERN;
 
-	private final LogFile logFile;
+	private final @Nullable LogFile logFile;
 
-	DefaultLogbackConfiguration(LogFile logFile) {
+	DefaultLogbackConfiguration(@Nullable LogFile logFile) {
 		this.logFile = logFile;
 	}
 
@@ -105,7 +108,7 @@ class DefaultLogbackConfiguration {
 		config.conversionRule("wEx", ExtendedWhitespaceThrowableProxyConverter.class,
 				ExtendedWhitespaceThrowableProxyConverter::new);
 		putProperty(config, "CONSOLE_LOG_PATTERN", CONSOLE_LOG_PATTERN);
-		putProperty(config, "CONSOLE_LOG_CHARSET", "${CONSOLE_LOG_CHARSET:-" + DEFAULT_CHARSET + "}");
+		putProperty(config, "CONSOLE_LOG_CHARSET", "${CONSOLE_LOG_CHARSET:-" + getConsoleCharset() + "}");
 		putProperty(config, "CONSOLE_LOG_THRESHOLD", "${CONSOLE_LOG_THRESHOLD:-TRACE}");
 		putProperty(config, "CONSOLE_LOG_STRUCTURED_FORMAT", "${CONSOLE_LOG_STRUCTURED_FORMAT:-}");
 		putProperty(config, "FILE_LOG_PATTERN", FILE_LOG_PATTERN);
@@ -120,6 +123,15 @@ class DefaultLogbackConfiguration {
 		config.logger("org.eclipse.jetty.util.component.AbstractLifeCycle", Level.ERROR);
 		config.logger("org.hibernate.validator.internal.util.Version", Level.WARN);
 		config.logger("org.springframework.boot.actuate.endpoint.jmx", Level.WARN);
+	}
+
+	private String getConsoleCharset() {
+		Console console = getConsole();
+		return (console != null) ? console.charset().name() : DEFAULT_CHARSET;
+	}
+
+	@Nullable Console getConsole() {
+		return System.console();
 	}
 
 	void putProperty(LogbackConfigurator config, String name, String val) {

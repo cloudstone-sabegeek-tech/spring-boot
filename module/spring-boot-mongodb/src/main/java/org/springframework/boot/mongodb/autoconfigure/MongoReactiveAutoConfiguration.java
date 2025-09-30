@@ -24,6 +24,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 
 import org.springframework.beans.factory.DisposableBean;
@@ -50,7 +51,7 @@ import org.springframework.core.annotation.Order;
 @AutoConfiguration
 @ConditionalOnClass({ MongoClient.class, Flux.class })
 @EnableConfigurationProperties(MongoProperties.class)
-public class MongoReactiveAutoConfiguration {
+public final class MongoReactiveAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(MongoConnectionDetails.class)
@@ -61,8 +62,8 @@ public class MongoReactiveAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public MongoClient reactiveStreamsMongoClient(
-			ObjectProvider<MongoClientSettingsBuilderCustomizer> builderCustomizers, MongoClientSettings settings) {
+	MongoClient reactiveStreamsMongoClient(ObjectProvider<MongoClientSettingsBuilderCustomizer> builderCustomizers,
+			MongoClientSettings settings) {
 		ReactiveMongoClientFactory factory = new ReactiveMongoClientFactory(
 				builderCustomizers.orderedStream().toList());
 		return factory.createMongoClient(settings);
@@ -81,7 +82,7 @@ public class MongoReactiveAutoConfiguration {
 		StandardMongoClientSettingsBuilderCustomizer standardMongoSettingsCustomizer(MongoProperties properties,
 				MongoConnectionDetails connectionDetails) {
 			return new StandardMongoClientSettingsBuilderCustomizer(connectionDetails,
-					properties.getUuidRepresentation());
+					properties.getRepresentation().getUuid());
 		}
 
 	}
@@ -107,7 +108,7 @@ public class MongoReactiveAutoConfiguration {
 
 		private final ObjectProvider<MongoClientSettings> settings;
 
-		private volatile EventLoopGroup eventLoopGroup;
+		private volatile @Nullable EventLoopGroup eventLoopGroup;
 
 		NettyDriverMongoClientSettingsBuilderCustomizer(ObjectProvider<MongoClientSettings> settings) {
 			this.settings = settings;
@@ -116,8 +117,9 @@ public class MongoReactiveAutoConfiguration {
 		@Override
 		public void customize(Builder builder) {
 			if (!isCustomTransportConfiguration(this.settings.getIfAvailable())) {
-				this.eventLoopGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
-				builder.transportSettings(TransportSettings.nettyBuilder().eventLoopGroup(this.eventLoopGroup).build());
+				EventLoopGroup eventLoopGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
+				this.eventLoopGroup = eventLoopGroup;
+				builder.transportSettings(TransportSettings.nettyBuilder().eventLoopGroup(eventLoopGroup).build());
 			}
 		}
 
@@ -130,7 +132,7 @@ public class MongoReactiveAutoConfiguration {
 			}
 		}
 
-		private boolean isCustomTransportConfiguration(MongoClientSettings settings) {
+		private boolean isCustomTransportConfiguration(@Nullable MongoClientSettings settings) {
 			return settings != null && settings.getTransportSettings() != null;
 		}
 

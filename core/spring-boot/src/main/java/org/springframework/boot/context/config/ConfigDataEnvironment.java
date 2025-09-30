@@ -24,17 +24,18 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.boot.BootstrapRegistry.InstanceSupplier;
-import org.springframework.boot.BootstrapRegistry.Scope;
-import org.springframework.boot.ConfigurableBootstrapContext;
-import org.springframework.boot.DefaultPropertiesPropertySource;
+import org.springframework.boot.bootstrap.BootstrapRegistry.InstanceSupplier;
+import org.springframework.boot.bootstrap.BootstrapRegistry.Scope;
+import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
 import org.springframework.boot.context.config.ConfigDataEnvironmentContributors.BinderOption;
 import org.springframework.boot.context.properties.bind.BindException;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.PlaceholdersResolver;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
+import org.springframework.boot.env.DefaultPropertiesPropertySource;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
@@ -43,6 +44,7 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.log.LogMessage;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
@@ -137,7 +139,7 @@ class ConfigDataEnvironment {
 	 */
 	ConfigDataEnvironment(DeferredLogFactory logFactory, ConfigurableBootstrapContext bootstrapContext,
 			ConfigurableEnvironment environment, ResourceLoader resourceLoader, Collection<String> additionalProfiles,
-			ConfigDataEnvironmentUpdateListener environmentUpdateListener) {
+			@Nullable ConfigDataEnvironmentUpdateListener environmentUpdateListener) {
 		Binder binder = Binder.get(environment);
 		this.logFactory = logFactory;
 		this.logger = logFactory.getLog(getClass());
@@ -212,7 +214,9 @@ class ConfigDataEnvironment {
 	private void addInitialImportContributors(List<ConfigDataEnvironmentContributor> initialContributors,
 			ConfigDataLocation[] locations) {
 		for (int i = locations.length - 1; i >= 0; i--) {
-			initialContributors.add(createInitialImportContributor(locations[i]));
+			if (ConfigDataLocation.isNotEmpty(locations[i])) {
+				initialContributors.add(createInitialImportContributor(locations[i]));
+			}
 		}
 	}
 
@@ -321,7 +325,7 @@ class ConfigDataEnvironment {
 	}
 
 	private void registerBootstrapBinder(ConfigDataEnvironmentContributors contributors,
-			ConfigDataActivationContext activationContext, BinderOption... binderOptions) {
+			@Nullable ConfigDataActivationContext activationContext, BinderOption... binderOptions) {
 		this.bootstrapContext.register(Binder.class,
 				InstanceSupplier.from(() -> contributors.getBinder(activationContext, binderOptions))
 					.withScope(Scope.PROTOTYPE));
@@ -336,6 +340,7 @@ class ConfigDataEnvironment {
 		applyContributor(contributors, activationContext, propertySources);
 		DefaultPropertiesPropertySource.moveToEnd(propertySources);
 		Profiles profiles = activationContext.getProfiles();
+		Assert.state(profiles != null, "'profiles' must not be null");
 		this.logger.trace(LogMessage.format("Setting default profiles: %s", profiles.getDefault()));
 		this.environment.setDefaultProfiles(StringUtils.toStringArray(profiles.getDefault()));
 		this.logger.trace(LogMessage.format("Setting active profiles: %s", profiles.getActive()));

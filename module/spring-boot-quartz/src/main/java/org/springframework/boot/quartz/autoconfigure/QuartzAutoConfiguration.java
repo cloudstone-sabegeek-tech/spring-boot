@@ -21,6 +21,7 @@ import java.util.Properties;
 
 import javax.sql.DataSource;
 
+import org.jspecify.annotations.Nullable;
 import org.quartz.Calendar;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
@@ -58,11 +59,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 		"org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration" })
 @ConditionalOnClass({ Scheduler.class, SchedulerFactoryBean.class, PlatformTransactionManager.class })
 @EnableConfigurationProperties(QuartzProperties.class)
-public class QuartzAutoConfiguration {
+public final class QuartzAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public SchedulerFactoryBean quartzScheduler(QuartzProperties properties,
+	SchedulerFactoryBean quartzScheduler(QuartzProperties properties,
 			ObjectProvider<SchedulerFactoryBeanCustomizer> customizers, ObjectProvider<JobDetail> jobDetails,
 			Map<String, Calendar> calendars, ObjectProvider<Trigger> triggers, ApplicationContext applicationContext) {
 		SchedulerFactoryBean schedulerFactoryBean = new SchedulerFactoryBean();
@@ -100,7 +101,7 @@ public class QuartzAutoConfiguration {
 
 		@Bean
 		@Order(0)
-		public SchedulerFactoryBeanCustomizer dataSourceCustomizer(QuartzProperties properties, DataSource dataSource,
+		SchedulerFactoryBeanCustomizer dataSourceCustomizer(QuartzProperties properties, DataSource dataSource,
 				@QuartzDataSource ObjectProvider<DataSource> quartzDataSource,
 				ObjectProvider<PlatformTransactionManager> transactionManager,
 				@QuartzTransactionManager ObjectProvider<PlatformTransactionManager> quartzTransactionManager) {
@@ -120,7 +121,7 @@ public class QuartzAutoConfiguration {
 			return (dataSourceIfAvailable != null) ? dataSourceIfAvailable : dataSource;
 		}
 
-		private PlatformTransactionManager getTransactionManager(
+		private @Nullable PlatformTransactionManager getTransactionManager(
 				ObjectProvider<PlatformTransactionManager> transactionManager,
 				ObjectProvider<PlatformTransactionManager> quartzTransactionManager) {
 			PlatformTransactionManager transactionManagerIfAvailable = quartzTransactionManager.getIfAvailable();

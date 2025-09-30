@@ -50,6 +50,7 @@ import org.gradle.api.tasks.options.Option;
 
 import org.springframework.boot.build.bom.BomExtension;
 import org.springframework.boot.build.bom.Library;
+import org.springframework.boot.build.bom.UpgradePolicy;
 import org.springframework.boot.build.bom.bomr.github.GitHub;
 import org.springframework.boot.build.bom.bomr.github.GitHubRepository;
 import org.springframework.boot.build.bom.bomr.github.Issue;
@@ -102,6 +103,12 @@ public abstract class UpgradeDependencies extends DefaultTask {
 	public abstract Property<String> getLibraries();
 
 	@Input
+	@Optional
+	@Option(option = "dry-run-upgrades",
+			description = "Whether to perform a dry run that doesn't open issues or change the bom")
+	public abstract Property<Boolean> getDryRun();
+
+	@Input
 	abstract ListProperty<String> getRepositoryNames();
 
 	@TaskAction
@@ -111,7 +118,14 @@ public abstract class UpgradeDependencies extends DefaultTask {
 		List<String> issueLabels = verifyLabels(repository);
 		Milestone milestone = determineMilestone(repository);
 		List<Upgrade> upgrades = resolveUpgrades(milestone);
-		applyUpgrades(repository, issueLabels, milestone, upgrades);
+		if (!getDryRun().getOrElse(false)) {
+			applyUpgrades(repository, issueLabels, milestone, upgrades);
+		}
+		upgradesApplied(upgrades);
+	}
+
+	protected void upgradesApplied(List<Upgrade> upgrades) {
+
 	}
 
 	private void applyUpgrades(GitHubRepository repository, List<String> issueLabels, Milestone milestone,
@@ -264,7 +278,10 @@ public abstract class UpgradeDependencies extends DefaultTask {
 	}
 
 	private boolean compliesWithUpgradePolicy(Library library, DependencyVersion candidate) {
-		return this.bom.getUpgrade().getPolicy().test(candidate, library.getVersion().getVersion());
+		UpgradePolicy libraryPolicy = library.getUpgradePolicy();
+		UpgradePolicy bomPolicy = this.bom.getUpgrade().getPolicy();
+		UpgradePolicy upgradePolicy = UpgradePolicy.max(libraryPolicy, bomPolicy);
+		return upgradePolicy.test(candidate, library.getVersion().getVersion());
 	}
 
 	private boolean isAnUpgrade(Library library, DependencyVersion candidate) {

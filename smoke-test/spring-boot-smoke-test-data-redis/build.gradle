@@ -22,10 +22,13 @@ plugins {
 description = "Spring Boot Data Redis smoke test"
 
 dependencies {
-	dockerTestImplementation(project(":module:spring-boot-reactor"))
-	dockerTestImplementation(project(":starter:spring-boot-starter-test"))
+	implementation(project(":starter:spring-boot-starter-data-redis"))
+
 	dockerTestImplementation(project(":core:spring-boot-test"))
 	dockerTestImplementation(project(":core:spring-boot-testcontainers"))
+	dockerTestImplementation(project(":module:spring-boot-data-redis-test"))
+	dockerTestImplementation(project(":module:spring-boot-reactor"))
+	dockerTestImplementation(project(":starter:spring-boot-starter-test"))
 	dockerTestImplementation(project(":test-support:spring-boot-docker-test-support"))
 	dockerTestImplementation("com.redis:testcontainers-redis")
 	dockerTestImplementation("io.projectreactor:reactor-test")
@@ -35,6 +38,4 @@ dependencies {
 	dockerTestImplementation("org.testcontainers:junit-jupiter")
 	dockerTestImplementation("org.testcontainers:testcontainers")
 	dockerTestImplementation("redis.clients:jedis")
-
-	implementation(project(":starter:spring-boot-starter-data-redis"))
 }

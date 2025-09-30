@@ -27,9 +27,11 @@ import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
 
 import org.springframework.boot.gradle.testkit.PluginClasspathGradleBuild;
+import org.springframework.boot.testsupport.BuildOutput;
 import org.springframework.boot.testsupport.gradle.testkit.Dsl;
 import org.springframework.boot.testsupport.gradle.testkit.GradleBuild;
 import org.springframework.boot.testsupport.gradle.testkit.GradleBuildExtension;
+import org.springframework.boot.testsupport.gradle.testkit.GradleVersions;
 
 /**
  * {@link Extension} that runs {@link TestTemplate templated tests} against the Groovy and
@@ -42,7 +44,8 @@ public class GradleMultiDslExtension implements TestTemplateInvocationContextPro
 
 	@Override
 	public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(ExtensionContext context) {
-		return Stream.of(Dsl.values()).map(DslTestTemplateInvocationContext::new);
+		BuildOutput buildOutput = new BuildOutput(context.getRequiredTestClass());
+		return Stream.of(Dsl.values()).map((dsl) -> new DslTestTemplateInvocationContext(buildOutput, dsl));
 	}
 
 	@Override
@@ -52,15 +55,22 @@ public class GradleMultiDslExtension implements TestTemplateInvocationContextPro
 
 	private static final class DslTestTemplateInvocationContext implements TestTemplateInvocationContext {
 
+		private final BuildOutput buildOutput;
+
 		private final Dsl dsl;
 
-		DslTestTemplateInvocationContext(Dsl dsl) {
+		DslTestTemplateInvocationContext(BuildOutput buildOutput, Dsl dsl) {
+			this.buildOutput = buildOutput;
 			this.dsl = dsl;
 		}
 
 		@Override
 		public List<Extension> getAdditionalExtensions() {
-			GradleBuild gradleBuild = new PluginClasspathGradleBuild(this.dsl);
+			PluginClasspathGradleBuild gradleBuild = new PluginClasspathGradleBuild(this.buildOutput, this.dsl);
+			if (this.dsl == Dsl.KOTLIN) {
+				gradleBuild.kotlin();
+			}
+			gradleBuild.gradleVersion(GradleVersions.minimumCompatible());
 			return Arrays.asList(new GradleBuildFieldSetter(gradleBuild), new GradleBuildExtension());
 		}
 

@@ -22,7 +22,10 @@ import java.util.List;
 
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.LoopResources;
 
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -37,8 +40,10 @@ import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.VirtualThreadTaskExecutor;
 import org.springframework.http.client.ReactorResourceFactory;
 import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
@@ -114,6 +119,21 @@ class ClientHttpConnectorAutoConfigurationTests {
 			assertThat(context).hasSingleBean(ClientHttpConnector.class);
 			assertThat(context).hasSingleBean(ReactorResourceFactory.class);
 			assertThat(context).hasBean("customReactorResourceFactory");
+			ClientHttpConnector connector = context.getBean(ClientHttpConnector.class);
+			assertThat(connector).extracting("httpClient.config.loopResources")
+				.isEqualTo(context.getBean("customReactorResourceFactory", ReactorResourceFactory.class)
+					.getLoopResources());
+		});
+	}
+
+	@Test
+	void shouldUseReactorResourceFactory() {
+		this.contextRunner.run((context) -> {
+			assertThat(context).hasSingleBean(ClientHttpConnector.class);
+			assertThat(context).hasSingleBean(ReactorResourceFactory.class);
+			ClientHttpConnector connector = context.getBean(ClientHttpConnector.class);
+			assertThat(connector).extracting("httpClient.config.loopResources")
+				.isEqualTo(context.getBean(ReactorResourceFactory.class).getLoopResources());
 		});
 	}
 
@@ -155,6 +175,19 @@ class ClientHttpConnectorAutoConfigurationTests {
 			.run((context) -> assertThat(context).doesNotHaveBean(ClientHttpConnectorSettings.class));
 	}
 
+	@Test
+	@EnabledForJreRange(min = JRE.JAVA_21)
+	void whenVirtualThreadsEnabledAndUsingJdkHttpClientUsesVirtualThreadExecutor() {
+		this.contextRunner
+			.withPropertyValues("spring.http.reactiveclient.connector=jdk", "spring.threads.virtual.enabled=true")
+			.run((context) -> {
+				ClientHttpConnector connector = context.getBean(ClientHttpConnectorBuilder.class).build();
+				java.net.http.HttpClient httpClient = (java.net.http.HttpClient) ReflectionTestUtils.getField(connector,
+						"httpClient");
+				assertThat(httpClient.executor()).containsInstanceOf(VirtualThreadTaskExecutor.class);
+			});
+	}
+
 	private List<String> sslPropertyValues() {
 		List<String> propertyValues = new ArrayList<>();
 		String location = "classpath:org/springframework/boot/autoconfigure/ssl/";
@@ -190,7 +223,10 @@ class ClientHttpConnectorAutoConfigurationTests {
 
 		@Bean
 		ReactorResourceFactory customReactorResourceFactory() {
-			return new ReactorResourceFactory();
+			ReactorResourceFactory reactorResourceFactory = new ReactorResourceFactory();
+			reactorResourceFactory.setUseGlobalResources(false);
+			reactorResourceFactory.setLoopResources(LoopResources.create("custom-loop", 1, true));
+			return reactorResourceFactory;
 		}
 
 	}

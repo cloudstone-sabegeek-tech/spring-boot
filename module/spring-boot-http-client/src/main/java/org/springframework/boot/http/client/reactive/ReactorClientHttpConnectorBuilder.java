@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
+import org.jspecify.annotations.Nullable;
 import reactor.netty.http.client.HttpClient;
 
 import org.springframework.boot.http.client.ReactorHttpClientBuilder;
@@ -45,7 +46,7 @@ public final class ReactorClientHttpConnectorBuilder
 		this(null, new ReactorHttpClientBuilder());
 	}
 
-	private ReactorClientHttpConnectorBuilder(List<Consumer<ReactorClientHttpConnector>> customizers,
+	private ReactorClientHttpConnectorBuilder(@Nullable List<Consumer<ReactorClientHttpConnector>> customizers,
 			ReactorHttpClientBuilder httpClientBuilder) {
 		super(customizers);
 		this.httpClientBuilder = httpClientBuilder;
@@ -98,6 +99,17 @@ public final class ReactorClientHttpConnectorBuilder
 				this.httpClientBuilder.withHttpClientCustomizer(httpClientCustomizer));
 	}
 
+	/**
+	 * Return a new {@link ReactorClientHttpConnectorBuilder} that applies the given
+	 * customizer. This can be useful for applying pre-packaged customizations.
+	 * @param customizer the customizer to apply
+	 * @return a new {@link ReactorClientHttpConnectorBuilder}
+	 * @since 4.0.0
+	 */
+	public ReactorClientHttpConnectorBuilder with(UnaryOperator<ReactorClientHttpConnectorBuilder> customizer) {
+		return customizer.apply(this);
+	}
+
 	@Override
 	protected ReactorClientHttpConnector createClientHttpConnector(ClientHttpConnectorSettings settings) {
 		HttpClient httpClient = this.httpClientBuilder.build(asHttpClientSettings(settings));
@@ -108,7 +120,7 @@ public final class ReactorClientHttpConnectorBuilder
 
 		static final String HTTP_CLIENT = "reactor.netty.http.client.HttpClient";
 
-		static boolean present(ClassLoader classLoader) {
+		static boolean present(@Nullable ClassLoader classLoader) {
 			return ClassUtils.isPresent(HTTP_CLIENT, classLoader);
 		}
 

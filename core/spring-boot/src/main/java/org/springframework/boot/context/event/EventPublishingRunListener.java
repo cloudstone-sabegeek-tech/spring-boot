@@ -20,13 +20,14 @@ import java.time.Duration;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.boot.ConfigurableBootstrapContext;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringApplicationRunListener;
 import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.LivenessState;
 import org.springframework.boot.availability.ReadinessState;
+import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
@@ -99,19 +100,19 @@ class EventPublishingRunListener implements SpringApplicationRunListener, Ordere
 	}
 
 	@Override
-	public void started(ConfigurableApplicationContext context, Duration timeTaken) {
+	public void started(ConfigurableApplicationContext context, @Nullable Duration timeTaken) {
 		context.publishEvent(new ApplicationStartedEvent(this.application, this.args, context, timeTaken));
 		AvailabilityChangeEvent.publish(context, LivenessState.CORRECT);
 	}
 
 	@Override
-	public void ready(ConfigurableApplicationContext context, Duration timeTaken) {
+	public void ready(ConfigurableApplicationContext context, @Nullable Duration timeTaken) {
 		context.publishEvent(new ApplicationReadyEvent(this.application, this.args, context, timeTaken));
 		AvailabilityChangeEvent.publish(context, ReadinessState.ACCEPTING_TRAFFIC);
 	}
 
 	@Override
-	public void failed(ConfigurableApplicationContext context, Throwable exception) {
+	public void failed(@Nullable ConfigurableApplicationContext context, Throwable exception) {
 		ApplicationFailedEvent event = new ApplicationFailedEvent(this.application, this.args, context, exception);
 		if (context != null && context.isActive()) {
 			// Listeners have been registered to the application context so we should

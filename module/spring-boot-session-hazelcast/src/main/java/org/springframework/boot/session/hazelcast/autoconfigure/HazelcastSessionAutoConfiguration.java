@@ -57,7 +57,7 @@ import org.springframework.session.hazelcast.config.annotation.web.http.Hazelcas
 @ConditionalOnBean(HazelcastInstance.class)
 @EnableConfigurationProperties({ HazelcastSessionProperties.class, ServerProperties.class, SessionProperties.class })
 @Import(HazelcastHttpSessionConfiguration.class)
-public class HazelcastSessionAutoConfiguration {
+public final class HazelcastSessionAutoConfiguration {
 
 	@Bean
 	@Order(Ordered.HIGHEST_PRECEDENCE)
@@ -65,7 +65,7 @@ public class HazelcastSessionAutoConfiguration {
 			SessionProperties sessionProperties, HazelcastSessionProperties hazelcastSessionProperties,
 			ServerProperties serverProperties) {
 		return (sessionRepository) -> {
-			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+			PropertyMapper map = PropertyMapper.get();
 			map.from(sessionProperties.determineTimeout(() -> serverProperties.getServlet().getSession().getTimeout()))
 				.to(sessionRepository::setDefaultMaxInactiveInterval);
 			map.from(hazelcastSessionProperties::getMapName).to(sessionRepository::setSessionMapName);

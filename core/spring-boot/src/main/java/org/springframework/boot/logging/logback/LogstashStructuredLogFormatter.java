@@ -24,10 +24,12 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.pattern.ThrowableProxyConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Marker;
 import org.slf4j.event.KeyValuePair;
 
@@ -51,12 +53,13 @@ class LogstashStructuredLogFormatter extends JsonWriterStructuredLogFormatter<IL
 	private static final PairExtractor<KeyValuePair> keyValuePairExtractor = PairExtractor.of((pair) -> pair.key,
 			(pair) -> pair.value);
 
-	LogstashStructuredLogFormatter(StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
-			ThrowableProxyConverter throwableProxyConverter, StructuredLoggingJsonMembersCustomizer<?> customizer) {
+	LogstashStructuredLogFormatter(@Nullable StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
+			ThrowableProxyConverter throwableProxyConverter,
+			@Nullable StructuredLoggingJsonMembersCustomizer<?> customizer) {
 		super((members) -> jsonMembers(stackTracePrinter, contextPairs, throwableProxyConverter, members), customizer);
 	}
 
-	private static void jsonMembers(StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
+	private static void jsonMembers(@Nullable StackTracePrinter stackTracePrinter, ContextPairs contextPairs,
 			ThrowableProxyConverter throwableProxyConverter, JsonWriter.Members<ILoggingEvent> members) {
 		Extractor extractor = new Extractor(stackTracePrinter, throwableProxyConverter);
 		members.add("@timestamp", ILoggingEvent::getInstant).as(LogstashStructuredLogFormatter::asTimestamp);
@@ -74,9 +77,9 @@ class LogstashStructuredLogFormatter extends JsonWriterStructuredLogFormatter<IL
 			.whenNotNull()
 			.as(LogstashStructuredLogFormatter::getMarkers)
 			.whenNotEmpty();
-		members.add("stack_trace", (event) -> event)
-			.whenNotNull(ILoggingEvent::getThrowableProxy)
-			.as(extractor::stackTrace);
+		Function<@Nullable ILoggingEvent, @Nullable Object> getThrowableProxy = (event) -> (event != null)
+				? event.getThrowableProxy() : null;
+		members.add("stack_trace", (event) -> event).whenNotNull(getThrowableProxy).as(extractor::stackTrace);
 	}
 
 	private static String asTimestamp(Instant instant) {

@@ -16,7 +16,9 @@
 
 package org.springframework.boot.http.codec.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -29,9 +31,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.env.Environment;
 import org.springframework.http.codec.CodecConfigurer;
-import org.springframework.util.MimeType;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.util.unit.DataSize;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -45,25 +47,20 @@ import org.springframework.web.reactive.function.client.WebClient;
  */
 @AutoConfiguration(afterName = "org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration")
 @ConditionalOnClass({ CodecConfigurer.class, WebClient.class })
-public class CodecsAutoConfiguration {
-
-	private static final MimeType[] EMPTY_MIME_TYPES = {};
+public final class CodecsAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnClass(ObjectMapper.class)
-	@SuppressWarnings({ "removal", "deprecation" })
-	static class JacksonCodecConfiguration {
+	static class JacksonJsonCodecConfiguration {
 
 		@Bean
 		@Order(0)
-		@ConditionalOnBean(ObjectMapper.class)
-		CodecCustomizer jacksonCodecCustomizer(ObjectMapper objectMapper) {
+		@ConditionalOnBean(JsonMapper.class)
+		CodecCustomizer jacksonCodecCustomizer(JsonMapper jsonMapper) {
 			return (configurer) -> {
 				CodecConfigurer.DefaultCodecs defaults = configurer.defaultCodecs();
-				defaults.jackson2JsonDecoder(
-						new org.springframework.http.codec.json.Jackson2JsonDecoder(objectMapper, EMPTY_MIME_TYPES));
-				defaults.jackson2JsonEncoder(
-						new org.springframework.http.codec.json.Jackson2JsonEncoder(objectMapper, EMPTY_MIME_TYPES));
+				defaults.jacksonJsonDecoder(new JacksonJsonDecoder(jsonMapper));
+				defaults.jacksonJsonEncoder(new JacksonJsonEncoder(jsonMapper));
 			};
 		}
 
@@ -74,8 +71,7 @@ public class CodecsAutoConfiguration {
 	static class DefaultCodecsConfiguration {
 
 		@Bean
-		DefaultCodecCustomizer defaultCodecCustomizer(HttpCodecsProperties httpCodecProperties,
-				Environment environment) {
+		DefaultCodecCustomizer defaultCodecCustomizer(HttpCodecsProperties httpCodecProperties) {
 			return new DefaultCodecCustomizer(httpCodecProperties.isLogRequestDetails(),
 					httpCodecProperties.getMaxInMemorySize());
 		}
@@ -84,9 +80,9 @@ public class CodecsAutoConfiguration {
 
 			private final boolean logRequestDetails;
 
-			private final DataSize maxInMemorySize;
+			private final @Nullable DataSize maxInMemorySize;
 
-			DefaultCodecCustomizer(boolean logRequestDetails, DataSize maxInMemorySize) {
+			DefaultCodecCustomizer(boolean logRequestDetails, @Nullable DataSize maxInMemorySize) {
 				this.logRequestDetails = logRequestDetails;
 				this.maxInMemorySize = maxInMemorySize;
 			}
@@ -96,10 +92,7 @@ public class CodecsAutoConfiguration {
 				PropertyMapper map = PropertyMapper.get();
 				CodecConfigurer.DefaultCodecs defaultCodecs = configurer.defaultCodecs();
 				defaultCodecs.enableLoggingRequestDetails(this.logRequestDetails);
-				map.from(this.maxInMemorySize)
-					.whenNonNull()
-					.asInt(DataSize::toBytes)
-					.to(defaultCodecs::maxInMemorySize);
+				map.from(this.maxInMemorySize).asInt(DataSize::toBytes).to(defaultCodecs::maxInMemorySize);
 			}
 
 			@Override

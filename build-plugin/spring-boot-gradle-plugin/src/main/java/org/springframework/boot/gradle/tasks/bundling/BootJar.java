@@ -36,8 +36,7 @@ import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.work.DisableCachingByDefault;
-
-import org.springframework.boot.loader.tools.LoaderImplementation;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A custom {@link Jar} task that produces a Spring Boot executable jar.
@@ -73,7 +72,7 @@ public abstract class BootJar extends Jar implements BootArchive {
 
 	private final ResolvedDependencies resolvedDependencies;
 
-	private FileCollection classpath;
+	private @Nullable FileCollection classpath;
 
 	/**
 	 * Creates a new {@code BootJar} task.
@@ -144,13 +143,12 @@ public abstract class BootJar extends Jar implements BootArchive {
 
 	@Override
 	protected CopyAction createCopyAction() {
-		LoaderImplementation loaderImplementation = getLoaderImplementation().getOrElse(LoaderImplementation.DEFAULT);
 		LayerResolver layerResolver = null;
 		if (!isLayeredDisabled()) {
 			layerResolver = new LayerResolver(this.resolvedDependencies, this.layered, this::isLibrary);
 		}
 		String jarmodeToolsLocation = isIncludeJarmodeTools() ? LIB_DIRECTORY : null;
-		return this.support.createCopyAction(this, this.resolvedDependencies, loaderImplementation, true, layerResolver,
+		return this.support.createCopyAction(this, this.resolvedDependencies, true, layerResolver,
 				jarmodeToolsLocation);
 	}
 
@@ -169,7 +167,7 @@ public abstract class BootJar extends Jar implements BootArchive {
 	}
 
 	@Override
-	public LaunchScriptConfiguration getLaunchScript() {
+	public @Nullable LaunchScriptConfiguration getLaunchScript() {
 		return this.support.getLaunchScript();
 	}
 
@@ -203,7 +201,7 @@ public abstract class BootJar extends Jar implements BootArchive {
 	}
 
 	@Override
-	public FileCollection getClasspath() {
+	public @Nullable FileCollection getClasspath() {
 		return this.classpath;
 	}
 

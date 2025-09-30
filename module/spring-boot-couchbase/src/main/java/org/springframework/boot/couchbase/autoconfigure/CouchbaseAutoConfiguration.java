@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+import java.util.List;
 
 import javax.net.ssl.TrustManagerFactory;
 
@@ -33,6 +36,7 @@ import com.couchbase.client.java.env.ClusterEnvironment;
 import com.couchbase.client.java.env.ClusterEnvironment.Builder;
 import com.couchbase.client.java.json.JsonValueModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -79,7 +83,7 @@ import org.springframework.util.StringUtils;
 @ConditionalOnClass(Cluster.class)
 @Conditional(CouchbaseCondition.class)
 @EnableConfigurationProperties(CouchbaseProperties.class)
-public class CouchbaseAutoConfiguration {
+public final class CouchbaseAutoConfiguration {
 
 	private final ResourceLoader resourceLoader;
 
@@ -98,8 +102,7 @@ public class CouchbaseAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ClusterEnvironment couchbaseClusterEnvironment(
-			ObjectProvider<ClusterEnvironmentBuilderCustomizer> customizers,
+	ClusterEnvironment couchbaseClusterEnvironment(ObjectProvider<ClusterEnvironmentBuilderCustomizer> customizers,
 			CouchbaseConnectionDetails connectionDetails) {
 		Builder builder = initializeEnvironmentBuilder(connectionDetails);
 		customizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
@@ -108,7 +111,7 @@ public class CouchbaseAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public Authenticator couchbaseAuthenticator(CouchbaseConnectionDetails connectionDetails) throws IOException {
+	Authenticator couchbaseAuthenticator(CouchbaseConnectionDetails connectionDetails) throws IOException {
 		if (connectionDetails.getUsername() != null && connectionDetails.getPassword() != null) {
 			return PasswordAuthenticator.create(connectionDetails.getUsername(), connectionDetails.getPassword());
 		}
@@ -116,8 +119,12 @@ public class CouchbaseAutoConfiguration {
 		if (pem.getCertificates() != null) {
 			PemSslStoreDetails details = new PemSslStoreDetails(null, pem.getCertificates(), pem.getPrivateKey());
 			PemSslStore store = PemSslStore.load(details);
-			return CertificateAuthenticator.fromKey(store.privateKey(), pem.getPrivateKeyPassword(),
-					store.certificates());
+			Assert.state(store != null, "Unable to load key and certificates");
+			PrivateKey key = store.privateKey();
+			List<X509Certificate> certificates = store.certificates();
+			Assert.state(key != null, "No key found");
+			Assert.state(certificates != null, "No certificates found");
+			return CertificateAuthenticator.fromKey(key, pem.getPrivateKeyPassword(), certificates);
 		}
 		Jks jks = this.properties.getAuthentication().getJks();
 		if (jks.getLocation() != null) {
@@ -137,7 +144,7 @@ public class CouchbaseAutoConfiguration {
 
 	@Bean(destroyMethod = "disconnect")
 	@ConditionalOnMissingBean
-	public Cluster couchbaseCluster(ClusterEnvironment couchbaseClusterEnvironment, Authenticator authenticator,
+	Cluster couchbaseCluster(ClusterEnvironment couchbaseClusterEnvironment, Authenticator authenticator,
 			CouchbaseConnectionDetails connectionDetails) {
 		ClusterOptions options = ClusterOptions.clusterOptions(authenticator).environment(couchbaseClusterEnvironment);
 		return Cluster.connect(connectionDetails.getConnectionString(), options);
@@ -240,30 +247,32 @@ public class CouchbaseAutoConfiguration {
 
 		private final CouchbaseProperties properties;
 
-		private final SslBundles sslBundles;
+		private final @Nullable SslBundles sslBundles;
 
-		PropertiesCouchbaseConnectionDetails(CouchbaseProperties properties, SslBundles sslBundles) {
+		PropertiesCouchbaseConnectionDetails(CouchbaseProperties properties, @Nullable SslBundles sslBundles) {
 			this.properties = properties;
 			this.sslBundles = sslBundles;
 		}
 
 		@Override
 		public String getConnectionString() {
-			return this.properties.getConnectionString();
+			String connectionString = this.properties.getConnectionString();
+			Assert.state(connectionString != null, "'connectionString' must not be null");
+			return connectionString;
 		}
 
 		@Override
-		public String getUsername() {
+		public @Nullable String getUsername() {
 			return this.properties.getUsername();
 		}
 
 		@Override
-		public String getPassword() {
+		public @Nullable String getPassword() {
 			return this.properties.getPassword();
 		}
 
 		@Override
-		public SslBundle getSslBundle() {
+		public @Nullable SslBundle getSslBundle() {
 			Ssl ssl = this.properties.getEnv().getSsl();
 			if (!ssl.getEnabled()) {
 				return null;

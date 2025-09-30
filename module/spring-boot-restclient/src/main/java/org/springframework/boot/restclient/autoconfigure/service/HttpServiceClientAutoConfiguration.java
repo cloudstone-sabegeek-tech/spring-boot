@@ -25,21 +25,19 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.boot.http.client.autoconfigure.HttpClientAutoConfiguration;
-import org.springframework.boot.http.client.autoconfigure.HttpClientProperties;
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
+import org.springframework.web.client.ApiVersionFormatter;
+import org.springframework.web.client.ApiVersionInserter;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.registry.HttpServiceProxyRegistry;
-import org.springframework.web.service.registry.ImportHttpServices;
 
 /**
- * AutoConfiguration for Spring HTTP Service clients.
- * <p>
- * This will result in the creation of blocking HTTP Service client beans defined by
- * {@link ImportHttpServices @ImportHttpServices} annotations.
+ * AutoConfiguration for Spring HTTP Service clients backed by {@link RestClient}.
  *
  * @author Olga Maciaszek-Sharma
  * @author Rossen Stoyanchev
@@ -51,12 +49,10 @@ import org.springframework.web.service.registry.ImportHttpServices;
 @ConditionalOnBean(HttpServiceProxyRegistry.class)
 @Conditional(NotReactiveWebApplicationCondition.class)
 @EnableConfigurationProperties(HttpClientServiceProperties.class)
-public class HttpServiceClientAutoConfiguration implements BeanClassLoaderAware {
+public final class HttpServiceClientAutoConfiguration implements BeanClassLoaderAware {
 
+	@SuppressWarnings("NullAway.Init")
 	private ClassLoader beanClassLoader;
-
-	HttpServiceClientAutoConfiguration() {
-	}
 
 	@Override
 	public void setBeanClassLoader(ClassLoader classLoader) {
@@ -65,13 +61,13 @@ public class HttpServiceClientAutoConfiguration implements BeanClassLoaderAware 
 
 	@Bean
 	RestClientPropertiesHttpServiceGroupConfigurer restClientPropertiesHttpServiceGroupConfigurer(
-			ObjectProvider<SslBundles> sslBundles, ObjectProvider<HttpClientProperties> httpClientProperties,
-			HttpClientServiceProperties serviceProperties,
+			ObjectProvider<SslBundles> sslBundles, HttpClientServiceProperties serviceProperties,
 			ObjectProvider<ClientHttpRequestFactoryBuilder<?>> clientFactoryBuilder,
-			ObjectProvider<ClientHttpRequestFactorySettings> clientHttpRequestFactorySettings) {
-		return new RestClientPropertiesHttpServiceGroupConfigurer(this.beanClassLoader, sslBundles,
-				httpClientProperties.getIfAvailable(), serviceProperties, clientFactoryBuilder,
-				clientHttpRequestFactorySettings);
+			ObjectProvider<ClientHttpRequestFactorySettings> clientHttpRequestFactorySettings,
+			ObjectProvider<ApiVersionInserter> apiVersionInserter,
+			ObjectProvider<ApiVersionFormatter> apiVersionFormatter) {
+		return new RestClientPropertiesHttpServiceGroupConfigurer(this.beanClassLoader, sslBundles, serviceProperties,
+				clientFactoryBuilder, clientHttpRequestFactorySettings, apiVersionInserter, apiVersionFormatter);
 	}
 
 	@Bean

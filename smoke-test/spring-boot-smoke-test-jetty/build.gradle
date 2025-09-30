@@ -21,10 +21,11 @@ plugins {
 description = "Spring Boot Jetty smoke test"
 
 dependencies {
-	implementation(project(":starter:spring-boot-starter-web")) {
+	implementation(project(":starter:spring-boot-starter-webmvc")) {
 		exclude module: "spring-boot-starter-tomcat"
 	}
 	implementation(project(":starter:spring-boot-starter-jetty"))
 
+	testImplementation(project(":starter:spring-boot-starter-restclient"))
 	testImplementation(project(":starter:spring-boot-starter-test"))
 }

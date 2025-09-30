@@ -43,9 +43,9 @@ dependencies {
 	checkstyle("com.puppycrawl.tools:checkstyle:${checkstyle.toolVersion}")
 	checkstyle("io.spring.javaformat:spring-javaformat-checkstyle:${javaFormatVersion}")
 
-	implementation(platform("com.fasterxml.jackson:jackson-bom:${jacksonVersion}"))
+	implementation(platform("com.fasterxml.jackson:jackson-bom:${jackson2Version}"))
+	implementation(platform("tools.jackson:jackson-bom:${jacksonVersion}"))
 	implementation(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	implementation("com.fasterxml.jackson.core:jackson-databind")
 	implementation("com.github.node-gradle:gradle-node-plugin:3.5.1")
 	implementation("com.gradle:develocity-gradle-plugin:3.17.2")
 	implementation("com.tngtech.archunit:archunit:1.4.1")
@@ -64,6 +64,8 @@ dependencies {
 	implementation("org.springframework:spring-core")
 	implementation("org.springframework:spring-web")
 	implementation("org.yaml:snakeyaml:${snakeYamlVersion}")
+	implementation("io.spring.gradle.nullability:nullability-plugin:${nullabilityPluginVersion}")
+	implementation("tools.jackson.core:jackson-databind")
 
 	testImplementation(platform("org.junit:junit-bom:${junitJupiterVersion}"))
 	testImplementation("org.assertj:assertj-core:${assertjVersion}")
@@ -83,6 +85,10 @@ configurations.all {
 
 gradlePlugin {
 	plugins {
+		aggregatorPlugin {
+			id = "org.springframework.boot.aggregator"
+			implementationClass = "org.springframework.boot.build.aggregation.AggregatorPlugin"
+		}
 		annotationProcessorPlugin {
 			id = "org.springframework.boot.annotation-processor"
 			implementationClass = "org.springframework.boot.build.processors.AnnotationProcessorPlugin"
@@ -127,10 +133,6 @@ gradlePlugin {
 			id = "org.springframework.boot.integration-test"
 			implementationClass = "org.springframework.boot.build.test.IntegrationTestPlugin"
 		}
-		systemTestPlugin {
-			id = "org.springframework.boot.system-test"
-			implementationClass = "org.springframework.boot.build.test.SystemTestPlugin"
-		}
 		mavenPluginPlugin {
 			id = "org.springframework.boot.maven-plugin"
 			implementationClass = "org.springframework.boot.build.mavenplugin.MavenPluginPlugin"
@@ -147,9 +149,21 @@ gradlePlugin {
 			id = "org.springframework.boot.starter"
 			implementationClass = "org.springframework.boot.build.starters.StarterPlugin"
 		}
+		systemTestPlugin {
+			id = "org.springframework.boot.system-test"
+			implementationClass = "org.springframework.boot.build.test.SystemTestPlugin"
+		}
+		testAutoConfigurationPlugin {
+			id = "org.springframework.boot.test-auto-configuration"
+			implementationClass = "org.springframework.boot.build.test.autoconfigure.TestAutoConfigurationPlugin"
+		}
 		testFailuresPlugin {
 			id = "org.springframework.boot.test-failures"
 			implementationClass = "org.springframework.boot.build.testing.TestFailuresPlugin"
+		}
+		testSlicePlugin {
+			id = "org.springframework.boot.test-slice"
+			implementationClass = "org.springframework.boot.build.test.autoconfigure.TestSlicePlugin"
 		}
 	}
 }

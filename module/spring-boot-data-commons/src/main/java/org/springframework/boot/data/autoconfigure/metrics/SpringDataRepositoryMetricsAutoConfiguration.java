@@ -38,30 +38,30 @@ import org.springframework.util.function.SingletonSupplier;
  * @author Phillip Webb
  * @since 4.0.0
  */
-@AutoConfiguration(
-		afterName = { "org.springframework.boot.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration",
-				"org.springframework.boot.metrics.autoconfigure.MetricsAutoConfiguration",
-				"org.springframework.boot.metrics.autoconfigure.export.simple.SimpleMetricsExportAutoConfiguration" })
+@AutoConfiguration(afterName = {
+		"org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration",
+		"org.springframework.boot.micrometer.metrics.autoconfigure.MetricsAutoConfiguration",
+		"org.springframework.boot.micrometer.metrics.autoconfigure.export.simple.SimpleMetricsExportAutoConfiguration" })
 @ConditionalOnClass(org.springframework.data.repository.Repository.class)
 @ConditionalOnBean(MeterRegistry.class)
 @EnableConfigurationProperties(DataMetricsProperties.class)
-public class SpringDataRepositoryMetricsAutoConfiguration {
+public final class SpringDataRepositoryMetricsAutoConfiguration {
 
 	private final DataMetricsProperties properties;
 
-	public SpringDataRepositoryMetricsAutoConfiguration(DataMetricsProperties properties) {
+	SpringDataRepositoryMetricsAutoConfiguration(DataMetricsProperties properties) {
 		this.properties = properties;
 	}
 
 	@Bean
 	@ConditionalOnMissingBean(RepositoryTagsProvider.class)
-	public DefaultRepositoryTagsProvider repositoryTagsProvider() {
+	DefaultRepositoryTagsProvider repositoryTagsProvider() {
 		return new DefaultRepositoryTagsProvider();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public MetricsRepositoryMethodInvocationListener metricsRepositoryMethodInvocationListener(
+	MetricsRepositoryMethodInvocationListener metricsRepositoryMethodInvocationListener(
 			ObjectProvider<MeterRegistry> registry, RepositoryTagsProvider tagsProvider) {
 		Repository properties = this.properties.getRepository();
 		return new MetricsRepositoryMethodInvocationListener(registry::getObject, tagsProvider,
@@ -69,7 +69,7 @@ public class SpringDataRepositoryMetricsAutoConfiguration {
 	}
 
 	@Bean
-	public static MetricsRepositoryMethodInvocationListenerBeanPostProcessor metricsRepositoryMethodInvocationListenerBeanPostProcessor(
+	static MetricsRepositoryMethodInvocationListenerBeanPostProcessor metricsRepositoryMethodInvocationListenerBeanPostProcessor(
 			ObjectProvider<MetricsRepositoryMethodInvocationListener> metricsRepositoryMethodInvocationListener) {
 		return new MetricsRepositoryMethodInvocationListenerBeanPostProcessor(
 				SingletonSupplier.of(metricsRepositoryMethodInvocationListener::getObject));

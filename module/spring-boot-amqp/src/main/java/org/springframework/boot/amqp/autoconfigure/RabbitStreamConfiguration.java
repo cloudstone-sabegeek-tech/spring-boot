@@ -16,9 +16,6 @@
 
 package org.springframework.boot.amqp.autoconfigure;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.rabbitmq.stream.Environment;
 import com.rabbitmq.stream.EnvironmentBuilder;
 
@@ -39,6 +36,7 @@ import org.springframework.rabbit.stream.producer.ProducerCustomizer;
 import org.springframework.rabbit.stream.producer.RabbitStreamOperations;
 import org.springframework.rabbit.stream.producer.RabbitStreamTemplate;
 import org.springframework.rabbit.stream.support.converter.StreamMessageConverter;
+import org.springframework.util.Assert;
 
 /**
  * Configuration for Spring RabbitMQ Stream plugin support.
@@ -93,8 +91,9 @@ class RabbitStreamConfiguration {
 	@ConditionalOnProperty(name = "spring.rabbitmq.stream.name")
 	RabbitStreamTemplate rabbitStreamTemplate(Environment rabbitStreamEnvironment, RabbitProperties properties,
 			RabbitStreamTemplateConfigurer configurer) {
-		RabbitStreamTemplate template = new RabbitStreamTemplate(rabbitStreamEnvironment,
-				properties.getStream().getName());
+		String name = properties.getStream().getName();
+		Assert.state(name != null, "'name' must not be null");
+		RabbitStreamTemplate template = new RabbitStreamTemplate(rabbitStreamEnvironment, name);
 		configurer.configure(template);
 		return template;
 	}
@@ -110,23 +109,10 @@ class RabbitStreamConfiguration {
 		PropertyMapper map = PropertyMapper.get();
 		map.from(stream.getHost()).to(builder::host);
 		map.from(stream.getPort()).to(builder::port);
-		map.from(stream.getVirtualHost())
-			.as(withFallback(connectionDetails::getVirtualHost))
-			.whenNonNull()
-			.to(builder::virtualHost);
-		map.from(stream.getUsername())
-			.as(withFallback(connectionDetails::getUsername))
-			.whenNonNull()
-			.to(builder::username);
-		map.from(stream.getPassword())
-			.as(withFallback(connectionDetails::getPassword))
-			.whenNonNull()
-			.to(builder::password);
+		map.from(stream.getVirtualHost()).orFrom(connectionDetails::getVirtualHost).to(builder::virtualHost);
+		map.from(stream.getUsername()).orFrom(connectionDetails::getUsername).to(builder::username);
+		map.from(stream.getPassword()).orFrom(connectionDetails::getPassword).to(builder::password);
 		return builder;
-	}
-
-	private static Function<String, String> withFallback(Supplier<String> fallback) {
-		return (value) -> (value != null) ? value : fallback.get();
 	}
 
 }

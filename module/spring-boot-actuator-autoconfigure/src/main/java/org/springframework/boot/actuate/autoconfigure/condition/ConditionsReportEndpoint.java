@@ -26,6 +26,7 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.actuate.endpoint.OperationResponseBody;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
@@ -62,7 +63,7 @@ public class ConditionsReportEndpoint {
 
 	@ReadOperation
 	public ConditionsDescriptor conditions() {
-		Map<String, ContextConditionsDescriptor> contextConditionEvaluations = new HashMap<>();
+		Map<@Nullable String, ContextConditionsDescriptor> contextConditionEvaluations = new HashMap<>();
 		ConfigurableApplicationContext target = this.context;
 		while (target != null) {
 			contextConditionEvaluations.put(target.getId(), new ContextConditionsDescriptor(target));
@@ -71,7 +72,7 @@ public class ConditionsReportEndpoint {
 		return new ConditionsDescriptor(contextConditionEvaluations);
 	}
 
-	private ConfigurableApplicationContext getConfigurableParent(ConfigurableApplicationContext context) {
+	private @Nullable ConfigurableApplicationContext getConfigurableParent(ConfigurableApplicationContext context) {
 		ApplicationContext parent = context.getParent();
 		if (parent instanceof ConfigurableApplicationContext configurableParent) {
 			return configurableParent;
@@ -84,13 +85,13 @@ public class ConditionsReportEndpoint {
 	 */
 	public static final class ConditionsDescriptor implements OperationResponseBody {
 
-		private final Map<String, ContextConditionsDescriptor> contexts;
+		private final Map<@Nullable String, ContextConditionsDescriptor> contexts;
 
-		private ConditionsDescriptor(Map<String, ContextConditionsDescriptor> contexts) {
+		private ConditionsDescriptor(Map<@Nullable String, ContextConditionsDescriptor> contexts) {
 			this.contexts = contexts;
 		}
 
-		public Map<String, ContextConditionsDescriptor> getContexts() {
+		public Map<@Nullable String, ContextConditionsDescriptor> getContexts() {
 			return this.contexts;
 		}
 
@@ -111,7 +112,7 @@ public class ConditionsReportEndpoint {
 
 		private final Set<String> unconditionalClasses;
 
-		private final String parentId;
+		private final @Nullable String parentId;
 
 		public ContextConditionsDescriptor(ConfigurableApplicationContext context) {
 			ConditionEvaluationReport report = ConditionEvaluationReport.get(context.getBeanFactory());
@@ -150,7 +151,7 @@ public class ConditionsReportEndpoint {
 			return this.unconditionalClasses;
 		}
 
-		public String getParentId() {
+		public @Nullable String getParentId() {
 			return this.parentId;
 		}
 

@@ -16,8 +16,8 @@
 
 package org.springframework.boot.jackson;
 
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.module.SimpleModule;
 
 /**
  * Spring Bean and Jackson {@link Module} to find and
@@ -36,7 +36,7 @@ public class JsonMixinModule extends SimpleModule {
 	 * @param entries the entries to register to this instance
 	 * @param classLoader the classloader to use
 	 */
-	public void registerEntries(JsonMixinModuleEntries entries, ClassLoader classLoader) {
+	public void registerEntries(JsonMixinModuleEntries entries, @Nullable ClassLoader classLoader) {
 		entries.doWithEntry(classLoader, this::setMixInAnnotation);
 	}
 

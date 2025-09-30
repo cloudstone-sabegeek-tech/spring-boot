@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -67,7 +68,7 @@ import org.springframework.util.StringUtils;
 @Conditional({ ReactiveUserDetailsServiceAutoConfiguration.RSocketEnabledOrReactiveWebApplication.class,
 		ReactiveUserDetailsServiceAutoConfiguration.MissingAlternativeOrUserPropertiesConfigured.class })
 @EnableConfigurationProperties(SecurityProperties.class)
-public class ReactiveUserDetailsServiceAutoConfiguration {
+public final class ReactiveUserDetailsServiceAutoConfiguration {
 
 	private static final String NOOP_PASSWORD_PREFIX = "{noop}";
 
@@ -76,7 +77,7 @@ public class ReactiveUserDetailsServiceAutoConfiguration {
 	private static final Log logger = LogFactory.getLog(ReactiveUserDetailsServiceAutoConfiguration.class);
 
 	@Bean
-	public MapReactiveUserDetailsService reactiveUserDetailsService(SecurityProperties properties,
+	MapReactiveUserDetailsService reactiveUserDetailsService(SecurityProperties properties,
 			ObjectProvider<PasswordEncoder> passwordEncoder) {
 		SecurityProperties.User user = properties.getUser();
 		UserDetails userDetails = getUserDetails(user, getOrDeducePassword(user, passwordEncoder.getIfAvailable()));
@@ -88,7 +89,7 @@ public class ReactiveUserDetailsServiceAutoConfiguration {
 		return User.withUsername(user.getName()).password(password).roles(StringUtils.toStringArray(roles)).build();
 	}
 
-	private String getOrDeducePassword(SecurityProperties.User user, PasswordEncoder encoder) {
+	private String getOrDeducePassword(SecurityProperties.User user, @Nullable PasswordEncoder encoder) {
 		String password = user.getPassword();
 		if (user.isPasswordGenerated()) {
 			logger.info(String.format("%n%nUsing generated security password: %s%n", user.getPassword()));

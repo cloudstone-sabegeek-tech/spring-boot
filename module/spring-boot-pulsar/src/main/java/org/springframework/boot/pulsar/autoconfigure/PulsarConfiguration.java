@@ -25,6 +25,7 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -52,6 +53,7 @@ import org.springframework.pulsar.function.PulsarFunction;
 import org.springframework.pulsar.function.PulsarFunctionAdministration;
 import org.springframework.pulsar.function.PulsarSink;
 import org.springframework.pulsar.function.PulsarSource;
+import org.springframework.util.Assert;
 
 /**
  * Common configuration used by both {@link PulsarAutoConfiguration} and
@@ -127,7 +129,8 @@ class PulsarConfiguration {
 		return schemaResolver;
 	}
 
-	private void addCustomSchemaMappings(DefaultSchemaResolver schemaResolver, List<TypeMapping> typeMappings) {
+	private void addCustomSchemaMappings(DefaultSchemaResolver schemaResolver,
+			@Nullable List<TypeMapping> typeMappings) {
 		if (typeMappings != null) {
 			typeMappings.forEach((typeMapping) -> addCustomSchemaMapping(schemaResolver, typeMapping));
 		}
@@ -139,9 +142,16 @@ class PulsarConfiguration {
 			Class<?> messageType = typeMapping.messageType();
 			SchemaType schemaType = schemaInfo.schemaType();
 			Class<?> messageKeyType = schemaInfo.messageKeyType();
-			Schema<?> schema = schemaResolver.resolveSchema(schemaType, messageType, messageKeyType).orElseThrow();
+			Schema<?> schema = getSchema(schemaResolver, schemaType, messageType, messageKeyType);
 			schemaResolver.addCustomSchemaMapping(typeMapping.messageType(), schema);
 		}
+	}
+
+	private Schema<Object> getSchema(DefaultSchemaResolver schemaResolver, SchemaType schemaType, Class<?> messageType,
+			@Nullable Class<?> messageKeyType) {
+		Schema<Object> schema = schemaResolver.resolveSchema(schemaType, messageType, messageKeyType).orElseThrow();
+		Assert.state(schema != null, "'schema' must not be null");
+		return schema;
 	}
 
 	@SuppressWarnings("unchecked")

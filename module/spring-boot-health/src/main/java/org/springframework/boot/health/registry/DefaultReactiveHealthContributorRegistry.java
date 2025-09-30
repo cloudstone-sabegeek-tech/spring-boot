@@ -21,6 +21,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.boot.health.contributor.ReactiveHealthContributor;
 import org.springframework.boot.health.contributor.ReactiveHealthContributors.Entry;
 
@@ -43,15 +45,16 @@ public class DefaultReactiveHealthContributorRegistry extends AbstractRegistry<R
 	/**
 	 * Create a new {@link DefaultReactiveHealthContributorRegistry} instance.
 	 * @param nameValidators the name validators to apply
-	 * @param intialRegistrations callback to setup any initial registrations
+	 * @param initialRegistrations callback to setup any initial registrations
 	 */
-	public DefaultReactiveHealthContributorRegistry(Collection<? extends HealthContributorNameValidator> nameValidators,
-			Consumer<BiConsumer<String, ReactiveHealthContributor>> intialRegistrations) {
-		super(Entry::new, nameValidators, intialRegistrations);
+	public DefaultReactiveHealthContributorRegistry(
+			@Nullable Collection<? extends HealthContributorNameValidator> nameValidators,
+			@Nullable Consumer<BiConsumer<String, ReactiveHealthContributor>> initialRegistrations) {
+		super(Entry::new, nameValidators, initialRegistrations);
 	}
 
 	@Override
-	public ReactiveHealthContributor getContributor(String name) {
+	public @Nullable ReactiveHealthContributor getContributor(String name) {
 		return super.getContributor(name);
 	}
 
@@ -66,7 +69,7 @@ public class DefaultReactiveHealthContributorRegistry extends AbstractRegistry<R
 	}
 
 	@Override
-	public ReactiveHealthContributor unregisterContributor(String name) {
+	public @Nullable ReactiveHealthContributor unregisterContributor(String name) {
 		return super.unregisterContributor(name);
 	}
 
