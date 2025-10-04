@@ -29,7 +29,7 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.filter.TypeExcludeFilters;
+import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.annotation.AliasFor;
 import org.springframework.core.env.Environment;
@@ -88,7 +88,6 @@ public @interface RestClientTest {
 	 * Properties in form {@literal key=value} that should be added to the Spring
 	 * {@link Environment} before the test runs.
 	 * @return the properties to add
-	 * @since 2.1.0
 	 */
 	String[] properties() default {};
 

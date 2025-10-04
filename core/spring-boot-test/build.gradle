@@ -27,18 +27,29 @@ dependencies {
 	api(project(":core:spring-boot"))
 	api("org.springframework:spring-test")
 
+	optional("tools.jackson.core:jackson-databind")
+	optional("com.google.code.gson:gson")
+	optional("com.jayway.jsonpath:json-path")
+	optional("jakarta.json.bind:jakarta.json.bind-api")
 	optional("jakarta.servlet:jakarta.servlet-api")
 	optional("junit:junit")
+	optional("io.projectreactor.netty:reactor-netty-http")
 	optional("org.assertj:assertj-core")
 	optional("org.hamcrest:hamcrest-core")
 	optional("org.hamcrest:hamcrest-library")
 	optional("org.junit.jupiter:junit-jupiter-api")
 	optional("org.mockito:mockito-core")
+	optional("org.seleniumhq.selenium:htmlunit3-driver") {
+		exclude(group: "com.sun.activation", module: "jakarta.activation")
+	}
+	optional("org.seleniumhq.selenium:selenium-api")
+	optional("org.skyscreamer:jsonassert")
 	optional("org.springframework:spring-web")
 
 	testImplementation(project(":test-support:spring-boot-test-support"))
 	testImplementation("ch.qos.logback:logback-classic")
 	testImplementation("com.google.code.gson:gson")
+	testImplementation("org.eclipse:yasson")
 	testImplementation("org.jetbrains.kotlin:kotlin-reflect")
 	testImplementation("org.jetbrains.kotlin:kotlin-stdlib")
 	testImplementation("org.slf4j:slf4j-api")
@@ -46,6 +57,11 @@ dependencies {
 	testImplementation("org.springframework:spring-webmvc")
 	testImplementation("org.testng:testng")
 
+	testRuntimeOnly("org.aspectj:aspectjrt")
+	testRuntimeOnly("org.aspectj:aspectjweaver")
 	testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
 }
 
+tasks.named("compileTestJava") {
+	options.nullability.checking = "tests"
+}

@@ -29,14 +29,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.boot.http.client.autoconfigure.HttpClientAutoConfiguration;
-import org.springframework.boot.http.converter.autoconfigure.HttpMessageConverters;
+import org.springframework.boot.http.converter.autoconfigure.ClientHttpMessageConvertersCustomizer;
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.converter.HttpMessageConverters;
 import org.springframework.web.client.ApiVersionFormatter;
 import org.springframework.web.client.ApiVersionInserter;
 import org.springframework.web.client.RestClient;
@@ -96,15 +98,16 @@ public final class RestClientAutoConfiguration {
 		return restClientBuilderConfigurer.configure(RestClient.builder());
 	}
 
+	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnClass(HttpMessageConverters.class)
 	static class HttpMessageConvertersConfiguration {
 
 		@Bean
-		@ConditionalOnMissingBean
+		@ConditionalOnBean(ClientHttpMessageConvertersCustomizer.class)
 		@Order(Ordered.LOWEST_PRECEDENCE)
 		HttpMessageConvertersRestClientCustomizer httpMessageConvertersRestClientCustomizer(
-				ObjectProvider<HttpMessageConverters> messageConverters) {
-			return new HttpMessageConvertersRestClientCustomizer(messageConverters.getIfUnique());
+				ObjectProvider<ClientHttpMessageConvertersCustomizer> customizerProvider) {
+			return new HttpMessageConvertersRestClientCustomizer(customizerProvider.orderedStream().toList());
 		}
 
 	}

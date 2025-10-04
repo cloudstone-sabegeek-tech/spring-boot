@@ -24,9 +24,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.json.test.autoconfigure.AutoConfigureJson;
 import org.springframework.boot.restclient.RestTemplateBuilder;
-import org.springframework.boot.test.autoconfigure.properties.PropertyMapping;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJson;
+import org.springframework.boot.test.context.PropertyMapping;
 import org.springframework.web.client.RestTemplate;
 
 /**

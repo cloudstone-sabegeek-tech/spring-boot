@@ -27,6 +27,7 @@ description = "Spring Boot Security"
 
 dependencies {
 	api(project(":core:spring-boot"))
+	api(project(":core:spring-boot-test-autoconfigure"))
 	api("org.springframework.security:spring-security-config")
 	api("org.springframework.security:spring-security-web")
 
@@ -34,11 +35,11 @@ dependencies {
 	optional(project(":module:spring-boot-actuator-autoconfigure"))
 	optional(project(":module:spring-boot-h2console"))
 	optional(project(":module:spring-boot-reactor"))
+	optional(project(":module:spring-boot-restclient-test"))
 	optional(project(":module:spring-boot-rsocket"))
 	optional(project(":module:spring-boot-webflux"))
 	optional(project(":module:spring-boot-webmvc"))
 	optional(project(":module:spring-boot-web-server"))
-	optional(project(":module:spring-boot-web-server-test"))
 	optional("jakarta.servlet:jakarta.servlet-api")
 	optional("org.springframework:spring-messaging")
 	optional("org.springframework:spring-webflux")
@@ -54,7 +55,6 @@ dependencies {
 	testImplementation(project(":module:spring-boot-restclient"))
 	testImplementation(project(":module:spring-boot-rsocket"))
 	testImplementation(project(":module:spring-boot-tomcat"))
-	testImplementation(project(":module:spring-boot-web-server-test"))
 	testImplementation(project(":test-support:spring-boot-test-support"))
 	testImplementation(testFixtures(project(":core:spring-boot-autoconfigure")))
 	testImplementation("com.squareup.okhttp3:mockwebserver")

@@ -52,9 +52,6 @@ Spring Boot offers several focused, feature-specific `-test` modules:
 |`spring-boot-jpa-test`
 |Testing applications that use JPA.
 
-|`spring-boot-json-test`
-|Testing applications that use JSON. Provides the `@JsonTest` test slice.
-
 |`spring-boot-micrometer-metrics-test`
 |Testing applications that use Micrometer Metrics.
 
@@ -66,9 +63,6 @@ Spring Boot offers several focused, feature-specific `-test` modules:
 
 |`spring-boot-security-test`
 |Testing applications that use Spring Security.
-
-|`spring-boot-web-server-test`
-|Testing applications that use an embedded web server.
 
 |`spring-boot-webflux-test`
 |Testing applications that use Spring WebFlux. Provides the `@WebFluxTest` test slice.

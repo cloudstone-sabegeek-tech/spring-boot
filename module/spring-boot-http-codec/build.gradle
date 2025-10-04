@@ -29,6 +29,7 @@ dependencies {
 	api("org.springframework:spring-web")
 
 	optional(project(":core:spring-boot-autoconfigure"))
+	optional(project(":core:spring-boot-test"))
 	optional(project(":module:spring-boot-jackson"))
 	optional("org.springframework:spring-webflux")
 
