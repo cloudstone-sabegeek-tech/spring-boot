@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.boot.test.autoconfigure.data.couchbase;
+package org.springframework.boot.data.couchbase.test.autoconfigure;
 
 import org.junit.jupiter.api.Test;
 import org.testcontainers.couchbase.BucketDefinition;
