@@ -1621,7 +1621,7 @@ bom {
 			]
 		}
 	}
-	library("Neo4j Java Driver", "5.28.9") {
+	library("Neo4j Java Driver", "6.0.0") {
 		alignWith {
 			version {
 				from "org.springframework.data:spring-data-neo4j"
@@ -1630,7 +1630,8 @@ bom {
 		}
 		group("org.neo4j.driver") {
 			modules = [
-				"neo4j-java-driver"
+				"neo4j-java-driver",
+				"neo4j-java-driver-observation-micrometer"
 			]
 		}
 		links {
@@ -1982,6 +1983,7 @@ bom {
 				"spring-boot-autoconfigure-classic-modules",
 				"spring-boot-autoconfigure-processor",
 				"spring-boot-batch",
+				"spring-boot-batch-jdbc",
 				"spring-boot-buildpack-platform",
 				"spring-boot-cache",
 				"spring-boot-cache-test",
@@ -2066,6 +2068,7 @@ bom {
 				"spring-boot-reactor-netty",
 				"spring-boot-restclient",
 				"spring-boot-restclient-test",
+				"spring-boot-resttestclient",
 				"spring-boot-rsocket",
 				"spring-boot-rsocket-test",
 				"spring-boot-security",
@@ -2094,6 +2097,8 @@ bom {
 				"spring-boot-starter-aspectj",
 				"spring-boot-starter-aspectj-test",
 				"spring-boot-starter-batch",
+				"spring-boot-starter-batch-jdbc",
+				"spring-boot-starter-batch-jdbc-test",
 				"spring-boot-starter-batch-test",
 				"spring-boot-starter-cache",
 				"spring-boot-starter-cache-test",
@@ -2255,6 +2260,7 @@ bom {
 				"spring-boot-validation",
 				"spring-boot-web-server",
 				"spring-boot-webclient",
+				"spring-boot-webclient-test",
 				"spring-boot-webflux",
 				"spring-boot-webflux-test",
 				"spring-boot-webmvc",
@@ -2262,6 +2268,7 @@ bom {
 				"spring-boot-webservices",
 				"spring-boot-webservices-test",
 				"spring-boot-websocket",
+				"spring-boot-webtestclient",
 				"spring-boot-zipkin",
 				"spring-boot-starter-zipkin-test"
 			]
@@ -2365,7 +2372,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-amqp/releases/tag/v{version}")
 		}
 	}
-	library("Spring Batch", "6.0.0-M3") {
+	library("Spring Batch", "6.0.0-SNAPSHOT") {
 		considerSnapshots()
 		group("org.springframework.batch") {
 			bom("spring-batch-bom")
@@ -2380,7 +2387,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-batch/releases/tag/v{version}")
 		}
 	}
-	library("Spring Data Bom", "2025.1.0-M6") {
+	library("Spring Data Bom", "2025.1.0-SNAPSHOT") {
 		considerSnapshots()
 		calendarName = "Spring Data Release"
 		group("org.springframework.data") {
