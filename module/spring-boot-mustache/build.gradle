@@ -38,7 +38,7 @@ dependencies {
 	testImplementation(project(":module:spring-boot-reactor-netty"))
 	testImplementation(project(":module:spring-boot-restclient"))
 	testImplementation(project(":module:spring-boot-reactor-netty"))
-	testImplementation(project(":module:spring-boot-restclient-test"))
+	testImplementation(project(":module:spring-boot-resttestclient"))
 	testImplementation(project(":module:spring-boot-tomcat"))
 	testImplementation(project(":module:spring-boot-webflux-test"))
 	testImplementation(project(":module:spring-boot-webmvc-test"))
@@ -46,5 +46,11 @@ dependencies {
 	testImplementation(testFixtures(project(":core:spring-boot-autoconfigure")))
 	testImplementation("io.projectreactor:reactor-test")
 
+	testCompileOnly("com.google.code.findbugs:jsr305")
+
 	testRuntimeOnly("ch.qos.logback:logback-classic")
+}
+
+tasks.named("compileTestJava") {
+	options.nullability.checking = "tests"
 }

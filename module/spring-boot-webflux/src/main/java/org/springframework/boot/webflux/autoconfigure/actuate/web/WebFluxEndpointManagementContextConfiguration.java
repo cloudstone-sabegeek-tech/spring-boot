@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -48,14 +47,14 @@ import org.springframework.boot.actuate.endpoint.web.EndpointMediaTypes;
 import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointsSupplier;
 import org.springframework.boot.actuate.endpoint.web.WebServerNamespace;
-import org.springframework.boot.actuate.health.HealthEndpoint;
-import org.springframework.boot.actuate.health.HealthEndpointGroups;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
+import org.springframework.boot.health.actuate.endpoint.HealthEndpointGroups;
 import org.springframework.boot.webflux.actuate.endpoint.web.AdditionalHealthEndpointPathsWebFluxHandlerMapping;
 import org.springframework.boot.webflux.actuate.endpoint.web.WebFluxEndpointHandlerMapping;
 import org.springframework.context.annotation.Bean;
@@ -68,7 +67,6 @@ import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.util.MimeType;
 import org.springframework.util.StringUtils;
 import org.springframework.util.function.SingletonSupplier;
 import org.springframework.web.reactive.DispatcherHandler;
@@ -184,15 +182,11 @@ public class WebFluxEndpointManagementContextConfiguration {
 
 		private void process(Encoder<?> encoder) {
 			if (encoder instanceof JacksonJsonEncoder jacksonJsonEncoder) {
-				this.endpointJsonMapper.get()
-					.getSupportedTypes()
-					.forEach((type) -> jacksonJsonEncoder.registerMappersForType(type, this::registerForAllMimeTypes));
+				jacksonJsonEncoder.registerMappersForType(OperationResponseBody.class, (associations) -> {
+					JsonMapper jsonMapper = this.endpointJsonMapper.get().get();
+					MEDIA_TYPES.forEach((mimeType) -> associations.put(mimeType, jsonMapper));
+				});
 			}
-		}
-
-		private void registerForAllMimeTypes(Map<MimeType, JsonMapper> registrar) {
-			JsonMapper jsonMapper = this.endpointJsonMapper.get().get();
-			MEDIA_TYPES.forEach((mimeType) -> registrar.put(mimeType, jsonMapper));
 		}
 
 	}

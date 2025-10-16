@@ -20,14 +20,15 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.env.EnvironmentEndpointAutoConfiguration;
-import org.springframework.boot.actuate.autoconfigure.health.HealthEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.info.InfoEndpointAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.health.autoconfigure.actuate.endpoint.HealthEndpointAutoConfiguration;
 import org.springframework.boot.health.autoconfigure.contributor.HealthContributorAutoConfiguration;
 import org.springframework.boot.health.autoconfigure.registry.HealthContributorRegistryAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.SecurityProperties;
@@ -193,7 +194,7 @@ class ManagementWebSecurityAutoConfigurationTests {
 	static class CustomSecurityConfiguration {
 
 		@Bean
-		SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		SecurityFilterChain securityFilterChain(HttpSecurity http) {
 			http.authorizeHttpRequests((requests) -> {
 				requests.requestMatchers(PathPatternRequestMatcher.withDefaults().matcher("/foo")).permitAll();
 				requests.anyRequest().authenticated();
@@ -209,7 +210,7 @@ class ManagementWebSecurityAutoConfigurationTests {
 	static class TestSecurityFilterChainConfig {
 
 		@Bean
-		SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
+		SecurityFilterChain testSecurityFilterChain(HttpSecurity http) {
 			return http.securityMatcher("/**")
 				.authorizeHttpRequests((authorize) -> authorize.anyRequest().authenticated())
 				.build();
@@ -222,7 +223,7 @@ class ManagementWebSecurityAutoConfigurationTests {
 
 		@Bean
 		@Order(SecurityProperties.BASIC_AUTH_ORDER - 1)
-		SecurityFilterChain testRemoteDevToolsSecurityFilterChain(HttpSecurity http) throws Exception {
+		SecurityFilterChain testRemoteDevToolsSecurityFilterChain(HttpSecurity http) {
 			http.securityMatcher(PathPatternRequestMatcher.withDefaults().matcher("/**"));
 			http.authorizeHttpRequests((requests) -> requests.anyRequest().anonymous());
 			http.csrf((csrf) -> csrf.disable());
@@ -235,7 +236,7 @@ class ManagementWebSecurityAutoConfigurationTests {
 			implements WebServerApplicationContext {
 
 		@Override
-		public WebServer getWebServer() {
+		public @Nullable WebServer getWebServer() {
 			return null;
 		}
 

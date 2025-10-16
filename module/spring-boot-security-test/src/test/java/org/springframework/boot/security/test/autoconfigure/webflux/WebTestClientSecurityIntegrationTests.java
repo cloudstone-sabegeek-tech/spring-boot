@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.boot.webflux.test.autoconfigure.WebTestClientAutoConfiguration;
+import org.springframework.boot.webtestclient.WebTestClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -51,9 +51,12 @@ class WebTestClientSecurityIntegrationTests {
 			WebTestClient webTestClient = context.getBean(WebTestClient.class);
 			WebTestClient.Builder builder = (WebTestClient.Builder) ReflectionTestUtils.getField(webTestClient,
 					"builder");
+			assertThat(builder).isNotNull();
 			WebHttpHandlerBuilder httpHandlerBuilder = (WebHttpHandlerBuilder) ReflectionTestUtils.getField(builder,
 					"httpHandlerBuilder");
+			assertThat(httpHandlerBuilder).isNotNull();
 			List<WebFilter> filters = (List<WebFilter>) ReflectionTestUtils.getField(httpHandlerBuilder, "filters");
+			assertThat(filters).isNotNull();
 			assertThat(filters.get(0).getClass().getName()).isEqualTo(
 					"org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers$MutatorFilter");
 		});

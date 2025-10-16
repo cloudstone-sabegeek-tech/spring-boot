@@ -17,7 +17,6 @@
 plugins {
 	id "java-library"
 	id "org.springframework.boot.auto-configuration"
-	id "org.springframework.boot.configuration-properties"
 	id "org.springframework.boot.deployed"
 	id "org.springframework.boot.optional-dependencies"
 }
@@ -44,4 +43,8 @@ dependencies {
 	testImplementation("io.micrometer:micrometer-observation-test")
 
 	testRuntimeOnly("ch.qos.logback:logback-classic")
+}
+
+tasks.named("compileTestJava") {
+	options.nullability.checking = "tests"
 }

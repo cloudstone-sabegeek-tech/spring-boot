@@ -34,6 +34,7 @@ dependencies {
 	optional(project(":core:spring-boot-autoconfigure"))
 	optional(project(":module:spring-boot-actuator-autoconfigure"))
 	optional(project(":module:spring-boot-h2console"))
+	optional(project(":module:spring-boot-health"))
 	optional(project(":module:spring-boot-reactor"))
 	optional(project(":module:spring-boot-restclient-test"))
 	optional(project(":module:spring-boot-rsocket"))
@@ -48,11 +49,11 @@ dependencies {
 	optional("org.springframework.security:spring-security-rsocket")
 
 	testImplementation(project(":core:spring-boot-test"))
-	testImplementation(project(":module:spring-boot-health"))
 	testImplementation(project(":module:spring-boot-hibernate"))
 	testImplementation(project(":module:spring-boot-http-converter"))
 	testImplementation(project(":module:spring-boot-jackson"))
 	testImplementation(project(":module:spring-boot-restclient"))
+	testImplementation(project(":module:spring-boot-resttestclient"))
 	testImplementation(project(":module:spring-boot-rsocket"))
 	testImplementation(project(":module:spring-boot-tomcat"))
 	testImplementation(project(":test-support:spring-boot-test-support"))
@@ -70,4 +71,8 @@ dependencies {
 
 tasks.named("test") {
 	jvmArgs += "--add-opens=java.base/java.net=ALL-UNNAMED"
+}
+
+tasks.named("compileTestJava") {
+	options.nullability.checking = "tests"
 }

@@ -16,12 +16,15 @@
 
 package smoketest.webflux;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.webtestclient.AutoConfigureWebTestClient;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -29,25 +32,20 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Basic integration tests for WebFlux application.
+ * Basic tests for a WebFlux application, configuring the {@link WebTestClient} to test
+ * without a running server.
  *
- * @author Brian Clozel
+ * @author Stephane Nicoll
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "server.error.include-message=always")
+@SpringBootTest
+@AutoConfigureWebTestClient
 class SampleWebFluxApplicationTests {
+
+	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE = new ParameterizedTypeReference<Map<String, Object>>() {
+	};
 
 	@Autowired
 	private WebTestClient webClient;
-
-	@Test
-	void testWelcome() {
-		this.webClient.get()
-			.uri("/")
-			.accept(MediaType.TEXT_PLAIN)
-			.exchange()
-			.expectBody(String.class)
-			.isEqualTo("Hello World");
-	}
 
 	@Test
 	void testEcho() {
@@ -62,51 +60,27 @@ class SampleWebFluxApplicationTests {
 	}
 
 	@Test
-	void testActuatorStatus() {
+	void testBadRequest() {
 		this.webClient.get()
-			.uri("/actuator/health")
+			.uri("/bad-request")
 			.accept(MediaType.APPLICATION_JSON)
 			.exchange()
 			.expectStatus()
-			.isOk()
-			.expectBody()
-			.json("{\"status\":\"UP\"}");
-	}
-
-	@Test
-	void templated404ErrorPage() {
-		this.webClient.get()
-			.uri("/404")
-			.accept(MediaType.TEXT_HTML)
-			.exchange()
-			.expectStatus()
-			.isNotFound()
-			.expectBody(String.class)
-			.value((body) -> assertThat(body).isEqualToNormalizingNewlines("404 page\n"));
-	}
-
-	@Test
-	void templated4xxErrorPage() {
-		this.webClient.get()
-			.uri("/bad-request")
-			.accept(MediaType.TEXT_HTML)
-			.exchange()
-			.expectStatus()
 			.isBadRequest()
-			.expectBody(String.class)
-			.value((body) -> assertThat(body).isEqualToNormalizingNewlines("4xx page\n"));
+			.expectBody(MAP_TYPE)
+			.value((content) -> assertThat(content).containsEntry("path", "/bad-request"));
 	}
 
 	@Test
-	void htmlErrorPage() {
+	void testServerError() {
 		this.webClient.get()
 			.uri("/five-hundred")
-			.accept(MediaType.TEXT_HTML)
+			.accept(MediaType.APPLICATION_JSON)
 			.exchange()
 			.expectStatus()
 			.isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
-			.expectBody(String.class)
-			.value((body) -> assertThat(body).contains("status: 500").contains("message: Expected!"));
+			.expectBody(MAP_TYPE)
+			.value((content) -> assertThat(content).containsEntry("path", "/five-hundred"));
 	}
 
 }

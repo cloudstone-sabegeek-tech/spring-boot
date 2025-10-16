@@ -26,6 +26,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.testkit.runner.BuildResult;
@@ -40,6 +42,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import org.springframework.util.ClassUtils;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 
@@ -57,13 +60,15 @@ class ArchitectureCheckTests {
 
 	private static final String SPRING_CONTEXT = "org.springframework:spring-context:6.2.9";
 
+	private static final String JUNIT_JUPITER = "org.junit.jupiter:junit-jupiter:5.12.0";
+
 	private static final String SPRING_INTEGRATION_JMX = "org.springframework.integration:spring-integration-jmx:6.5.1";
 
 	private GradleBuild gradleBuild;
 
 	@BeforeEach
 	void setup(@TempDir Path projectDir) {
-		this.gradleBuild = new GradleBuild(projectDir).withNullMarked(false);
+		this.gradleBuild = new GradleBuild(projectDir).withNullMarkedEnabled(false);
 	}
 
 	@ParameterizedTest(name = "{0}")
@@ -273,14 +278,46 @@ class ArchitectureCheckTests {
 	@Test
 	void whenPackageIsNotAnnotatedWithNullMarkedWithMainSourcesShouldFailAndWriteEmptyReport() throws IOException {
 		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "nullmarked/notannotated");
-		buildAndFail(this.gradleBuild.withNullMarked(true), Task.CHECK_ARCHITECTURE_MAIN,
+		buildAndFail(this.gradleBuild.withNullMarkedEnabled(true), Task.CHECK_ARCHITECTURE_MAIN,
 				"Package org.springframework.boot.build.architecture.nullmarked.notannotated is not annotated with @NullMarked");
+	}
+
+	@Test
+	void whenPackageIsIgnoredAndNotAnnotatedWithNullMarkedWithMainSourcesShouldSucceedAndWriteEmptyReport()
+			throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "nullmarked/notannotated");
+		build(this.gradleBuild.withNullMarkedEnabled(true)
+			.withNullMarkedIgnoredPackages("org.springframework.boot.build.architecture.nullmarked.notannotated"),
+				Task.CHECK_ARCHITECTURE_MAIN);
 	}
 
 	@Test
 	void whenPackageIsNotAnnotatedWithNullMarkedWithTestSourcesShouldSucceedAndWriteEmptyReport() throws IOException {
 		prepareTask(Task.CHECK_ARCHITECTURE_TEST, "nullmarked/notannotated");
-		build(this.gradleBuild.withNullMarked(true), Task.CHECK_ARCHITECTURE_TEST);
+		build(this.gradleBuild.withNullMarkedEnabled(true), Task.CHECK_ARCHITECTURE_TEST);
+	}
+
+	@Test
+	void whenEnumSourceValueIsInferredShouldSucceedAndWriteEmptyReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_TEST, "junit/enumsource/inferredfromparametertype");
+		build(this.gradleBuild.withDependencies(JUNIT_JUPITER), Task.CHECK_ARCHITECTURE_TEST);
+	}
+
+	@Test
+	void whenEnumSourceValueIsNotTheSameAsTypeOfMethodsFirstParameterShouldSucceedAndWriteEmptyReport()
+			throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_TEST, "junit/enumsource/valuenecessary");
+		build(this.gradleBuild.withDependencies(JUNIT_JUPITER), Task.CHECK_ARCHITECTURE_TEST);
+	}
+
+	@Test
+	void whenEnumSourceValueIsSameAsTypeOfMethodsFirstParameterShouldFailAndWriteReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_TEST, "junit/enumsource/sameasparametertype");
+		buildAndFail(this.gradleBuild.withDependencies(JUNIT_JUPITER), Task.CHECK_ARCHITECTURE_TEST,
+				"method <org.springframework.boot.build.architecture.junit.enumsource.sameasparametertype"
+						+ ".EnumSourceSameAsParameterType.exampleMethod(org.springframework.boot.build."
+						+ "architecture.junit.enumsource.sameasparametertype.EnumSourceSameAsParameterType$Example)>",
+				"should not have a value that is the same as the type of the method's first parameter");
 	}
 
 	private void prepareTask(Task task, String... sourceDirectories) throws IOException {
@@ -361,7 +398,7 @@ class ArchitectureCheckTests {
 
 		private final Map<Task, Boolean> prohibitObjectsRequireNonNull = new LinkedHashMap<>();
 
-		private Boolean nullMarked;
+		private NullMarkedExtension nullMarkedExtension;
 
 		private GradleBuild(Path projectDir) {
 			this.projectDir = projectDir;
@@ -371,14 +408,27 @@ class ArchitectureCheckTests {
 			return this.projectDir;
 		}
 
-		GradleBuild withNullMarked(Boolean nullMarked) {
-			this.nullMarked = nullMarked;
-			return this;
-		}
-
 		GradleBuild withProhibitObjectsRequireNonNull(Task task, boolean prohibitObjectsRequireNonNull) {
 			this.prohibitObjectsRequireNonNull.put(task, prohibitObjectsRequireNonNull);
 			return this;
+		}
+
+		GradleBuild withNullMarkedEnabled(Boolean enabled) {
+			configureNullMarkedExtension((nullMarked) -> nullMarked.withEnabled(enabled));
+			return this;
+		}
+
+		GradleBuild withNullMarkedIgnoredPackages(String... ignorePackages) {
+			configureNullMarkedExtension((nullMarked) -> nullMarked.withIgnoredPackages(ignorePackages));
+			return this;
+		}
+
+		private void configureNullMarkedExtension(UnaryOperator<NullMarkedExtension> configurer) {
+			NullMarkedExtension nullMarkedExtension = this.nullMarkedExtension;
+			if (nullMarkedExtension == null) {
+				nullMarkedExtension = new NullMarkedExtension(null, null);
+			}
+			this.nullMarkedExtension = configurer.apply(nullMarkedExtension);
 		}
 
 		GradleBuild withDependencies(String... dependencies) {
@@ -419,17 +469,40 @@ class ArchitectureCheckTests {
 				.append("    prohibitObjectsRequireNonNull = ")
 				.append(prohibitObjectsRequireNonNull)
 				.append("\n}\n\n"));
-			if (this.nullMarked != null) {
-				buildFile.append("architectureCheck {\n")
-					.append("    nullMarked = ")
-					.append(this.nullMarked)
-					.append("\n}\n");
+			NullMarkedExtension nullMarkedExtension = this.nullMarkedExtension;
+			if (nullMarkedExtension != null) {
+				buildFile.append("architectureCheck {");
+				buildFile.append("\n    nullMarked {");
+				if (nullMarkedExtension.enabled() != null) {
+					buildFile.append("\n        enabled = ").append(nullMarkedExtension.enabled());
+				}
+				if (!CollectionUtils.isEmpty(nullMarkedExtension.ignoredPackages())) {
+					buildFile.append("\n        ignoredPackages = ")
+						.append(nullMarkedExtension.ignoredPackages()
+							.stream()
+							.map(StringUtils::quote)
+							.collect(Collectors.joining(",", "[", "]")));
+				}
+				buildFile.append("\n     }");
+				buildFile.append("\n}\n\n");
 			}
 			Files.writeString(this.projectDir.resolve("build.gradle"), buildFile, StandardCharsets.UTF_8);
 			return GradleRunner.create()
 				.withProjectDir(this.projectDir.toFile())
 				.withArguments(arguments)
 				.withPluginClasspath();
+		}
+
+		private record NullMarkedExtension(Boolean enabled, Set<String> ignoredPackages) {
+
+			private NullMarkedExtension withEnabled(Boolean enabled) {
+				return new NullMarkedExtension(enabled, this.ignoredPackages);
+			}
+
+			private NullMarkedExtension withIgnoredPackages(String... ignoredPackages) {
+				return new NullMarkedExtension(this.enabled, new LinkedHashSet<>(Arrays.asList(ignoredPackages)));
+			}
+
 		}
 
 	}
