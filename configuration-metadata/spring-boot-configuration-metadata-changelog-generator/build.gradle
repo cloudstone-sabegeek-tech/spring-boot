@@ -154,8 +154,15 @@ def dependenciesOf(String version) {
 			]
 		}
 		if (version.equals("4.0.0-RC1")) {
+			modules -= [
+				"spring-boot-session-data-mongodb",
+				"spring-boot-session-hazelcast",
+				"spring-boot-tx"
+			]
 			modules += [
-				"spring-boot-batch-jdbc"
+				"spring-boot-batch-jdbc",
+				"spring-boot-transaction",
+				"spring-boot-restdocs"
 			]
 		}
 		return modules

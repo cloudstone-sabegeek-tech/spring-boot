@@ -235,13 +235,7 @@ dependencies {
 	api(project(":module:spring-boot-session")) {
 		transitive = false
 	}
-	api(project(":module:spring-boot-session-data-mongodb")) {
-		transitive = false
-	}
 	api(project(":module:spring-boot-session-data-redis")) {
-		transitive = false
-	}
-	api(project(":module:spring-boot-session-hazelcast")) {
 		transitive = false
 	}
 	api(project(":module:spring-boot-session-jdbc")) {
@@ -256,7 +250,7 @@ dependencies {
 	api(project(":module:spring-boot-tomcat")) {
 		transitive = false
 	}
-	api(project(":module:spring-boot-tx")) {
+	api(project(":module:spring-boot-transaction")) {
 		transitive = false
 	}
 	api(project(":module:spring-boot-validation")) {
