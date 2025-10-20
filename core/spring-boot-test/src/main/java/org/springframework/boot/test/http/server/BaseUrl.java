@@ -18,61 +18,66 @@ package org.springframework.boot.test.http.server;
 
 import java.util.function.Supplier;
 
-import org.jspecify.annotations.Nullable;
-
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import org.springframework.util.function.SingletonSupplier;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriBuilderFactory;
 
 /**
  * A base URL that can be used to connect to the running server.
  *
  * @author Phillip Webb
+ * @author Stephane Nicoll
  * @since 4.0.0
  */
-public interface BaseUrl {
+public final class BaseUrl {
 
 	/**
-	 * Default base URL suitable for mock environments.
+	 * {@link BaseUrl} that resolves to {@code http://localhost}.
 	 */
-	BaseUrl DEFAULT = BaseUrl.of("http://localhost");
+	public static final BaseUrl LOCALHOST = BaseUrl.of("http://localhost");
+
+	private final boolean https;
+
+	private final Supplier<String> resolver;
+
+	private BaseUrl(boolean https, Supplier<String> resolver) {
+		this.https = https;
+		this.resolver = SingletonSupplier.of(resolver);
+	}
 
 	/**
 	 * Return if the URL will ultimately resolve to an HTTPS address.
 	 * @return if the URL is HTTPS
 	 */
-	boolean isHttps();
-
-	/**
-	 * Resolve the URL to a string. This method is called as late as possible to ensure
-	 * that an local port information is available.
-	 * @param path the path to append
-	 * @return the resolved base URL
-	 */
-	default String resolve(@Nullable String path) {
-		String resolved = resolve();
-		if (StringUtils.hasLength(path)) {
-			if (resolved.endsWith("/") && path.startsWith("/")) {
-				path = path.substring(1);
-			}
-			resolved += (resolved.endsWith("/") || path.startsWith("/")) ? "" : "/";
-			resolved += path;
-		}
-		return resolved;
+	public boolean isHttps() {
+		return this.https;
 	}
 
 	/**
-	 * Resolve the URL to a string. This method is called as late as possible to ensure
-	 * that an local port information is available.
-	 * @return the resolved base URL
+	 * Get a {@link UriBuilderFactory} that applies the base URL.
+	 * @return a {@link UriBuilderFactory}
 	 */
-	String resolve();
+	public UriBuilderFactory getUriBuilderFactory() {
+		return new DefaultUriBuilderFactory(this.resolver.get());
+	}
+
+	/**
+	 * Return a new instance that applies the given {@code path}.
+	 * @param path a path to append
+	 * @return a new instance with the path added
+	 */
+	public BaseUrl withPath(String path) {
+		return new BaseUrl(this.https, () -> this.resolver.get() + path);
+	}
 
 	/**
 	 * Factory method to create a new {@link BaseUrl}.
 	 * @param url the URL to use
 	 * @return a new {@link BaseUrl} instance
 	 */
-	static BaseUrl of(String url) {
+	public static BaseUrl of(String url) {
 		Assert.notNull(url, "'url' must not be null");
 		return of(StringUtils.startsWithIgnoreCase(url, "https"), () -> url);
 	}
@@ -83,21 +88,9 @@ public interface BaseUrl {
 	 * @param resolver the resolver used to supply the actual URL
 	 * @return a new {@link BaseUrl} instance
 	 */
-	static BaseUrl of(boolean https, Supplier<String> resolver) {
+	public static BaseUrl of(boolean https, Supplier<String> resolver) {
 		Assert.notNull(resolver, "'resolver' must not be null");
-		return new BaseUrl() {
-
-			@Override
-			public boolean isHttps() {
-				return https;
-			}
-
-			@Override
-			public String resolve() {
-				return resolver.get();
-			}
-
-		};
+		return new BaseUrl(https, resolver);
 	}
 
 }

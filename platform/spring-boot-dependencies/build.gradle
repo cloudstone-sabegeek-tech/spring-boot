@@ -62,7 +62,7 @@ bom {
 			releaseNotes("https://github.com/eclipse-ee4j/angus-mail/releases/tag/{version}")
 		}
 	}
-	library("Artemis", "2.42.0") {
+	library("Artemis", "2.43.0") {
 		group("org.apache.activemq") {
 			bom("artemis-bom")
 		}
@@ -352,7 +352,7 @@ bom {
 			releaseNotes("https://github.com/ehcache/ehcache3/releases/tag/v{version}")
 		}
 	}
-	library("Elasticsearch Client", "9.1.4") {
+	library("Elasticsearch Client", "9.1.5") {
 		prohibit {
 			contains "-alpha"
 			contains "-beta"
@@ -433,20 +433,34 @@ bom {
 		}
 	}
 	library("Glassfish JAXB", "4.0.6") {
-		group("org.glassfish.jaxb") {
-			bom("jaxb-bom") {
-				permit("com.sun.istack:istack-commons-runtime")
-				permit("com.sun.xml.bind:jaxb-core")
-				permit("com.sun.xml.bind:jaxb-impl")
-				permit("com.sun.xml.bind:jaxb-jxc")
-				permit("com.sun.xml.bind:jaxb-osgi")
-				permit("com.sun.xml.bind:jaxb-xjc")
-				permit("com.sun.xml.fastinfoset:FastInfoset")
-				permit("jakarta.activation:jakarta.activation-api")
-				permit("jakarta.xml.bind:jakarta.xml.bind-api")
-				permit("org.eclipse.angus:angus-activation")
-				permit("org.jvnet.staxex:stax-ex")
+		alignWith {
+			dependencyManagementDeclaredIn("org.glassfish.jaxb:jaxb-bom") {
+				excluding { candidate -> candidate.classifier().equals("sources") }
+				excluding { candidate ->
+					def permittedGroups = Set.of("org.glassfix.jaxb", "com.sun.xml.bind")
+					return !permittedGroups.contains(candidate.groupId())
+				}
 			}
+		}
+		group("org.glassfish.jaxb") {
+			modules = [
+				"codemodel",
+				"jaxb-core",
+				"jaxb-jxc",
+				"jaxb-runtime",
+				"jaxb-xjc",
+				"txw2",
+				"xsom"
+			]
+		}
+		group("com.sun.xml.bind") {
+			modules = [
+				"jaxb-core",
+				"jaxb-impl",
+				"jaxb-jxc",
+				"jaxb-osgi",
+				"jaxb-xjc"
+			]
 		}
 		links {
 			releaseNotes("https://github.com/eclipse-ee4j/jaxb-ri/releases/tag/{version}-RI")
@@ -480,7 +494,7 @@ bom {
 			releaseNotes("https://github.com/graphql-java/graphql-java/releases/tag/v{version}")
 		}
 	}
-	library("Groovy", "4.0.28") {
+	library("Groovy", "5.0.2") {
 		prohibit {
 			contains "-alpha-"
 			because "we don't want alpha dependencies"
@@ -557,12 +571,12 @@ bom {
 				"hibernate-graalvm",
 				"hibernate-hikaricp",
 				"hibernate-jcache",
-				"hibernate-jpamodelgen",
 				"hibernate-micrometer",
-				"hibernate-proxool",
+				"hibernate-processor",
+				"hibernate-scan-jandex",
 				"hibernate-spatial",
 				"hibernate-testing",
-				"hibernate-vibur"
+				"hibernate-vector",
 			]
 		}
 		links {
@@ -1902,7 +1916,7 @@ bom {
 			releaseNotes("https://github.com/r2dbc/r2dbc-spi/releases/tag/v{version}")
 		}
 	}
-	library("Rabbit AMQP Client", "5.26.0") {
+	library("Rabbit AMQP Client", "5.27.0") {
 		group("com.rabbitmq") {
 			modules = [
 				"amqp-client"
@@ -1945,14 +1959,6 @@ bom {
 		links {
 			site("https://projectreactor.io")
 			releaseNotes("https://github.com/reactor/reactor/releases/tag/{version}")
-		}
-	}
-	library("REST Assured", "5.5.6") {
-		group("io.rest-assured") {
-			bom("rest-assured-bom")
-		}
-		links {
-			javadoc("https://javadoc.io/doc/io.rest-assured/rest-assured/{version}", "io.restassured")
 		}
 	}
 	library("RSocket", "1.1.5") {
@@ -2039,6 +2045,7 @@ bom {
 				"spring-boot-http-converter",
 				"spring-boot-integration",
 				"spring-boot-jackson",
+				"spring-boot-jackson2",
 				"spring-boot-jarmode-tools",
 				"spring-boot-jdbc",
 				"spring-boot-jdbc-test",
@@ -2388,7 +2395,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-batch/releases/tag/v{version}")
 		}
 	}
-	library("Spring Data Bom", "2025.1.0-SNAPSHOT") {
+	library("Spring Data Bom", "2025.1.0-RC1") {
 		considerSnapshots()
 		calendarName = "Spring Data Release"
 		group("org.springframework.data") {
@@ -2436,7 +2443,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-graphql/releases/tag/v{version}")
 		}
 	}
-	library("Spring HATEOAS", "3.0.0-SNAPSHOT") {
+	library("Spring HATEOAS", "3.0.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.hateoas") {
 			modules = [
@@ -2486,7 +2493,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-kafka/releases/tag/v{version}")
 		}
 	}
-	library("Spring LDAP", "4.0.0-SNAPSHOT") {
+	library("Spring LDAP", "4.0.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.ldap") {
 			modules = [
@@ -2600,7 +2607,7 @@ bom {
 			releaseNotes("https://github.com/xerial/sqlite-jdbc/releases/tag/{version}")
 		}
 	}
-	library("Testcontainers", "1.21.3") {
+	library("Testcontainers", "2.0.1") {
 		group("org.testcontainers") {
 			bom("testcontainers-bom")
 		}

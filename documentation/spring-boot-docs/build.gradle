@@ -83,6 +83,8 @@ plugins.withType(EclipsePlugin) {
 }
 
 dependencies {
+	compileOnly("org.hamcrest:hamcrest-core")
+
 	implementation(project(path: ":cli:spring-boot-cli"))
 	implementation(project(path: ":core:spring-boot-docker-compose"))
 	implementation(project(path: ":core:spring-boot-test"))
@@ -204,7 +206,6 @@ dependencies {
 	implementation("org.springframework.pulsar:spring-pulsar")
 	implementation("org.springframework.pulsar:spring-pulsar-reactive")
 	implementation("org.springframework.restdocs:spring-restdocs-mockmvc")
-	implementation("org.springframework.restdocs:spring-restdocs-restassured")
 	implementation("org.springframework.restdocs:spring-restdocs-webtestclient")
 	implementation("org.springframework.security:spring-security-config")
 	implementation("org.springframework.security:spring-security-oauth2-client")
@@ -212,10 +213,10 @@ dependencies {
 	implementation("org.springframework.security:spring-security-web")
 	implementation("org.springframework.ws:spring-ws-core")
 	implementation("org.springframework.ws:spring-ws-test")
-	implementation("org.testcontainers:junit-jupiter")
-	implementation("org.testcontainers:neo4j")
-	implementation("org.testcontainers:mongodb")
-	implementation("org.testcontainers:elasticsearch")
+	implementation("org.testcontainers:testcontainers-elasticsearch")
+	implementation("org.testcontainers:testcontainers-junit-jupiter")
+	implementation("org.testcontainers:testcontainers-mongodb")
+	implementation("org.testcontainers:testcontainers-neo4j")
 	implementation("org.junit.jupiter:junit-jupiter")
 	implementation("org.yaml:snakeyaml")
 
