@@ -375,7 +375,7 @@ bom {
 			javadoc("elasticsearch-java", version -> "https://javadoc.io/doc/co.elastic.clients/elasticsearch-java/%s/index.html".formatted(version), "co.elastic.clients.elasticsearch", "co.elastic.clients.transport")
 		}
 	}
-	library("Flyway", "11.13.1") {
+	library("Flyway", "11.14.1") {
 		group("org.flywaydb") {
 			modules = [
 				"flyway-commandline",
@@ -473,7 +473,7 @@ bom {
 			]
 		}
 	}
-	library("GraphQL Java", "25.0.beta-9") {
+	library("GraphQL Java", "24.3") {
 		prohibit {
 			startsWith(["2018-", "2019-", "2020-", "2021-", "230521-"])
 			because "we don't want thses snapshots"
@@ -518,7 +518,7 @@ bom {
 			releaseNotes("https://github.com/google/gson/releases/tag/gson-parent-{version}")
 		}
 	}
-	library("H2", "2.3.232") {
+	library("H2", "2.4.240") {
 		group("com.h2database") {
 			modules = [
 				"h2"
@@ -1023,7 +1023,7 @@ bom {
 			]
 		}
 	}
-	library("Jetty", "12.1.2") {
+	library("Jetty", "12.1.3") {
 		prohibit {
 			contains ".alpha"
 			because "we don't want alpha dependencies"
@@ -1287,7 +1287,7 @@ bom {
 			releaseNotes("https://github.com/apache/logging-log4j2/releases/tag/rel%2F{version}")
 		}
 	}
-	library("Logback", "1.5.19") {
+	library("Logback", "1.5.20") {
 		group("ch.qos.logback") {
 			modules = [
 				"logback-classic",
@@ -1322,11 +1322,14 @@ bom {
 				.formatted(version.toString("-")))
 		}
 	}
-	library("Maven AntRun Plugin", "3.1.0") {
+	library("Maven AntRun Plugin", "3.2.0") {
 		group("org.apache.maven.plugins") {
 			plugins = [
 				"maven-antrun-plugin"
 			]
+		}
+		links {
+			releaseNotes("https://github.com/apache/maven-antrun-plugin/releases/tag/maven-antrun-plugin-{version}")
 		}
 	}
 	library("Maven Assembly Plugin", "3.7.1") {
@@ -1796,15 +1799,6 @@ bom {
 			releaseNotes("https://pulsar.apache.org/release-notes/versioned/pulsar-{version}")
 		}
 	}
-	library("Pulsar Reactive", "0.7.0") {
-		group("org.apache.pulsar") {
-			bom("pulsar-client-reactive-bom")
-		}
-		links {
-			site("https://github.com/apache/pulsar-client-reactive")
-			releaseNotes("https://github.com/apache/pulsar-client-reactive/releases/tag/v{version}")
-		}
-	}
 	library("Quartz", "2.5.0") {
 		group("org.quartz-scheduler") {
 			modules = [
@@ -1828,7 +1822,7 @@ bom {
 				.formatted(version.toString("_")))
 		}
 	}
-	library("R2DBC H2", "1.0.0.RELEASE") {
+	library("R2DBC H2", "1.1.0.RELEASE") {
 		considerSnapshots()
 		group("io.r2dbc") {
 			modules = [
@@ -2207,14 +2201,10 @@ bom {
 				"spring-boot-starter-opentelemetry-test",
 				"spring-boot-starter-pulsar",
 				"spring-boot-starter-pulsar-test",
-				"spring-boot-starter-pulsar-reactive",
-				"spring-boot-starter-pulsar-reactive-test",
 				"spring-boot-starter-quartz",
 				"spring-boot-starter-quartz-test",
 				"spring-boot-starter-r2dbc",
 				"spring-boot-starter-r2dbc-test",
-				"spring-boot-starter-reactor",
-				"spring-boot-starter-reactor-test",
 				"spring-boot-starter-reactor-netty",
 				"spring-boot-starter-restclient",
 				"spring-boot-starter-restclient-test",
@@ -2236,8 +2226,6 @@ bom {
 				"spring-boot-starter-session-data-redis-test",
 				"spring-boot-starter-session-jdbc",
 				"spring-boot-starter-session-jdbc-test",
-				"spring-boot-starter-sql",
-				"spring-boot-starter-sql-test",
 				"spring-boot-starter-test",
 				"spring-boot-starter-test-classic",
 				"spring-boot-starter-thymeleaf",
@@ -2301,7 +2289,7 @@ bom {
 			]
 		}
 	}
-	library("Selenium", "4.36.0") {
+	library("Selenium", "4.37.0") {
 		group("org.seleniumhq.selenium") {
 			bom("selenium-bom")
 		}
@@ -2365,7 +2353,7 @@ bom {
 			]
 		}
 	}
-	library("Spring AMQP", "4.0.0-SNAPSHOT") {
+	library("Spring AMQP", "4.0.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.amqp") {
 			bom("spring-amqp-bom")
@@ -2475,7 +2463,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-integration/releases/tag/v{version}")
 		}
 	}
-	library("Spring Kafka", "4.0.0-SNAPSHOT") {
+	library("Spring Kafka", "4.0.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.kafka") {
 			modules = [
@@ -2528,7 +2516,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-pulsar/releases/tag/v{version}")
 		}
 	}
-	library("Spring RESTDocs", "4.0.0-SNAPSHOT") {
+	library("Spring RESTDocs", "4.0.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.restdocs") {
 			bom("spring-restdocs-bom")
@@ -2543,7 +2531,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-restdocs/releases/tag/v{version}")
 		}
 	}
-	library("Spring Security", "7.0.0-SNAPSHOT") {
+	library("Spring Security", "7.0.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.security") {
 			bom("spring-security-bom")
@@ -2581,7 +2569,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-session/releases/tag/{version}")
 		}
 	}
-	library("Spring WS", "5.0.0-SNAPSHOT") {
+	library("Spring WS", "5.0.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.ws") {
 			bom("spring-ws-bom")
@@ -2760,7 +2748,7 @@ bom {
 			]
 		}
 	}
-	library("XML Maven Plugin", "1.1.0") {
+	library("XML Maven Plugin", "1.2.0") {
 		group("org.codehaus.mojo") {
 			plugins = [
 				"xml-maven-plugin"
