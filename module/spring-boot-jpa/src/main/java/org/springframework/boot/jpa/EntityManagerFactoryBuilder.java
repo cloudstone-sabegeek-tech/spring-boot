@@ -73,7 +73,6 @@ public class EntityManagerFactoryBuilder {
 	 * provider, based on the {@linkplain #dataSource(DataSource) configured data source}
 	 * @param persistenceUnitManager optional source of persistence unit information (can
 	 * be null)
-	 * @since 3.4.4
 	 */
 	public EntityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
 			Function<DataSource, Map<String, ?>> jpaPropertiesFactory,
@@ -91,7 +90,6 @@ public class EntityManagerFactoryBuilder {
 	 * be null)
 	 * @param persistenceUnitRootLocation the persistence unit root location to use as a
 	 * fallback or {@code null}
-	 * @since 3.4.4
 	 */
 	public EntityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
 			Function<DataSource, Map<String, ?>> jpaPropertiesFactory,
@@ -116,7 +114,6 @@ public class EntityManagerFactoryBuilder {
 	 * Configure the bootstrap executor to be used by the
 	 * {@link LocalContainerEntityManagerFactoryBean}.
 	 * @param bootstrapExecutor the executor
-	 * @since 2.1.0
 	 */
 	public void setBootstrapExecutor(AsyncTaskExecutor bootstrapExecutor) {
 		this.bootstrapExecutor = bootstrapExecutor;
@@ -127,7 +124,6 @@ public class EntityManagerFactoryBuilder {
 	 * to be applied to the PersistenceUnitInfo used for creating the
 	 * {@link LocalContainerEntityManagerFactoryBean}.
 	 * @param persistenceUnitPostProcessors the persistence unit post processors to use
-	 * @since 2.5.0
 	 */
 	public void setPersistenceUnitPostProcessors(PersistenceUnitPostProcessor... persistenceUnitPostProcessors) {
 		this.persistenceUnitPostProcessors = persistenceUnitPostProcessors;

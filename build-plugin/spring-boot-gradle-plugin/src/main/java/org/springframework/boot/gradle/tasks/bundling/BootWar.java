@@ -122,8 +122,7 @@ public abstract class BootWar extends War implements BootArchive {
 			layerResolver = new LayerResolver(this.resolvedDependencies, this.layered, this::isLibrary);
 		}
 		String jarmodeToolsLocation = isIncludeJarmodeTools() ? LIB_DIRECTORY : null;
-		return this.support.createCopyAction(this, this.resolvedDependencies, false, layerResolver,
-				jarmodeToolsLocation);
+		return this.support.createCopyAction(this, this.resolvedDependencies, layerResolver, jarmodeToolsLocation);
 	}
 
 	private boolean isIncludeJarmodeTools() {
@@ -138,21 +137,6 @@ public abstract class BootWar extends War implements BootArchive {
 	@Override
 	public void requiresUnpack(Spec<FileTreeElement> spec) {
 		this.support.requiresUnpack(spec);
-	}
-
-	@Override
-	public @Nullable LaunchScriptConfiguration getLaunchScript() {
-		return this.support.getLaunchScript();
-	}
-
-	@Override
-	public void launchScript() {
-		enableLaunchScriptIfNecessary();
-	}
-
-	@Override
-	public void launchScript(Action<LaunchScriptConfiguration> action) {
-		action.execute(enableLaunchScriptIfNecessary());
 	}
 
 	/**
@@ -239,15 +223,6 @@ public abstract class BootWar extends War implements BootArchive {
 	protected boolean isLibrary(FileCopyDetails details) {
 		String path = details.getRelativePath().getPathString();
 		return path.startsWith(LIB_DIRECTORY) || path.startsWith(LIB_PROVIDED_DIRECTORY);
-	}
-
-	private LaunchScriptConfiguration enableLaunchScriptIfNecessary() {
-		LaunchScriptConfiguration launchScript = this.support.getLaunchScript();
-		if (launchScript == null) {
-			launchScript = new LaunchScriptConfiguration(this);
-			this.support.setLaunchScript(launchScript);
-		}
-		return launchScript;
 	}
 
 	/**

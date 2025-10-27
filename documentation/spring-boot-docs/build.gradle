@@ -21,7 +21,7 @@ import org.springframework.boot.build.docs.ConfigureJavadocLinks
 import org.springframework.boot.build.optional.OptionalDependenciesPlugin
 
 plugins {
-	id "dev.adamko.dokkatoo-html"
+	id "org.jetbrains.dokka"
 	id "java"
 	id "org.antora"
 	id "org.jetbrains.kotlin.jvm"
@@ -84,6 +84,9 @@ plugins.withType(EclipsePlugin) {
 
 dependencies {
 	compileOnly("org.hamcrest:hamcrest-core")
+
+	dokka(project(path: ":core:spring-boot"))
+	dokka(project(path: ":module:spring-boot-resttestclient"))
 
 	implementation(project(path: ":cli:spring-boot-cli"))
 	implementation(project(path: ":core:spring-boot-docker-compose"))
@@ -204,7 +207,6 @@ dependencies {
 	implementation("org.springframework.kafka:spring-kafka")
 	implementation("org.springframework.kafka:spring-kafka-test")
 	implementation("org.springframework.pulsar:spring-pulsar")
-	implementation("org.springframework.pulsar:spring-pulsar-reactive")
 	implementation("org.springframework.restdocs:spring-restdocs-mockmvc")
 	implementation("org.springframework.restdocs:spring-restdocs-webtestclient")
 	implementation("org.springframework.security:spring-security-config")
@@ -228,7 +230,7 @@ dependencies {
 	resolvedBom(project(path: ":platform:spring-boot-dependencies", configuration: "resolvedBom"))
 
 	springApplicationExample(platform(project(":platform:spring-boot-dependencies")))
-	springApplicationExample(project(path: ":starter:spring-boot-starter-web"))
+	springApplicationExample(project(path: ":starter:spring-boot-starter-webmvc"))
 
 	testImplementation(project(":module:spring-boot-actuator-autoconfigure"))
 	testImplementation(project(":test-support:spring-boot-test-support"))
@@ -240,7 +242,7 @@ dependencies {
 	testSlices(project(path: ":core:spring-boot-test-autoconfigure", configuration: "testSliceMetadata"))
 }
 
-dokkatoo {
+dokka {
 	moduleName.set("Spring Boot Kotlin API")
 }
 
@@ -382,7 +384,7 @@ tasks.register("documentDevtoolsPropertyDefaults", org.springframework.boot.buil
 tasks.register("runRemoteSpringApplicationExample", org.springframework.boot.build.docs.ApplicationRunner) {
 	classpath = configurations.remoteSpringApplicationExample
 	mainClass = "org.springframework.boot.devtools.RemoteSpringApplication"
-	args = ["https://myapp.example.com", "--spring.devtools.remote.secret=secret", "--spring.devtools.livereload.port=0"]
+	args = ["https://myapp.example.com", "--spring.devtools.remote.secret=secret", "--spring.devtools.livereload.enabled=true", "--spring.devtools.livereload.port=0"]
 	output = layout.buildDirectory.file("example-output/remote-spring-application.txt")
 	expectedLogging = "Started RemoteSpringApplication in "
 	applicationJar = "/Users/myuser/.m2/repository/org/springframework/boot/spring-boot-devtools/${project.version}/spring-boot-devtools-${project.version}.jar"
@@ -438,7 +440,7 @@ antoraContributions {
 			from(aggregatedJavadoc) {
 				into "java"
 			}
-			from(tasks.named("dokkatooGeneratePublicationHtml")) {
+			from(tasks.named("dokkaGeneratePublicationHtml")) {
 				into "kotlin"
 			}
 		}
@@ -505,8 +507,8 @@ antoraContributions {
 	}
 }
 
-dokkatoo {
-	dokkatooPublications.configureEach {
-		includes.from("src/docs/dokkatoo/dokka-overview.md")
+dokka {
+	dokkaPublications.configureEach {
+		includes.from("src/docs/dokka/dokka-overview.md")
 	}
 }

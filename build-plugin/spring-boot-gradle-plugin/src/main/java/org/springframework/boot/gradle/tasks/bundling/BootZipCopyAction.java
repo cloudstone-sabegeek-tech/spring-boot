@@ -54,7 +54,6 @@ import org.gradle.util.GradleVersion;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.boot.gradle.tasks.bundling.ResolvedDependencies.DependencyDescriptor;
-import org.springframework.boot.loader.tools.DefaultLaunchScript;
 import org.springframework.boot.loader.tools.FileUtils;
 import org.springframework.boot.loader.tools.JarModeLibrary;
 import org.springframework.boot.loader.tools.Layer;
@@ -102,8 +101,6 @@ class BootZipCopyAction implements CopyAction {
 
 	private final Spec<FileTreeElement> exclusions;
 
-	private final @Nullable LaunchScriptConfiguration launchScript;
-
 	private final Spec<FileCopyDetails> librarySpec;
 
 	private final Function<FileCopyDetails, ZipCompression> compressionResolver;
@@ -112,17 +109,13 @@ class BootZipCopyAction implements CopyAction {
 
 	private final ResolvedDependencies resolvedDependencies;
 
-	private final boolean supportsSignatureFile;
-
 	private final @Nullable LayerResolver layerResolver;
 
 	BootZipCopyAction(File output, Manifest manifest, boolean preserveFileTimestamps, @Nullable Integer dirMode,
 			@Nullable Integer fileMode, boolean includeDefaultLoader, @Nullable String jarmodeToolsLocation,
-			Spec<FileTreeElement> requiresUnpack, Spec<FileTreeElement> exclusions,
-			@Nullable LaunchScriptConfiguration launchScript, Spec<FileCopyDetails> librarySpec,
+			Spec<FileTreeElement> requiresUnpack, Spec<FileTreeElement> exclusions, Spec<FileCopyDetails> librarySpec,
 			Function<FileCopyDetails, ZipCompression> compressionResolver, @Nullable String encoding,
-			ResolvedDependencies resolvedDependencies, boolean supportsSignatureFile,
-			@Nullable LayerResolver layerResolver) {
+			ResolvedDependencies resolvedDependencies, @Nullable LayerResolver layerResolver) {
 		this.output = output;
 		this.manifest = manifest;
 		this.preserveFileTimestamps = preserveFileTimestamps;
@@ -132,12 +125,10 @@ class BootZipCopyAction implements CopyAction {
 		this.jarmodeToolsLocation = jarmodeToolsLocation;
 		this.requiresUnpack = requiresUnpack;
 		this.exclusions = exclusions;
-		this.launchScript = launchScript;
 		this.librarySpec = librarySpec;
 		this.compressionResolver = compressionResolver;
 		this.encoding = encoding;
 		this.resolvedDependencies = resolvedDependencies;
-		this.supportsSignatureFile = supportsSignatureFile;
 		this.layerResolver = layerResolver;
 	}
 
@@ -164,7 +155,6 @@ class BootZipCopyAction implements CopyAction {
 
 	private void writeArchive(CopyActionProcessingStream copyActions, OutputStream output) throws IOException {
 		ZipArchiveOutputStream zipOutput = new ZipArchiveOutputStream(output);
-		writeLaunchScriptIfNecessary(zipOutput);
 		try {
 			setEncodingIfNecessary(zipOutput);
 			Processor processor = new Processor(zipOutput);
@@ -173,21 +163,6 @@ class BootZipCopyAction implements CopyAction {
 		}
 		finally {
 			closeQuietly(zipOutput);
-		}
-	}
-
-	private void writeLaunchScriptIfNecessary(ZipArchiveOutputStream outputStream) {
-		if (this.launchScript == null) {
-			return;
-		}
-		try {
-			File file = this.launchScript.getScript();
-			Map<String, String> properties = this.launchScript.getProperties();
-			outputStream.writePreamble(new DefaultLaunchScript(file, properties).toByteArray());
-			this.output.setExecutable(true);
-		}
-		catch (IOException ex) {
-			throw new GradleException("Failed to write launch script to " + this.output, ex);
 		}
 	}
 
@@ -362,7 +337,7 @@ class BootZipCopyAction implements CopyAction {
 		}
 
 		private void writeSignatureFileIfNecessary() throws IOException {
-			if (BootZipCopyAction.this.supportsSignatureFile && hasSignedLibrary()) {
+			if (hasSignedLibrary()) {
 				writeEntry("META-INF/BOOT.SF", (out) -> {
 				}, false);
 			}

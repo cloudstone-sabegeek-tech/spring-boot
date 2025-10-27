@@ -124,56 +124,6 @@ abstract class AbstractBootArchiveIntegrationTests {
 	}
 
 	@TestTemplate
-	void upToDateWhenBuiltTwiceWithLaunchScriptIncluded() {
-		BuildTask task = this.gradleBuild.build("-PincludeLaunchScript=true", this.taskName).task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		task = this.gradleBuild.build("-PincludeLaunchScript=true", this.taskName).task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.UP_TO_DATE);
-	}
-
-	@TestTemplate
-	void notUpToDateWhenLaunchScriptWasNotIncludedAndThenIsIncluded() {
-		BuildTask task = this.gradleBuild.scriptProperty("launchScript", "")
-			.build(this.taskName)
-			.task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		task = this.gradleBuild.scriptProperty("launchScript", "launchScript()")
-			.build(this.taskName)
-			.task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-	}
-
-	@TestTemplate
-	void notUpToDateWhenLaunchScriptWasIncludedAndThenIsNotIncluded() {
-		BuildTask task = this.gradleBuild.scriptProperty("launchScript", "launchScript()")
-			.build(this.taskName)
-			.task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		task = this.gradleBuild.scriptProperty("launchScript", "").build(this.taskName).task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-	}
-
-	@TestTemplate
-	void notUpToDateWhenLaunchScriptPropertyChanges() {
-		BuildTask task = this.gradleBuild.scriptProperty("launchScriptProperty", "alpha")
-			.build(this.taskName)
-			.task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		task = this.gradleBuild.scriptProperty("launchScriptProperty", "bravo")
-			.build(this.taskName)
-			.task(":" + this.taskName);
-		assertThat(task).isNotNull();
-		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-	}
-
-	@TestTemplate
 	void applicationPluginMainClassNameIsUsed() throws IOException {
 		BuildTask task = this.gradleBuild.build(this.taskName).task(":" + this.taskName);
 		assertThat(task).isNotNull();
@@ -688,6 +638,17 @@ abstract class AbstractBootArchiveIntegrationTests {
 					assertEntryMode(entry, 0400);
 				}
 			}
+		}
+	}
+
+	@TestTemplate
+	void signed() throws IOException {
+		BuildTask task = this.gradleBuild.build(this.taskName).task(":" + this.taskName);
+		assertThat(task).isNotNull();
+		assertThat(task.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+		File jar = new File(this.gradleBuild.getProjectDir(), "build/libs").listFiles()[0];
+		try (JarFile jarFile = new JarFile(jar)) {
+			assertThat(jarFile.getEntry("META-INF/BOOT.SF")).isNotNull();
 		}
 	}
 

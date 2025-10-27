@@ -68,6 +68,9 @@ For this reason, spring-boot-devtools disables the caching options by default.
 
 Cache options are usually configured by settings in your `application.properties` file.
 For example, Thymeleaf offers the configprop:spring.thymeleaf.cache[] property.
+
+The same applies for tracing probability that's set to 100% as the default may not log all traces used for testing.
+
 Rather than needing to set these properties manually, the `spring-boot-devtools` module automatically applies sensible development-time configuration.
 
 The following table lists all the properties that are applied:
@@ -287,7 +290,7 @@ The `spring-boot-devtools` module includes an embedded LiveReload server that ca
 LiveReload browser extensions are freely available for Chrome, Firefox and Safari.
 You can find these extensions by searching 'LiveReload' in the marketplace or store of your chosen browser.
 
-If you do not want to start the LiveReload server when your application runs, you can set the configprop:spring.devtools.livereload.enabled[] property to `false`.
+If you want to start the LiveReload server when your application runs, you can set the configprop:spring.devtools.livereload.enabled[] property to `true`.
 
 NOTE: You can only run one LiveReload server at a time.
 Before starting your application, ensure that no other LiveReload servers are running.

@@ -59,6 +59,14 @@ public abstract class AbstractScriptDatabaseInitializer implements ResourceLoade
 		this.settings = settings;
 	}
 
+	/**
+	 * Return the {@link DatabaseInitializationSettings} being used by the initializer.
+	 * @return the settings being used
+	 */
+	DatabaseInitializationSettings getSettings() {
+		return this.settings;
+	}
+
 	@Override
 	public void setResourceLoader(ResourceLoader resourceLoader) {
 		this.resourceLoader = resourceLoader;

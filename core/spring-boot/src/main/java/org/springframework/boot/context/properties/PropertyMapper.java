@@ -502,7 +502,6 @@ public final class PropertyMapper {
 			 *
 			 * @param <T> the source type
 			 * @param <R> the result type
-			 * @since 4.0.0
 			 */
 			@FunctionalInterface
 			public interface Adapter<T, R> {
@@ -521,7 +520,6 @@ public final class PropertyMapper {
 			 *
 			 * @param <T> the source type
 			 * @param <R> the result type
-			 * @since 4.0.0
 			 */
 			@FunctionalInterface
 			public interface Factory<T, R extends @Nullable Object> {
@@ -541,7 +539,6 @@ public final class PropertyMapper {
 			 *
 			 * @param <T> the source type
 			 * @param <R> the result type
-			 * @since 4.0.0
 			 */
 			@FunctionalInterface
 			public interface Mapper<R extends @Nullable Object, T> {

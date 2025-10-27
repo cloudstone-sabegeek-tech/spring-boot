@@ -80,8 +80,6 @@ final class ArchitectureRules {
 
 	private static final String AUTOCONFIGURATION_ANNOTATION = "org.springframework.boot.autoconfigure.AutoConfiguration";
 
-	private static final String TEST_AUTOCONFIGURATION_ANNOTATION = "org.springframework.boot.test.autoconfigure.TestAutoConfiguration";
-
 	private ArchitectureRules() {
 	}
 
@@ -129,6 +127,15 @@ final class ArchitectureRules {
 								method.getDescription(), returnType.getDescription(), returnType.getModifiers()));
 					}
 				}))
+			.allowEmptyShould(true);
+	}
+
+	static ArchRule allBeanMethodsShouldNotHaveConditionalOnClassAnnotation(String annotationName) {
+		return methodsThatAreAnnotatedWith("org.springframework.context.annotation.Bean").should()
+			.notBeAnnotatedWith(annotationName)
+			.because("@ConditionalOnClass on @Bean methods is ineffective - it doesn't prevent "
+					+ "the method signature from being loaded. Such condition need to be placed"
+					+ " on a @Configuration class, allowing the condition to back off before the type is loaded.")
 			.allowEmptyShould(true);
 	}
 
@@ -377,6 +384,16 @@ final class ArchitectureRules {
 			.allowEmptyShould(true);
 	}
 
+	private static ArchRule testAutoConfigurationClassesShouldBePackagePrivateAndFinal() {
+		return ArchRuleDefinition.classes()
+			.that(areTestAutoConfiguration())
+			.should()
+			.bePackagePrivate()
+			.andShould()
+			.haveModifier(JavaModifier.FINAL)
+			.allowEmptyShould(true);
+	}
+
 	private static ArchRule autoConfigurationClassesShouldHaveNoPublicMembers() {
 		return ArchRuleDefinition.members()
 			.that()
@@ -389,22 +406,26 @@ final class ArchitectureRules {
 			.allowEmptyShould(true);
 	}
 
-	private static ArchRule testAutoConfigurationClassesShouldBePackagePrivateAndFinal() {
-		return ArchRuleDefinition.classes()
-			.that()
-			.areAnnotatedWith(TEST_AUTOCONFIGURATION_ANNOTATION)
+	static ArchRule shouldHaveNoPublicMembers() {
+		return ArchRuleDefinition.members()
+			.that(areNotDefaultConstructors())
+			.and(areNotConstants())
+			.and(dontOverridePublicMethods())
 			.should()
-			.bePackagePrivate()
-			.andShould()
-			.haveModifier(JavaModifier.FINAL)
+			.notBePublic()
 			.allowEmptyShould(true);
 	}
 
-	private static DescribedPredicate<JavaClass> areRegularAutoConfiguration() {
+	static DescribedPredicate<JavaClass> areRegularAutoConfiguration() {
 		return DescribedPredicate.describe("Regular @AutoConfiguration",
-				(javaClass) -> javaClass.isMetaAnnotatedWith(AUTOCONFIGURATION_ANNOTATION)
-						&& !javaClass.isMetaAnnotatedWith(TEST_AUTOCONFIGURATION_ANNOTATION)
-						&& !javaClass.isAnnotation());
+				(javaClass) -> javaClass.isAnnotatedWith(AUTOCONFIGURATION_ANNOTATION)
+						&& !javaClass.getName().contains("TestAutoConfiguration") && !javaClass.isAnnotation());
+	}
+
+	static DescribedPredicate<JavaClass> areTestAutoConfiguration() {
+		return DescribedPredicate.describe("Test @AutoConfiguration",
+				(javaClass) -> javaClass.isAnnotatedWith(AUTOCONFIGURATION_ANNOTATION)
+						&& javaClass.getName().contains("TestAutoConfiguration") && !javaClass.isAnnotation());
 	}
 
 	private static DescribedPredicate<? super JavaMember> dontOverridePublicMethods() {
