@@ -27,7 +27,7 @@ description = "Spring Boot Elasticsearch"
 
 dependencies {
 	api(project(":core:spring-boot"))
-	api("co.elastic.clients:elasticsearch-java")
+	api("co.elastic.clients:elasticsearch-rest5-client")
 
 	optional(project(":core:spring-boot-autoconfigure"))
 	optional(project(":core:spring-boot-docker-compose"))
@@ -35,13 +35,12 @@ dependencies {
 	optional(project(":module:spring-boot-health"))
 	optional(project(":module:spring-boot-jsonb"))
 	optional(project(":module:spring-boot-reactor"))
+	optional("co.elastic.clients:elasticsearch-java")
 
 	optional("com.fasterxml.jackson.core:jackson-databind")
 	optional("jakarta.json.bind:jakarta.json.bind-api")
-	optional("org.springframework.data:spring-data-elasticsearch") {
-		exclude group: "org.elasticsearch.client", module: "transport"
-	}
 	optional("org.testcontainers:testcontainers-elasticsearch")
+	optional("tools.jackson.core:jackson-databind")
 
 	dockerTestImplementation(project(":core:spring-boot-test"))
 	dockerTestImplementation(project(":module:spring-boot-jackson"))

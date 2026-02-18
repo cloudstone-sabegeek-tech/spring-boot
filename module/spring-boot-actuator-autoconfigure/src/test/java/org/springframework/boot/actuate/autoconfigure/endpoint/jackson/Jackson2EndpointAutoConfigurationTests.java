@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Phillip Webb
  * @author Andy Wilkinson
- * @deprecated since 4.0.0 for removal in 4.2.0 in favor of Jackson 3
+ * @deprecated since 4.0.0 for removal in 4.3.0 in favor of Jackson 3
  */
 @SuppressWarnings("removal")
 @Deprecated(since = "4.0.0", forRemoval = true)
@@ -64,7 +64,7 @@ class Jackson2EndpointAutoConfigurationTests {
 
 	@Test
 	void endpointObjectMapperWhenPropertyFalse() {
-		this.runner.withPropertyValues("management.endpoints.jackson.isolated-object-mapper=false")
+		this.runner.withPropertyValues("management.endpoints.jackson2.isolated-object-mapper=false")
 			.run((context) -> assertThat(context)
 				.doesNotHaveBean(org.springframework.boot.actuate.endpoint.jackson.EndpointJackson2ObjectMapper.class));
 	}

@@ -8,6 +8,15 @@
       "defaultValue": true
     },
     {
+      "name": "spring.data.redis.lettuce.cluster.refresh.adaptive",
+      "type": "java.lang.Boolean",
+      "deprecation": {
+        "reason": "All adaptive triggers are enabled by default.",
+        "level": "error",
+        "since": "4.1.0"
+      }
+    },
+    {
       "name": "spring.data.redis.repositories.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to enable Redis repositories.",
@@ -18,7 +27,8 @@
       "type": "java.lang.Boolean",
       "deprecation": {
         "replacement": "spring.data.redis.ssl.enabled",
-        "level": "error"
+        "level": "error",
+        "since": "3.1.0"
       }
     },
     {
@@ -26,7 +36,8 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.client-name",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -34,7 +45,8 @@
       "type": "org.springframework.boot.data.redis.autoconfigure.DataRedisProperties$ClientType",
       "deprecation": {
         "replacement": "spring.data.redis.client-type",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -42,7 +54,8 @@
       "type": "java.lang.Integer",
       "deprecation": {
         "replacement": "spring.data.redis.cluster.max-redirects",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -50,7 +63,8 @@
       "type": "java.util.List<java.lang.String>",
       "deprecation": {
         "replacement": "spring.data.redis.cluster.nodes",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -58,7 +72,8 @@
       "type": "java.time.Duration",
       "deprecation": {
         "replacement": "spring.data.redis.connect-timeout",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -66,7 +81,8 @@
       "type": "java.lang.Integer",
       "deprecation": {
         "replacement": "spring.data.redis.database",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -74,49 +90,56 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.host",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.jedis.pool.enabled",
       "type": "java.lang.Boolean",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.jedis.pool.max-active",
       "type": "java.lang.Integer",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.jedis.pool.max-idle",
       "type": "java.lang.Integer",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.jedis.pool.max-wait",
       "type": "java.time.Duration",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.jedis.pool.min-idle",
       "type": "java.lang.Integer",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.jedis.pool.time-between-eviction-runs",
       "type": "java.time.Duration",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -124,7 +147,8 @@
       "type": "java.lang.Boolean",
       "deprecation": {
         "replacement": "spring.data.redis.lettuce.cluster.refresh.adaptive",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -132,7 +156,8 @@
       "type": "java.lang.Boolean",
       "deprecation": {
         "replacement": "spring.data.redis.lettuce.cluster.refresh.dynamic-refresh-sources",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -140,49 +165,56 @@
       "type": "java.time.Duration",
       "deprecation": {
         "replacement": "spring.data.redis.lettuce.cluster.refresh.period",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.lettuce.pool.enabled",
       "type": "java.lang.Boolean",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.lettuce.pool.max-active",
       "type": "java.lang.Integer",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.lettuce.pool.max-idle",
       "type": "java.lang.Integer",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.lettuce.pool.max-wait",
       "type": "java.time.Duration",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.lettuce.pool.min-idle",
       "type": "java.lang.Integer",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
       "name": "spring.redis.lettuce.pool.time-between-eviction-runs",
       "type": "java.time.Duration",
       "deprecation": {
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -190,7 +222,8 @@
       "type": "java.time.Duration",
       "deprecation": {
         "replacement": "spring.data.redis.lettuce.shutdown-timeout",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -198,7 +231,8 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.password",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -206,7 +240,8 @@
       "type": "java.lang.Integer",
       "deprecation": {
         "replacement": "spring.data.redis.port",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -214,7 +249,8 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.sentinel.master",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -222,7 +258,8 @@
       "type": "java.util.List<java.lang.String>",
       "deprecation": {
         "replacement": "spring.data.redis.sentinel.nodes",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -230,7 +267,8 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.sentinel.password",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -238,7 +276,8 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.sentinel.username",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -246,7 +285,8 @@
       "type": "java.lang.Boolean",
       "deprecation": {
         "replacement": "spring.data.redis.ssl",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -254,7 +294,8 @@
       "type": "java.time.Duration",
       "deprecation": {
         "replacement": "spring.data.redis.timeout",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -262,7 +303,8 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.url",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     },
     {
@@ -270,7 +312,8 @@
       "type": "java.lang.String",
       "deprecation": {
         "replacement": "spring.data.redis.username",
-        "level": "error"
+        "level": "error",
+        "since": "3.0.0"
       }
     }
   ],

@@ -18,10 +18,10 @@ You can use the `webEnvironment` attribute of javadoc:org.springframework.boot.t
 * `MOCK`(Default) : Loads a web javadoc:org.springframework.context.ApplicationContext[] and provides a mock web environment.
 Embedded servers are not started when using this annotation.
 If a web environment is not available on your classpath, this mode transparently falls back to creating a regular non-web javadoc:org.springframework.context.ApplicationContext[].
-It can be used in conjunction with xref:testing/spring-boot-applications.adoc#testing.spring-boot-applications.with-mock-environment[`@AutoConfigureMockMvc`, javadoc:org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient[format=annotation]], or javadoc:org.springframework.boot.webflux.test.autoconfigure.AutoConfigureWebTestClient[format=annotation]] for mock-based testing of your web application.
-* `RANDOM_PORT`: Loads a javadoc:org.springframework.boot.web.context.WebServerApplicationContext[] and provides a real web environment.
+It can be used in conjunction with xref:testing/spring-boot-applications.adoc#testing.spring-boot-applications.with-mock-environment[`@AutoConfigureMockMvc`, javadoc:org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient[format=annotation]], or javadoc:org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient[format=annotation]] for mock-based testing of your web application.
+* `RANDOM_PORT`: Loads a javadoc:org.springframework.boot.web.server.context.WebServerApplicationContext[] and provides a real web environment.
 Embedded servers are started and listen on a random port.
-* `DEFINED_PORT`: Loads a javadoc:org.springframework.boot.web.context.WebServerApplicationContext[] and provides a real web environment.
+* `DEFINED_PORT`: Loads a javadoc:org.springframework.boot.web.server.context.WebServerApplicationContext[] and provides a real web environment.
 Embedded servers are started and listen on a defined port (from your `application.properties`) or on the default port of `8080`.
 * `NONE`: Loads an javadoc:org.springframework.context.ApplicationContext[] by using javadoc:org.springframework.boot.SpringApplication[] but does not provide _any_ web environment (mock or otherwise).
 
@@ -178,27 +178,41 @@ If you use `@SpringBootTest(webEnvironment=WebEnvironment.RANDOM_PORT)`, an avai
 
 The javadoc:org.springframework.boot.test.web.server.LocalServerPort[format=annotation] annotation can be used to xref:how-to:webserver.adoc#howto.webserver.discover-port[inject the actual port used] into your test.
 
-For convenience, tests that need to make REST calls to the started server can additionally autowire a
-{url-spring-framework-docs}/testing/resttestclient.html[`RestTestClient`] which resolves relative links to the running server and comes with a dedicated API for verifying responses, as shown in the following example:
+Tests that need to make REST calls to the started server can autowire a
+{url-spring-framework-docs}/testing/resttestclient.html[`RestTestClient`] by annotating the test class with javadoc:org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient[format=annotation].
+
+The configured client resolves relative links to the running server and comes with a dedicated API for verifying responses, as shown in the following example:
 
 include-code::MyRandomPortRestTestClientTests[]
 
-If you have `spring-webflux` on the classpath, you can also autowire a {url-spring-framework-docs}/testing/webtestclient.html[`WebTestClient`] that provides a similar API:
+If you prefer to use AssertJ, dedicated assertions are available from javadoc:org.springframework.test.web.servlet.client.assertj.RestTestClientResponse[], as shown in the following example:
+
+include-code::MyRandomPortRestTestClientAssertJTests[]
+
+If you have `spring-webflux` on the classpath, you can also autowire a {url-spring-framework-docs}/testing/webtestclient.html[`WebTestClient`] by annotating the test class with javadoc:org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient[format=annotation].
+
+`WebTestClient` provides a similar API, as shown in the following example:
 
 include-code::MyRandomPortWebTestClientTests[]
 
-TIP: javadoc:org.springframework.test.web.reactive.server.WebTestClient[] can also used with a xref:testing/spring-boot-applications.adoc#testing.spring-boot-applications.with-mock-environment[mock environment], removing the need for a running server, by annotating your test class with javadoc:org.springframework.boot.webflux.test.autoconfigure.AutoConfigureWebTestClient[format=annotation] from `spring-boot-webflux-test`.
+TIP: javadoc:org.springframework.test.web.reactive.server.WebTestClient[] can also be used with a xref:testing/spring-boot-applications.adoc#testing.spring-boot-applications.with-mock-environment[mock environment], removing the need for a running server, by annotating your test class with javadoc:org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient[format=annotation] from `spring-boot-webflux-test`.
 
-The `spring-boot-resttestclient` modules also provides a javadoc:org.springframework.boot.resttestclient.TestRestTemplate[] facility:
+NOTE: For certain xref:testing/spring-boot-applications.adoc#testing.spring-boot-applications.autoconfigured-tests[sliced tests] you may need to use the javadoc:org.springframework.boot.web.server.test.AutoConfigureWebServer[format=annotation] annotation to auto-configure an embedded web server.
+
+The `spring-boot-resttestclient` module also provides a javadoc:org.springframework.boot.resttestclient.TestRestTemplate[] facility:
 
 include-code::MyRandomPortTestRestTemplateTests[]
+
+To use `TestRestTemplate` a dependency on `spring-boot-restclient` is also required.
+Take care when adding this dependency as it will enable auto-configuration for `RestClient.Builder`.
+If your main code uses `RestClient.Builder`, declare the `spring-boot-restclient` dependency so that it is on your application's main classpath and not only on its test classpath.
 
 
 
 [[testing.spring-boot-applications.customizing-rest-test-client]]
 == Customizing RestTestClient
 
-To customize the javadoc:org.springframework.test.web.servlet.client.RestTestClient[] bean, configure a javadoc:org.springframework.boot.web.server.test.client.RestTestClientBuilderCustomizer[] bean.
+To customize the javadoc:org.springframework.test.web.servlet.client.RestTestClient[] bean, configure a javadoc:org.springframework.boot.resttestclient.autoconfigure.RestTestClientBuilderCustomizer[] bean.
 Any such beans are called with the javadoc:org.springframework.test.web.servlet.client.RestTestClient$Builder[] that is used to create the javadoc:org.springframework.test.web.servlet.client.RestTestClient[].
 
 
@@ -206,7 +220,7 @@ Any such beans are called with the javadoc:org.springframework.test.web.servlet.
 [[testing.spring-boot-applications.customizing-web-test-client]]
 == Customizing WebTestClient
 
-To customize the javadoc:org.springframework.test.web.reactive.server.WebTestClient[] bean, configure a javadoc:org.springframework.boot.test.web.reactive.server.WebTestClientBuilderCustomizer[] bean.
+To customize the javadoc:org.springframework.test.web.reactive.server.WebTestClient[] bean, configure a javadoc:org.springframework.boot.webtestclient.autoconfigure.WebTestClientBuilderCustomizer[] bean.
 Any such beans are called with the javadoc:org.springframework.test.web.reactive.server.WebTestClient$Builder[] that is used to create the javadoc:org.springframework.test.web.reactive.server.WebTestClient[].
 
 
@@ -292,26 +306,27 @@ You can use this combination if you are not interested in "`slicing`" your appli
 [[testing.spring-boot-applications.json-tests]]
 == Auto-configured JSON Tests
 
-To test that object JSON serialization and deserialization is working as expected, you can use the javadoc:org.springframework.boot.json.test.autoconfigure.JsonTest[format=annotation] annotation from the `spring-boot-test-autoconfigure` module.
-javadoc:org.springframework.boot.json.test.autoconfigure.JsonTest[format=annotation] auto-configures the available supported JSON mapper, which can be one of the following libraries:
+To test that object JSON serialization and deserialization is working as expected, you can use the javadoc:org.springframework.boot.test.autoconfigure.json.JsonTest[format=annotation] annotation from the `spring-boot-test-autoconfigure` module.
+javadoc:org.springframework.boot.test.autoconfigure.json.JsonTest[format=annotation] auto-configures the available supported JSON mapper, which can be one of the following libraries:
 
-* Jackson javadoc:tools.jackson.databind.JsonMapper[], any javadoc:org.springframework.boot.jackson.JacksonComponent[format=annotation] beans and any Jackson javadoc:tools.jackson.databind.JacksonModule[]
+* Jackson javadoc:tools.jackson.databind.json.JsonMapper[], any javadoc:org.springframework.boot.jackson.JacksonComponent[format=annotation] beans and any Jackson javadoc:tools.jackson.databind.JacksonModule[]
+* Jackson 2 (deprecated) javadoc:com.fasterxml.jackson.databind.ObjectMapper[], any javadoc:org.springframework.boot.jackson2.JsonComponent[format=annotation] beans and any Jackson javadoc:com.fasterxml.jackson.databind.Module[]
 * `Gson`
 * `Jsonb`
 
-TIP: A list of the auto-configurations that are enabled by javadoc:org.springframework.boot.json.test.autoconfigure.JsonTest[format=annotation] can be xref:appendix:test-auto-configuration/index.adoc[found in the appendix].
+TIP: A list of the auto-configurations that are enabled by javadoc:org.springframework.boot.test.autoconfigure.json.JsonTest[format=annotation] can be xref:appendix:test-auto-configuration/index.adoc[found in the appendix].
 
-If you need to configure elements of the auto-configuration, you can use the javadoc:org.springframework.boot.json.test.autoconfigure.AutoConfigureJsonTesters[format=annotation] annotation.
+If you need to configure elements of the auto-configuration, you can use the javadoc:org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters[format=annotation] annotation.
 
 Spring Boot includes AssertJ-based helpers that work with the JSONAssert and JsonPath libraries to check that JSON appears as expected.
-The javadoc:org.springframework.boot.json.test.JacksonTester[], javadoc:org.springframework.boot.json.test.GsonTester[], javadoc:org.springframework.boot.json.test.JsonbTester[], and javadoc:org.springframework.boot.json.test.BasicJsonTester[] classes can be used for Jackson, Gson, Jsonb, and Strings respectively.
-Any helper fields on the test class can be javadoc:org.springframework.beans.factory.annotation.Autowired[format=annotation] when using javadoc:org.springframework.boot.json.test.autoconfigure.JsonTest[format=annotation].
+The javadoc:org.springframework.boot.test.json.JacksonTester[], javadoc:org.springframework.boot.test.json.GsonTester[], javadoc:org.springframework.boot.test.json.JsonbTester[], and javadoc:org.springframework.boot.test.json.BasicJsonTester[] classes can be used for Jackson, Gson, Jsonb, and Strings respectively.
+Any helper fields on the test class can be javadoc:org.springframework.beans.factory.annotation.Autowired[format=annotation] when using javadoc:org.springframework.boot.test.autoconfigure.json.JsonTest[format=annotation].
 The following example shows a test class for Jackson:
 
 include-code::MyJsonTests[]
 
 NOTE: JSON helper classes can also be used directly in standard unit tests.
-To do so, call the `initFields` method of the helper in your javadoc:org.junit.jupiter.api.BeforeEach[format=annotation] method if you do not use javadoc:org.springframework.boot.json.test.autoconfigure.JsonTest[format=annotation].
+To do so, call the `initFields` method of the helper in your javadoc:org.junit.jupiter.api.BeforeEach[format=annotation] method if you do not use javadoc:org.springframework.boot.test.autoconfigure.json.JsonTest[format=annotation].
 
 If you use Spring Boot's AssertJ-based helpers to assert on a number value at a given JSON path, you might not be able to use `isEqualTo` depending on the type.
 Instead, you can use AssertJ's `satisfies` to assert that the value matches the given condition.
@@ -325,7 +340,7 @@ include-code::MyJsonAssertJTests[tag=*]
 == Auto-configured Spring MVC Tests
 
 To test whether Spring MVC controllers are working as expected, use the javadoc:org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest[format=annotation] annotation from the `spring-boot-webmvc-test` module.
-javadoc:org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest[format=annotation] auto-configures the Spring MVC infrastructure and limits scanned beans to javadoc:org.springframework.stereotype.Controller[format=annotation], javadoc:org.springframework.web.bind.annotation.ControllerAdvice[format=annotation], javadoc:org.springframework.boot.jackson.JacksonComponent[format=annotation], javadoc:org.springframework.core.convert.converter.Converter[], javadoc:org.springframework.core.convert.converter.GenericConverter[], javadoc:jakarta.servlet.Filter[], javadoc:org.springframework.web.servlet.HandlerInterceptor[], javadoc:org.springframework.web.servlet.config.annotation.WebMvcConfigurer[], javadoc:org.springframework.boot.webmvc.autoconfigure.WebMvcRegistrations[], and javadoc:org.springframework.web.method.support.HandlerMethodArgumentResolver[].
+javadoc:org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest[format=annotation] auto-configures the Spring MVC infrastructure and limits scanned beans to javadoc:org.springframework.stereotype.Controller[format=annotation],  javadoc:org.springframework.web.bind.annotation.ControllerAdvice[format=annotation], javadoc:org.springframework.boot.jackson.JacksonComponent[format=annotation], javadoc:org.springframework.boot.jackson2.JsonComponent[format=annotation] (deprecated), javadoc:org.springframework.core.convert.converter.Converter[], javadoc:org.springframework.core.convert.converter.GenericConverter[], javadoc:jakarta.servlet.Filter[], javadoc:org.springframework.web.servlet.HandlerInterceptor[], javadoc:org.springframework.web.servlet.config.annotation.WebMvcConfigurer[], javadoc:org.springframework.boot.webmvc.autoconfigure.WebMvcRegistrations[], and javadoc:org.springframework.web.method.support.HandlerMethodArgumentResolver[].
 Regular javadoc:org.springframework.stereotype.Component[format=annotation] and javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans are not scanned when the javadoc:org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest[format=annotation] annotation is used.
 javadoc:org.springframework.boot.context.properties.EnableConfigurationProperties[format=annotation] can be used to include javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans.
 
@@ -338,6 +353,8 @@ Often, javadoc:org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest[for
 javadoc:org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest[format=annotation] also auto-configures javadoc:org.springframework.test.web.servlet.MockMvc[].
 Mock MVC offers a powerful way to quickly test MVC controllers without needing to start a full HTTP server.
 If AssertJ is available, the AssertJ support provided by javadoc:org.springframework.test.web.servlet.assertj.MockMvcTester[] is auto-configured as well.
+If you'd like to use javadoc:org.springframework.test.web.servlet.client.RestTestClient[] in your tests, annotate your test class with javadoc:org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient[format=annotation].
+A `RestTestClient` that uses the Mock MVC infrastructure will then be auto-configured.
 
 TIP: You can also auto-configure javadoc:org.springframework.test.web.servlet.MockMvc[] and javadoc:org.springframework.test.web.servlet.assertj.MockMvcTester[] in a non-`@WebMvcTest` (such as javadoc:org.springframework.boot.test.context.SpringBootTest[format=annotation]) by annotating it with javadoc:org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc[format=annotation].
 The following example uses javadoc:org.springframework.test.web.servlet.assertj.MockMvcTester[]:
@@ -369,7 +386,7 @@ TIP: Sometimes writing Spring MVC tests is not enough; Spring Boot can help you 
 == Auto-configured Spring WebFlux Tests
 
 To test that {url-spring-framework-docs}/web-reactive.html[Spring WebFlux] controllers are working as expected, you can use the javadoc:org.springframework.boot.webflux.test.autoconfigure.WebFluxTest[format=annotation] annotation from the `spring-boot-webflux-test` module.
-javadoc:org.springframework.boot.webflux.test.autoconfigure.WebFluxTest[format=annotation] auto-configures the Spring WebFlux infrastructure and limits scanned beans to javadoc:org.springframework.stereotype.Controller[format=annotation], javadoc:org.springframework.web.bind.annotation.ControllerAdvice[format=annotation], javadoc:org.springframework.boot.jackson.JacksonComponent[format=annotation], javadoc:org.springframework.core.convert.converter.Converter[], javadoc:org.springframework.core.convert.converter.GenericConverter[] and javadoc:org.springframework.web.reactive.config.WebFluxConfigurer[].
+javadoc:org.springframework.boot.webflux.test.autoconfigure.WebFluxTest[format=annotation] auto-configures the Spring WebFlux infrastructure and limits scanned beans to javadoc:org.springframework.stereotype.Controller[format=annotation], javadoc:org.springframework.web.bind.annotation.ControllerAdvice[format=annotation], javadoc:org.springframework.boot.jackson.JacksonComponent[format=annotation], javadoc:org.springframework.boot.jackson2.JsonComponent[format=annotation] (deprecated), javadoc:org.springframework.core.convert.converter.Converter[], javadoc:org.springframework.core.convert.converter.GenericConverter[] and javadoc:org.springframework.web.reactive.config.WebFluxConfigurer[].
 Regular javadoc:org.springframework.stereotype.Component[format=annotation] and javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans are not scanned when the javadoc:org.springframework.boot.webflux.test.autoconfigure.WebFluxTest[format=annotation] annotation is used.
 javadoc:org.springframework.boot.context.properties.EnableConfigurationProperties[format=annotation] can be used to include javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans.
 
@@ -381,7 +398,8 @@ Often, javadoc:org.springframework.boot.webflux.test.autoconfigure.WebFluxTest[f
 
 javadoc:org.springframework.boot.webflux.test.autoconfigure.WebFluxTest[format=annotation] also auto-configures {url-spring-framework-docs}/testing/webtestclient.html[`WebTestClient`], which offers a powerful way to quickly test WebFlux controllers without needing to start a full HTTP server.
 
-TIP: You can also auto-configure javadoc:org.springframework.test.web.reactive.server.WebTestClient[] in a non-`@WebFluxTest` (such as javadoc:org.springframework.boot.test.context.SpringBootTest[format=annotation]) by annotating it with javadoc:org.springframework.boot.webflux.test.autoconfigure.AutoConfigureWebTestClient[format=annotation].
+TIP: You can also auto-configure javadoc:org.springframework.test.web.reactive.server.WebTestClient[] in a non-`@WebFluxTest` (such as javadoc:org.springframework.boot.test.context.SpringBootTest[format=annotation]) by annotating it with javadoc:org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient[format=annotation].
+
 The following example shows a class that uses both javadoc:org.springframework.boot.webflux.test.autoconfigure.WebFluxTest[format=annotation] and a javadoc:org.springframework.test.web.reactive.server.WebTestClient[]:
 
 include-code::MyControllerTests[]
@@ -440,7 +458,7 @@ There are javadoc:org.springframework.graphql.test.tester.GraphQlTester[] varian
 
 Spring Boot helps you to test your {url-spring-graphql-docs}/controllers.html[Spring GraphQL Controllers] with the javadoc:org.springframework.boot.graphql.test.autoconfigure.GraphQlTest[format=annotation] annotation from the `spring-boot-graphql-test` module.
 javadoc:org.springframework.boot.graphql.test.autoconfigure.GraphQlTest[format=annotation] auto-configures the Spring GraphQL infrastructure, without any transport nor server being involved.
-This limits scanned beans to javadoc:org.springframework.stereotype.Controller[format=annotation], javadoc:org.springframework.graphql.execution.RuntimeWiringConfigurer[], javadoc:org.springframework.boot.jackson.JacksonComponent[], javadoc:org.springframework.core.convert.converter.Converter[], javadoc:org.springframework.core.convert.converter.GenericConverter[], javadoc:org.springframework.graphql.execution.DataFetcherExceptionResolver[], javadoc:graphql.execution.instrumentation.Instrumentation[] and javadoc:org.springframework.boot.graphql.autoconfigure.GraphQlSourceBuilderCustomizer[].
+This limits scanned beans to javadoc:org.springframework.stereotype.Controller[format=annotation], javadoc:org.springframework.graphql.execution.RuntimeWiringConfigurer[], javadoc:org.springframework.boot.jackson.JacksonComponent[], javadoc:org.springframework.boot.jackson2.JsonComponent[format=annotation] (deprecated), javadoc:org.springframework.core.convert.converter.Converter[], javadoc:org.springframework.core.convert.converter.GenericConverter[], javadoc:org.springframework.graphql.execution.DataFetcherExceptionResolver[], javadoc:graphql.execution.instrumentation.Instrumentation[] and javadoc:org.springframework.boot.graphql.autoconfigure.GraphQlSourceBuilderCustomizer[].
 Regular javadoc:org.springframework.stereotype.Component[format=annotation] and javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans are not scanned when the javadoc:org.springframework.boot.graphql.test.autoconfigure.GraphQlTest[format=annotation] annotation is used.
 javadoc:org.springframework.boot.context.properties.EnableConfigurationProperties[format=annotation] can be used to include javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans.
 
@@ -714,7 +732,7 @@ include-code::server/MyDataLdapTests[]
 == Auto-configured REST Clients
 
 You can use the javadoc:org.springframework.boot.restclient.test.autoconfigure.RestClientTest[format=annotation] annotation from the `spring-boot-restclient-test` module to test REST clients.
-By default, it auto-configures Jackson, GSON, and Jsonb support, configures a javadoc:org.springframework.boot.web.client.RestTemplateBuilder[] and a javadoc:org.springframework.web.client.RestClient$Builder[], and adds support for javadoc:org.springframework.test.web.client.MockRestServiceServer[].
+By default, it auto-configures Jackson, GSON, and Jsonb support, configures a javadoc:org.springframework.boot.restclient.RestTemplateBuilder[] and a javadoc:org.springframework.web.client.RestClient$Builder[], and adds support for javadoc:org.springframework.test.web.client.MockRestServiceServer[].
 Regular javadoc:org.springframework.stereotype.Component[format=annotation] and javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans are not scanned when the javadoc:org.springframework.boot.restclient.test.autoconfigure.RestClientTest[format=annotation] annotation is used.
 javadoc:org.springframework.boot.context.properties.EnableConfigurationProperties[format=annotation] can be used to include javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation] beans.
 
@@ -722,11 +740,11 @@ TIP: A list of the auto-configuration settings that are enabled by javadoc:org.s
 
 The specific beans that you want to test should be specified by using the `value` or `components` attribute of javadoc:org.springframework.boot.restclient.test.autoconfigure.RestClientTest[format=annotation].
 
-When using a javadoc:org.springframework.boot.web.client.RestTemplateBuilder[] in the beans under test and `RestTemplateBuilder.rootUri(String rootUri)` has been called when building the javadoc:org.springframework.web.client.RestTemplate[], then the root URI should be omitted from the javadoc:org.springframework.test.web.client.MockRestServiceServer[] expectations as shown in the following example:
+When using a javadoc:org.springframework.boot.restclient.RestTemplateBuilder[] in the beans under test and `RestTemplateBuilder.rootUri(String rootUri)` has been called when building the javadoc:org.springframework.web.client.RestTemplate[], then the root URI should be omitted from the javadoc:org.springframework.test.web.client.MockRestServiceServer[] expectations as shown in the following example:
 
 include-code::MyRestTemplateServiceTests[]
 
-When using a javadoc:org.springframework.web.client.RestClient$Builder[] in the beans under test, or when using a javadoc:org.springframework.boot.web.client.RestTemplateBuilder[] without calling `rootUri(String rootURI)`, the full URI must be used in the javadoc:org.springframework.test.web.client.MockRestServiceServer[] expectations as shown in the following example:
+When using a javadoc:org.springframework.web.client.RestClient$Builder[] in the beans under test, or when using a javadoc:org.springframework.boot.restclient.RestTemplateBuilder[] without calling `rootUri(String rootURI)`, the full URI must be used in the javadoc:org.springframework.test.web.client.MockRestServiceServer[] expectations as shown in the following example:
 
 include-code::MyRestClientServiceTests[]
 
@@ -795,8 +813,8 @@ If you require more control over Spring REST Docs configuration than offered by 
 
 include-code::MyRestDocsConfiguration[]
 
-If you want to make use of Spring REST Docs support for a parameterized output directory, you can use a javadoc:org.springframework.boot.test.web.reactive.server.WebTestClientBuilderCustomizer[] to configure a consumer for every entity exchange result.
-The following example shows such a javadoc:org.springframework.boot.test.web.reactive.server.WebTestClientBuilderCustomizer[] being defined:
+If you want to make use of Spring REST Docs support for a parameterized output directory, you can use a javadoc:org.springframework.boot.webtestclient.autoconfigure.WebTestClientBuilderCustomizer[] to configure a consumer for every entity exchange result.
+The following example shows such a javadoc:org.springframework.boot.webtestclient.autoconfigure.WebTestClientBuilderCustomizer[] being defined:
 
 include-code::MyWebTestClientBuilderCustomizerConfiguration[]
 
@@ -909,3 +927,11 @@ TIP: If this is not an option for you, you can create a javadoc:org.springframew
 Alternatively, you can specify a source for your test, which disables the behavior of finding a default one.
 
 
+
+[[testing.spring-boot-applications.spock]]
+== Using Spock to Test Spring Boot Applications
+
+Spock 2.4 or later can be used to test a Spring Boot application.
+To do so, add a dependency on a `-groovy-5.0` version of Spock's `spock-spring` module to your application's build.
+`spock-spring` integrates Spring's test framework into Spock.
+See https://spockframework.org/spock/docs/2.4/modules.html#spring-module[the documentation for Spock's Spring module] for further details.

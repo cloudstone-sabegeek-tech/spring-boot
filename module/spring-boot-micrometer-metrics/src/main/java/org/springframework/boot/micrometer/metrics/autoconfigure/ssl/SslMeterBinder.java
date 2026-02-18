@@ -21,9 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +58,8 @@ class SslMeterBinder implements MeterBinder {
 
 	private final BundleMetrics bundleMetrics = new BundleMetrics();
 
+	private final Set<MeterRegistry> boundMeterRegistries = ConcurrentHashMap.newKeySet();
+
 	SslMeterBinder(SslInfo sslInfo, SslBundles sslBundles) {
 		this(sslInfo, sslBundles, Clock.systemDefaultZone());
 	}
@@ -67,7 +67,10 @@ class SslMeterBinder implements MeterBinder {
 	SslMeterBinder(SslInfo sslInfo, SslBundles sslBundles, Clock clock) {
 		this.clock = clock;
 		this.sslInfo = sslInfo;
-		sslBundles.addBundleRegisterHandler((bundleName, ignored) -> onBundleChange(bundleName));
+		sslBundles.addBundleRegisterHandler((bundleName, ignored) -> {
+			onBundleChange(bundleName);
+			sslBundles.addBundleUpdateHandler(bundleName, (ignoredBundle) -> onBundleChange(bundleName));
+		});
 		for (String bundleName : sslBundles.getBundleNames()) {
 			sslBundles.addBundleUpdateHandler(bundleName, (ignored) -> onBundleChange(bundleName));
 		}
@@ -76,13 +79,14 @@ class SslMeterBinder implements MeterBinder {
 	private void onBundleChange(String bundleName) {
 		BundleInfo bundle = this.sslInfo.getBundle(bundleName);
 		this.bundleMetrics.updateBundle(bundle);
-		for (MeterRegistry meterRegistry : this.bundleMetrics.getMeterRegistries()) {
+		for (MeterRegistry meterRegistry : this.boundMeterRegistries) {
 			createOrUpdateBundleMetrics(meterRegistry, bundle);
 		}
 	}
 
 	@Override
 	public void bindTo(MeterRegistry meterRegistry) {
+		this.boundMeterRegistries.add(meterRegistry);
 		for (BundleInfo bundle : this.sslInfo.getBundles()) {
 			createOrUpdateBundleMetrics(meterRegistry, bundle);
 		}
@@ -146,18 +150,6 @@ class SslMeterBinder implements MeterBinder {
 		}
 
 		/**
-		 * Returns all meter registries.
-		 * @return all meter registries
-		 */
-		Collection<MeterRegistry> getMeterRegistries() {
-			Set<MeterRegistry> result = new HashSet<>();
-			for (Gauges metrics : this.gauges.values()) {
-				result.addAll(metrics.getMeterRegistries());
-			}
-			return result;
-		}
-
-		/**
 		 * Updates the given bundle.
 		 * @param bundle the updated bundle
 		 */
@@ -189,14 +181,6 @@ class SslMeterBinder implements MeterBinder {
 			 */
 			Gauges withBundle(BundleInfo bundle) {
 				return new Gauges(bundle, this.multiGauges);
-			}
-
-			/**
-			 * Returns all meter registries.
-			 * @return all meter registries
-			 */
-			Set<MeterRegistry> getMeterRegistries() {
-				return this.multiGauges.keySet();
 			}
 
 			private MultiGauge createGauge(MeterRegistry meterRegistry) {

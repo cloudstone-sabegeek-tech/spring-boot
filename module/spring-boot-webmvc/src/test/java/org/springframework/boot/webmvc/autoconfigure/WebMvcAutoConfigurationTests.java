@@ -42,12 +42,16 @@ import org.aspectj.lang.annotation.Aspect;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import org.springframework.aop.support.AopUtils;
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.predicate.RuntimeHintsPredicates;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.http.converter.autoconfigure.HttpMessageConvertersAutoConfiguration;
+import org.springframework.boot.http.converter.autoconfigure.ServerHttpMessageConvertersCustomizer;
 import org.springframework.boot.servlet.filter.OrderedFormContentFilter;
 import org.springframework.boot.test.context.assertj.AssertableWebApplicationContext;
 import org.springframework.boot.test.context.runner.ContextConsumer;
@@ -62,6 +66,7 @@ import org.springframework.boot.web.server.servlet.ServletWebServerFactory;
 import org.springframework.boot.web.server.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
+import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration.MvcValidatorRuntimeHints;
 import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter;
 import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfigurationTests.OrderedControllerAdviceBeansConfiguration.HighestOrderedControllerAdvice;
 import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfigurationTests.OrderedControllerAdviceBeansConfiguration.LowestOrderedControllerAdvice;
@@ -83,6 +88,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverters.ServerBuilder;
 import org.springframework.http.server.RequestPath;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -156,6 +162,8 @@ import org.springframework.web.util.UrlPathHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -1115,6 +1123,30 @@ class WebMvcAutoConfigurationTests {
 		});
 	}
 
+	@Test
+	void serverHttpMessageConverterCustomizersAreAppliedInOrder() {
+		this.contextRunner.withUserConfiguration(ServerHttpMessageConverterCustomizersConfiguration.class)
+			.run((context) -> {
+				ServerHttpMessageConvertersCustomizer customizer1 = context.getBean("customizer1",
+						ServerHttpMessageConvertersCustomizer.class);
+				ServerHttpMessageConvertersCustomizer customizer2 = context.getBean("customizer2",
+						ServerHttpMessageConvertersCustomizer.class);
+				ServerHttpMessageConvertersCustomizer customizer3 = context.getBean("customizer3",
+						ServerHttpMessageConvertersCustomizer.class);
+				InOrder inOrder = inOrder(customizer1, customizer2, customizer3);
+				inOrder.verify(customizer3).customize(any(ServerBuilder.class));
+				inOrder.verify(customizer1).customize(any(ServerBuilder.class));
+				inOrder.verify(customizer2).customize(any(ServerBuilder.class));
+			});
+	}
+
+	@Test
+	void registersRuntimeHintsForValidatorCreation() {
+		RuntimeHints hints = new RuntimeHints();
+		new MvcValidatorRuntimeHints().registerHints(hints, getClass().getClassLoader());
+		assertThat(RuntimeHintsPredicates.reflection().onType(ValidatorAdapter.class)).accepts(hints);
+	}
+
 	private void assertResourceHttpRequestHandler(AssertableWebApplicationContext context,
 			Consumer<ResourceHttpRequestHandler> handlerConsumer) {
 		Map<String, Object> handlerMap = getHandlerMap(context.getBean("resourceHandlerMapping", HandlerMapping.class));
@@ -1310,7 +1342,7 @@ class WebMvcAutoConfigurationTests {
 	@Configuration(proxyBeanMethods = false)
 	static class CustomRequestMappingHandlerAdapter {
 
-		private int handlerAdapters = 0;
+		private int handlerAdapters;
 
 		@Bean
 		WebMvcRegistrations webMvcRegistrationsHandlerAdapter() {
@@ -1334,7 +1366,7 @@ class WebMvcAutoConfigurationTests {
 	@Configuration(proxyBeanMethods = false)
 	static class CustomExceptionHandlerExceptionResolver {
 
-		private int exceptionResolvers = 0;
+		private int exceptionResolvers;
 
 		@Bean
 		WebMvcRegistrations webMvcRegistrationsExceptionResolver() {
@@ -1697,6 +1729,29 @@ class WebMvcAutoConfigurationTests {
 		@Bean
 		ApiVersionParser<String> apiVersionParser() {
 			return (version) -> String.valueOf(version);
+		}
+
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class ServerHttpMessageConverterCustomizersConfiguration {
+
+		@Bean
+		@Order(-5)
+		ServerHttpMessageConvertersCustomizer customizer1() {
+			return mock(ServerHttpMessageConvertersCustomizer.class);
+		}
+
+		@Bean
+		@Order(5)
+		ServerHttpMessageConvertersCustomizer customizer2() {
+			return mock(ServerHttpMessageConvertersCustomizer.class);
+		}
+
+		@Bean
+		@Order(-10)
+		ServerHttpMessageConvertersCustomizer customizer3() {
+			return mock(ServerHttpMessageConvertersCustomizer.class);
 		}
 
 	}

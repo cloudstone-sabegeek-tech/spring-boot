@@ -243,22 +243,27 @@ class ElasticsearchRestClientAutoConfigurationTests {
 		Rest5Client client = Rest5Client.builder(new HttpHost("http", "localhost", 9201)).build();
 		assertThat(client.getHttpClient()).extracting("ioReactor.workers")
 			.asInstanceOf(InstanceOfAssertFactories.ARRAY)
-			.satisfies((workers) -> assertThat(workers[0]).extracting("reactorConfig.soKeepAlive").isEqualTo(false));
+			.satisfies((workers) -> assertThat(workers[0]).extracting("reactorConfig.soKeepAlive").isEqualTo(true));
 	}
 
 	@Test
 	void configureWithCustomSocketKeepAlive() {
-		this.contextRunner.withPropertyValues("spring.elasticsearch.socket-keep-alive=true")
+		this.contextRunner.withPropertyValues("spring.elasticsearch.socket-keep-alive=false")
 			.run((context) -> assertThat(context.getBean(Rest5Client.class).getHttpClient())
 				.extracting("ioReactor.workers")
 				.asInstanceOf(InstanceOfAssertFactories.ARRAY)
 				.satisfies(
-						(workers) -> assertThat(workers[0]).extracting("reactorConfig.soKeepAlive").isEqualTo(true)));
+						(workers) -> assertThat(workers[0]).extracting("reactorConfig.soKeepAlive").isEqualTo(false)));
 	}
 
 	@Test
-	void configureShouldCreateSnifferUsingRest5Client() {
-		this.contextRunner.run((context) -> {
+	void configureShouldNotCreateSnifferUsingRest5ClientByDefault() {
+		this.contextRunner.run((context) -> assertThat(context).doesNotHaveBean(Sniffer.class));
+	}
+
+	@Test
+	void configureWithSnifferEnabled() {
+		this.contextRunner.withPropertyValues("spring.elasticsearch.restclient.sniffer.enabled=true").run((context) -> {
 			assertThat(context).hasSingleBean(Sniffer.class);
 			assertThat(context.getBean(Sniffer.class)).hasFieldOrPropertyWithValue("restClient",
 					context.getBean(Rest5Client.class));
@@ -272,7 +277,8 @@ class ElasticsearchRestClientAutoConfigurationTests {
 	@Test
 	void configureWithCustomSnifferSettings() {
 		this.contextRunner
-			.withPropertyValues("spring.elasticsearch.restclient.sniffer.interval=180s",
+			.withPropertyValues("spring.elasticsearch.restclient.sniffer.enabled=true",
+					"spring.elasticsearch.restclient.sniffer.interval=180s",
 					"spring.elasticsearch.restclient.sniffer.delay-after-failure=30s")
 			.run((context) -> {
 				assertThat(context).hasSingleBean(Sniffer.class);
@@ -287,18 +293,14 @@ class ElasticsearchRestClientAutoConfigurationTests {
 	@Test
 	void configureWhenCustomSnifferShouldBackOff() {
 		Sniffer customSniffer = mock(Sniffer.class);
-		this.contextRunner.withBean(Sniffer.class, () -> customSniffer).run((context) -> {
-			assertThat(context).hasSingleBean(Sniffer.class);
-			Sniffer sniffer = context.getBean(Sniffer.class);
-			assertThat(sniffer).isSameAs(customSniffer);
-			then(customSniffer).shouldHaveNoInteractions();
-		});
-	}
-
-	@Test
-	void configureWithSnifferDisabled() {
-		this.contextRunner.withPropertyValues("spring.elasticsearch.restclient.sniffer.enabled=false")
-			.run((context) -> assertThat(context).doesNotHaveBean(Sniffer.class));
+		this.contextRunner.withPropertyValues("spring.elasticsearch.restclient.sniffer.enabled=true")
+			.withBean(Sniffer.class, () -> customSniffer)
+			.run((context) -> {
+				assertThat(context).hasSingleBean(Sniffer.class);
+				Sniffer sniffer = context.getBean(Sniffer.class);
+				assertThat(sniffer).isSameAs(customSniffer);
+				then(customSniffer).shouldHaveNoInteractions();
+			});
 	}
 
 	@Test

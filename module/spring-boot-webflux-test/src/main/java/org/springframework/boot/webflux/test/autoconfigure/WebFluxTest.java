@@ -31,7 +31,7 @@ import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.json.AutoConfigureJson;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
-import org.springframework.boot.webtestclient.AutoConfigureWebTestClient;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
@@ -49,7 +49,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * <ul>
  * <li>{@code @Controller}</li>
  * <li>{@code @ControllerAdvice}</li>
- * <li>{@code @JsonComponent}</li>
+ * <li>{@code @JacksonComponent}</li>
+ * <li>{@code @JsonComponent} (Jackson 2, deprecated)</li>
  * </ul>
  * <p>
  * as well as beans that implement:
@@ -57,7 +58,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * <li>{@code Converter}</li>
  * <li>{@code GenericConverter}</li>
  * <li>{@code IDialect}, if Thymeleaf is available</li>
- * <li>{@code Module}, if Jackson is available</li>
+ * <li>{@code JacksonModule}, if Jackson is available</li>
+ * <li>{@code Module}, if Jackson 2 is available (deprecated)</li>
  * <li>{@code WebExceptionHandler}</li>
  * <li>{@code WebFluxConfigurer}</li>
  * <li>{@code WebFilter}</li>

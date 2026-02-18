@@ -72,6 +72,9 @@ import org.springframework.boot.hibernate.SpringImplicitNamingStrategy;
 import org.springframework.boot.hibernate.SpringJtaPlatform;
 import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfigurationTests.JpaUsingApplicationListenerConfiguration.EventCapturingApplicationListener;
 import org.springframework.boot.hibernate.autoconfigure.HibernateJpaConfiguration.HibernateRuntimeHints;
+import org.springframework.boot.hibernate.autoconfigure.mapping.NonAnnotatedEntity;
+import org.springframework.boot.hibernate.autoconfigure.test.city.City;
+import org.springframework.boot.hibernate.autoconfigure.test.country.Country;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceInitializationAutoConfiguration;
@@ -81,9 +84,6 @@ import org.springframework.boot.jpa.EntityManagerFactoryBuilder;
 import org.springframework.boot.jpa.autoconfigure.EntityManagerFactoryBuilderCustomizer;
 import org.springframework.boot.jpa.autoconfigure.JpaBaseConfiguration;
 import org.springframework.boot.jpa.autoconfigure.JpaProperties;
-import org.springframework.boot.jpa.autoconfigure.hibernate.mapping.NonAnnotatedEntity;
-import org.springframework.boot.jpa.autoconfigure.test.city.City;
-import org.springframework.boot.jpa.autoconfigure.test.country.Country;
 import org.springframework.boot.liquibase.autoconfigure.LiquibaseAutoConfiguration;
 import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
@@ -347,6 +347,20 @@ class HibernateJpaAutoConfigurationTests {
 				assertThat(persistenceUnitInfo).isNotNull();
 				assertThat(persistenceUnitInfo.getManagedClassNames())
 					.contains("customized.attribute.converter.class.name");
+			});
+	}
+
+	@Test
+	void customPersistenceUnitProcessorsAddedByServeralContributors() {
+		this.contextRunner.withUserConfiguration(TestConfigurationWithMultipleCustomPersistenceUnitPostProcessors.class)
+			.run((context) -> {
+				LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = context
+					.getBean(LocalContainerEntityManagerFactoryBean.class);
+				PersistenceUnitInfo persistenceUnitInfo = entityManagerFactoryBean.getPersistenceUnitInfo();
+				assertThat(persistenceUnitInfo).isNotNull();
+				assertThat(persistenceUnitInfo.getManagedClassNames()).contains(
+						"customized.attribute.converter.class.name",
+						"customized.attribute.converter.class.anotherName");
 			});
 	}
 
@@ -640,7 +654,7 @@ class HibernateJpaAutoConfigurationTests {
 									 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 									 xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence/orm https://www.oracle.com/webfolder/technetwork/jsc/xml/ns/persistence/orm_2_1.xsd"
 									 version="2.1">
-						<entity class="org.springframework.boot.jpa.autoconfigure.hibernate.mapping.NonAnnotatedEntity">
+						<entity class="org.springframework.boot.hibernate.autoconfigure.mapping.NonAnnotatedEntity">
 							<table name="NON_ANNOTATED"/>
 							<attributes>
 								<id name="id">
@@ -1145,6 +1159,24 @@ class HibernateJpaAutoConfigurationTests {
 		EntityManagerFactoryBuilderCustomizer entityManagerFactoryBuilderCustomizer() {
 			return (builder) -> builder.setPersistenceUnitPostProcessors(
 					(pui) -> pui.addManagedClassName("customized.attribute.converter.class.name"));
+		}
+
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	@TestAutoConfigurationPackage(HibernateJpaAutoConfigurationTests.class)
+	static class TestConfigurationWithMultipleCustomPersistenceUnitPostProcessors {
+
+		@Bean
+		EntityManagerFactoryBuilderCustomizer entityManagerFactoryBuilderCustomizer() {
+			return (builder) -> builder.addPersistenceUnitPostProcessors(
+					(pui) -> pui.addManagedClassName("customized.attribute.converter.class.name"));
+		}
+
+		@Bean
+		EntityManagerFactoryBuilderCustomizer anotherEntityManagerFactoryBuilderCustomizer() {
+			return (builder) -> builder.addPersistenceUnitPostProcessors(
+					(pui) -> pui.addManagedClassName("customized.attribute.converter.class.anotherName"));
 		}
 
 	}

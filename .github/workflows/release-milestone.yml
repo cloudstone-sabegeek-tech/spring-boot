@@ -2,8 +2,8 @@ name: Release Milestone
 on:
   push:
     tags:
-      - v4.0.0-M[0-9]
-      - v4.0.0-RC[0-9]
+      - v4.1.0-M[0-9]
+      - v4.1.0-RC[0-9]
 permissions:
   contents: read
 concurrency:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ vars.UBUNTU_MEDIUM || 'ubuntu-latest' }}
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Build and Publish
         id: build-and-publish
         uses: ./.github/actions/build
@@ -24,7 +24,7 @@ jobs:
           gradle-cache-read-only: false
           publish: true
       - name: Stage Release
-        uses: spring-io/artifactory-deploy-action@dc1913008c0599f0c4b1fdafb6ff3c502b3565ea # v0.0.2
+        uses: spring-io/artifactory-deploy-action@926d7f7cc810569395346bf3a4d91b380b3e355b # v0.0.4
         with:
           build-name: ${{ format('spring-boot-{0}', steps.build-and-publish.outputs.version)}}
           folder: 'deployment-repository'
@@ -32,6 +32,7 @@ jobs:
           repository: 'libs-staging-local'
           signing-key: ${{ secrets.GPG_PRIVATE_KEY }}
           signing-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          threads: 8
           uri: 'https://repo.spring.io'
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
     outputs:
@@ -59,7 +60,7 @@ jobs:
     runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Sync to Maven Central
         uses: ./.github/actions/sync-to-maven-central
         with:
@@ -75,7 +76,7 @@ jobs:
     runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
     steps:
       - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@e5d3afdd1d75e4aa14a4f217cca93a2a9b5b846d # v4.8.0
+        uses: jfrog/setup-jfrog-cli@279b1f629f43dd5bc658d8361ac4802a7ef8d2d5 # v4.9.1
         env:
           JF_ENV_SPRING: ${{ secrets.JF_ARTIFACTORY_SPRING }}
       - name: Promote build
@@ -89,7 +90,7 @@ jobs:
     runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Publish
         uses: ./.github/actions/publish-gradle-plugin
         with:
@@ -120,7 +121,7 @@ jobs:
     runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Create GitHub Release
         uses: ./.github/actions/create-github-release
         with:

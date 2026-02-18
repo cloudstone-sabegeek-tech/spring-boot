@@ -45,7 +45,6 @@ import org.apache.hc.core5.util.Timeout;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
@@ -105,10 +104,12 @@ class ElasticsearchRestClientConfigurations {
 				.toArray(HttpHost[]::new));
 			if (connectionDetails.getApiKey() != null) {
 				builder.setDefaultHeaders(
-						new Header[] { new BasicHeader("Authorization", "ApiKey " + connectionDetails.getApiKey()), });
+						new Header[] { new BasicHeader("Authorization", "ApiKey " + connectionDetails.getApiKey()) });
 			}
-			builder.setHttpClientConfigCallback((httpClientBuilder) -> builderCustomizers.orderedStream()
-				.forEach((customizer) -> customizer.customize(httpClientBuilder)));
+			builder.setHttpClientConfigCallback((httpClientBuilder) -> {
+				httpClientBuilder.disableContentCompression();
+				builderCustomizers.orderedStream().forEach((customizer) -> customizer.customize(httpClientBuilder));
+			});
 			builder.setConnectionManagerCallback((connectionManagerBuilder) -> builderCustomizers.orderedStream()
 				.forEach((customizer) -> customizer.customize(connectionManagerBuilder)));
 			builder.setConnectionConfigCallback((connectionConfigBuilder) -> builderCustomizers.orderedStream()
@@ -137,9 +138,8 @@ class ElasticsearchRestClientConfigurations {
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnClass(Sniffer.class)
 	@ConditionalOnSingleCandidate(Rest5Client.class)
-	@ConditionalOnProperty(name = "spring.elasticsearch.restclient.sniffer.enabled", matchIfMissing = true)
+	@ConditionalOnProperty(name = "spring.elasticsearch.restclient.sniffer.enabled")
 	static class RestClientSnifferConfiguration {
 
 		@Bean

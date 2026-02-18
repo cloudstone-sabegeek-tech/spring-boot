@@ -26,7 +26,6 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
-import org.springframework.boot.autoconfigure.web.ErrorProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.convert.DurationUnit;
@@ -82,9 +81,6 @@ public class ServerProperties {
 	 * Network address to which the server should bind.
 	 */
 	private @Nullable InetAddress address;
-
-	@NestedConfigurationProperty
-	private final ErrorProperties error = new ErrorProperties();
 
 	/**
 	 * Strategy for handling X-Forwarded-* headers.
@@ -168,10 +164,6 @@ public class ServerProperties {
 		this.shutdown = shutdown;
 	}
 
-	public ErrorProperties getError() {
-		return this.error;
-	}
-
 	public @Nullable Ssl getSsl() {
 		return this.ssl;
 	}
@@ -235,7 +227,7 @@ public class ServerProperties {
 		/**
 		 * Whether to register the default Servlet with the container.
 		 */
-		private boolean registerDefaultServlet = false;
+		private boolean registerDefaultServlet;
 
 		private final Encoding encoding = new Encoding();
 

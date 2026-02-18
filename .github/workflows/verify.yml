@@ -38,13 +38,13 @@ jobs:
     runs-on: ${{ vars.UBUNTU_SMALL || 'ubuntu-latest' }}
     steps:
       - name: Check Out Release Verification Tests
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
-          ref: 'v0.0.14'
+          ref: 'v0.0.15'
           repository: spring-projects/spring-boot-release-verification
           token: ${{ secrets.token }}
       - name: Check Out Send Notification Action
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: send-notification
           sparse-checkout: .github/actions/send-notification
@@ -59,7 +59,7 @@ jobs:
         with:
           stable: true
       - name: Set Up Gradle
-        uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # v5.0.0
+        uses: gradle/actions/setup-gradle@f29f5a9d7b09a7c6b29859002d29d24e1674c884 # v5.0.1
         with:
           cache-read-only: false
       - name: Configure Gradle Properties
@@ -79,7 +79,7 @@ jobs:
         run: ./gradlew spring-boot-release-verification-tests:test
       - name: Upload Build Reports on Failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-reports
           path: '**/build/reports/'

@@ -51,11 +51,6 @@ public class FreeMarkerProperties {
 	private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
 	/**
-	 * Whether to enable MVC view resolution for this technology.
-	 */
-	private boolean enabled = true;
-
-	/**
 	 * Whether to enable template caching.
 	 */
 	private boolean cache;
@@ -99,19 +94,19 @@ public class FreeMarkerProperties {
 	 * Whether all request attributes should be added to the model prior to merging with
 	 * the template.
 	 */
-	private boolean exposeRequestAttributes = false;
+	private boolean exposeRequestAttributes;
 
 	/**
 	 * Whether all HttpSession attributes should be added to the model prior to merging
 	 * with the template.
 	 */
-	private boolean exposeSessionAttributes = false;
+	private boolean exposeSessionAttributes;
 
 	/**
 	 * Whether HttpServletRequest attributes are allowed to override (hide) controller
 	 * generated model attributes of the same name.
 	 */
-	private boolean allowRequestOverride = false;
+	private boolean allowRequestOverride;
 
 	/**
 	 * Whether to expose a RequestContext for use by Spring's macro library, under the
@@ -123,7 +118,7 @@ public class FreeMarkerProperties {
 	 * Whether HttpSession attributes are allowed to override (hide) controller generated
 	 * model attributes of the same name.
 	 */
-	private boolean allowSessionOverride = false;
+	private boolean allowSessionOverride;
 
 	/**
 	 * Well-known FreeMarker keys which are passed to FreeMarker's Configuration.
@@ -142,14 +137,6 @@ public class FreeMarkerProperties {
 	 * considered.
 	 */
 	private boolean preferFileSystemAccess;
-
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-	}
-
-	public boolean isEnabled() {
-		return this.enabled;
-	}
 
 	public void setCheckTemplateLocation(boolean checkTemplateLocation) {
 		this.checkTemplateLocation = checkTemplateLocation;

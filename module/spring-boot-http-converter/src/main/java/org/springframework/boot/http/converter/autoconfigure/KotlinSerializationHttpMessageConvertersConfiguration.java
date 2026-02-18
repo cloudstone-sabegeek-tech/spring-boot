@@ -25,7 +25,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.converter.HttpMessageConverters.ClientBuilder;
+import org.springframework.http.converter.HttpMessageConverters.ServerBuilder;
 import org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverter;
+import org.springframework.util.ClassUtils;
 
 /**
  * Configuration for HTTP message converters that use Kotlin Serialization.
@@ -39,10 +43,37 @@ import org.springframework.http.converter.json.KotlinSerializationJsonHttpMessag
 class KotlinSerializationHttpMessageConvertersConfiguration {
 
 	@Bean
-	@ConditionalOnMissingBean
-	@Order(-10) // configured ahead of JSON mappers
-	KotlinSerializationJsonHttpMessageConverter kotlinSerializationJsonHttpMessageConverter(Json json) {
-		return new KotlinSerializationJsonHttpMessageConverter(json);
+	@Order(0)
+	@ConditionalOnMissingBean(KotlinSerializationJsonHttpMessageConverter.class)
+	KotlinSerializationJsonConvertersCustomizer kotlinSerializationJsonConvertersCustomizer(Json json,
+			ResourceLoader resourceLoader) {
+		return new KotlinSerializationJsonConvertersCustomizer(json, resourceLoader);
+	}
+
+	static class KotlinSerializationJsonConvertersCustomizer
+			implements ClientHttpMessageConvertersCustomizer, ServerHttpMessageConvertersCustomizer {
+
+		private final KotlinSerializationJsonHttpMessageConverter converter;
+
+		KotlinSerializationJsonConvertersCustomizer(Json json, ResourceLoader resourceLoader) {
+			ClassLoader classLoader = resourceLoader.getClassLoader();
+			boolean hasAnyJsonSupport = ClassUtils.isPresent("tools.jackson.databind.json.JsonMapper", classLoader)
+					|| ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader)
+					|| ClassUtils.isPresent("com.google.gson.Gson", classLoader);
+			this.converter = hasAnyJsonSupport ? new KotlinSerializationJsonHttpMessageConverter(json)
+					: new KotlinSerializationJsonHttpMessageConverter(json, (type) -> true);
+		}
+
+		@Override
+		public void customize(ClientBuilder builder) {
+			builder.withKotlinSerializationJsonConverter(this.converter);
+		}
+
+		@Override
+		public void customize(ServerBuilder builder) {
+			builder.withKotlinSerializationJsonConverter(this.converter);
+		}
+
 	}
 
 }

@@ -33,6 +33,7 @@ import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor;
 import org.springframework.beans.factory.aot.BeanRegistrationCode;
 import org.springframework.beans.factory.aot.BeanRegistrationCodeFragments;
 import org.springframework.beans.factory.aot.BeanRegistrationCodeFragmentsDecorator;
+import org.springframework.beans.factory.aot.CodeWarnings;
 import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.javapoet.ClassName;
 import org.springframework.javapoet.CodeBlock;
@@ -42,7 +43,7 @@ import org.springframework.javapoet.CodeBlock;
  * by an hard-coded equivalent. This has the effect of disabling scanning at runtime.
  *
  * @author Stephane Nicoll
- * @deprecated since 4.0.0 for removal in 4.2.0 in favor of Jackson 3
+ * @deprecated since 4.0.0 for removal in 4.3.0 in favor of Jackson 3
  */
 @Deprecated(since = "4.0.0", forRemoval = true)
 @SuppressWarnings("removal")
@@ -87,9 +88,15 @@ class JsonMixinModuleEntriesBeanRegistrationAotProcessor implements BeanRegistra
 				method.addModifiers(Modifier.PRIVATE, Modifier.STATIC);
 				method.returns(BEAN_TYPE);
 				CodeBlock.Builder code = CodeBlock.builder();
-				code.add("return $T.create(", JsonMixinModuleEntries.class).beginControlFlow("(mixins) ->");
-				entries.doWithEntry(this.classLoader, (type, mixin) -> addEntryCode(code, type, mixin));
+				CodeWarnings codeWarnings = new CodeWarnings();
+				codeWarnings.detectDeprecation(BEAN_TYPE);
+				code.add("return $T.create(", BEAN_TYPE).beginControlFlow("(mixins) ->");
+				entries.doWithEntry(this.classLoader, (type, mixin) -> {
+					codeWarnings.detectDeprecation(type, mixin);
+					addEntryCode(code, type, mixin);
+				});
 				code.endControlFlow(")");
+				codeWarnings.suppress(method);
 				method.addCode(code.build());
 			});
 			return generatedMethod.toMethodReference().toCodeBlock();

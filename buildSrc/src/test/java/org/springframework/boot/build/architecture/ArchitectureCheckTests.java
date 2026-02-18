@@ -19,9 +19,11 @@ package org.springframework.boot.build.architecture;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -42,8 +44,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import org.springframework.boot.build.architecture.annotations.TestConditionalOnClass;
+import org.springframework.boot.build.architecture.annotations.TestConditionalOnMissingBean;
+import org.springframework.boot.build.architecture.annotations.TestConfigurationProperties;
+import org.springframework.boot.build.architecture.annotations.TestConfigurationPropertiesBinding;
+import org.springframework.boot.build.architecture.annotations.TestDeprecatedConfigurationProperty;
 import org.springframework.util.ClassUtils;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 
@@ -56,12 +61,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Scott Frederick
  * @author Ivan Malutin
  * @author Dmytro Nosan
+ * @author Stefano Cordio
  */
 class ArchitectureCheckTests {
 
-	private static final String SPRING_CONTEXT = "org.springframework:spring-context:6.2.9";
+	private static final String ASSERTJ_CORE = "org.assertj:assertj-core:3.27.4";
 
 	private static final String JUNIT_JUPITER = "org.junit.jupiter:junit-jupiter:5.12.0";
+
+	private static final String SPRING_CONTEXT = "org.springframework:spring-context:6.2.15";
+
+	private static final String SPRING_CORE = "org.springframework:spring-core:6.2.15";
 
 	private static final String SPRING_INTEGRATION_JMX = "org.springframework.integration:spring-integration-jmx:6.5.1";
 
@@ -69,7 +79,7 @@ class ArchitectureCheckTests {
 
 	@BeforeEach
 	void setup(@TempDir Path projectDir) {
-		this.gradleBuild = new GradleBuild(projectDir).withNullMarkedEnabled(false);
+		this.gradleBuild = new GradleBuild(projectDir);
 	}
 
 	@ParameterizedTest(name = "{0}")
@@ -204,6 +214,29 @@ class ArchitectureCheckTests {
 
 	@ParameterizedTest(name = "{0}")
 	@EnumSource(Task.class)
+	void whenClassCallsCollectorsToListShouldFailAndWriteReport(Task task) throws IOException {
+		prepareTask(task, "collectors/toList");
+		buildAndFail(this.gradleBuild, task, "because java.util.stream.Stream.toList() should be used instead");
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(Task.class)
+	void whenClassCallsUrlEncoderWithStringEncodingShouldFailAndWriteReport(Task task) throws IOException {
+		prepareTask(task, "url/encode");
+		buildAndFail(this.gradleBuild, task,
+				"because java.net.URLEncoder.encode(String s, Charset charset) should be used instead");
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(Task.class)
+	void whenClassCallsUrlDecoderWithStringEncodingShouldFailAndWriteReport(Task task) throws IOException {
+		prepareTask(task, "url/decode");
+		buildAndFail(this.gradleBuild, task,
+				"because java.net.URLDecoder.decode(String s, Charset charset) should be used instead");
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(Task.class)
 	void whenClassCallsStringToUpperCaseWithoutLocaleShouldFailAndWriteReport(Task task) throws IOException {
 		prepareTask(task, "string/toUpperCase");
 		buildAndFail(this.gradleBuild, task, "because String.toUpperCase(Locale.ROOT) should be used instead");
@@ -228,6 +261,81 @@ class ArchitectureCheckTests {
 	void whenClassCallsStringToUpperCaseWithLocaleShouldSucceedAndWriteEmptyReport(Task task) throws IOException {
 		prepareTask(task, "string/toUpperCaseWithLocale");
 		build(this.gradleBuild, task);
+	}
+
+	@Test
+	void whenConditionalOnMissingBeanWithTypeSameAsMethodReturnTypeShouldFailAndWriteReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "conditionalonmissingbean/valueonly", "annotations");
+		buildAndFail(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConditionalOnMissingBeanAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN,
+				"should not specify only a value that is the same as the method's return type");
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(Task.class)
+	void whenConditionalOnMissingBeanWithTypeAttributeShouldSucceedAndWriteEmptyReport(Task task) throws IOException {
+		prepareTask(task, "conditionalonmissingbean/withtype", "annotations");
+		build(this.gradleBuild.withDependencies(SPRING_CONTEXT), task);
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(Task.class)
+	void whenConditionalOnMissingBeanWithNameAttributeShouldSucceedAndWriteEmptyReport(Task task) throws IOException {
+		prepareTask(task, "conditionalonmissingbean/withname", "annotations");
+		build(this.gradleBuild.withDependencies(SPRING_CONTEXT), task);
+	}
+
+	@Test
+	void whenClassLevelConfigurationPropertiesContainsOnlyPrefixShouldFailAndWriteReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/classprefixonly", "annotations");
+		buildAndFail(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConfigurationPropertiesAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN,
+				"should specify implicit 'value' attribute other than explicit 'prefix' attribute");
+	}
+
+	@Test
+	void whenClassLevelConfigurationPropertiesContainsPrefixAndIgnoreShouldSucceedAndWriteEmptyReport()
+			throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/classprefixandignore", "annotations");
+		build(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConfigurationPropertiesAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN);
+	}
+
+	@Test
+	void whenClassLevelConfigurationPropertiesContainsOnlyValueShouldSucceedAndWriteEmptyReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/classvalueonly", "annotations");
+		build(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConfigurationPropertiesAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN);
+	}
+
+	@Test
+	void whenMethodLevelConfigurationPropertiesContainsOnlyPrefixShouldFailAndWriteReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/methodprefixonly", "annotations");
+		buildAndFail(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConfigurationPropertiesAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN,
+				"should specify implicit 'value' attribute other than explicit 'prefix' attribute");
+	}
+
+	@Test
+	void whenMethodLevelConfigurationPropertiesContainsPrefixAndIgnoreShouldSucceedAndWriteEmptyReport()
+			throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/methodprefixandignore", "annotations");
+		build(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConfigurationPropertiesAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN);
+	}
+
+	@Test
+	void whenMethodLevelConfigurationPropertiesContainsOnlyValueShouldSucceedAndWriteEmptyReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/methodvalueonly", "annotations");
+		build(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConfigurationPropertiesAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN);
+	}
+
+	@Test
+	void whenConfigurationPropertiesBindingBeanMethodIsNotStaticShouldFailAndWriteReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/bindingnonstatic", "annotations");
+		buildAndFail(this.gradleBuild.withDependencies(SPRING_CONTEXT).withConfigurationPropertiesBindingAnnotation(),
+				Task.CHECK_ARCHITECTURE_MAIN, "does not have modifier STATIC");
 	}
 
 	@ParameterizedTest(name = "{0}")
@@ -277,28 +385,6 @@ class ArchitectureCheckTests {
 	}
 
 	@Test
-	void whenPackageIsNotAnnotatedWithNullMarkedWithMainSourcesShouldFailAndWriteEmptyReport() throws IOException {
-		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "nullmarked/notannotated");
-		buildAndFail(this.gradleBuild.withNullMarkedEnabled(true), Task.CHECK_ARCHITECTURE_MAIN,
-				"Package org.springframework.boot.build.architecture.nullmarked.notannotated is not annotated with @NullMarked");
-	}
-
-	@Test
-	void whenPackageIsIgnoredAndNotAnnotatedWithNullMarkedWithMainSourcesShouldSucceedAndWriteEmptyReport()
-			throws IOException {
-		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "nullmarked/notannotated");
-		build(this.gradleBuild.withNullMarkedEnabled(true)
-			.withNullMarkedIgnoredPackages("org.springframework.boot.build.architecture.nullmarked.notannotated"),
-				Task.CHECK_ARCHITECTURE_MAIN);
-	}
-
-	@Test
-	void whenPackageIsNotAnnotatedWithNullMarkedWithTestSourcesShouldSucceedAndWriteEmptyReport() throws IOException {
-		prepareTask(Task.CHECK_ARCHITECTURE_TEST, "nullmarked/notannotated");
-		build(this.gradleBuild.withNullMarkedEnabled(true), Task.CHECK_ARCHITECTURE_TEST);
-	}
-
-	@Test
 	void whenEnumSourceValueIsInferredShouldSucceedAndWriteEmptyReport() throws IOException {
 		prepareTask(Task.CHECK_ARCHITECTURE_TEST, "junit/enumsource/inferredfromparametertype");
 		build(this.gradleBuild.withDependencies(JUNIT_JUPITER), Task.CHECK_ARCHITECTURE_TEST);
@@ -324,8 +410,7 @@ class ArchitectureCheckTests {
 	@Test
 	void whenConditionalOnClassUsedOnBeanMethodsWithMainSourcesShouldFailAndWriteReport() throws IOException {
 		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "conditionalonclass", "annotations");
-		GradleBuild gradleBuild = this.gradleBuild.withDependencies(SPRING_CONTEXT)
-			.withConditionalOnClassAnnotation(TestConditionalOnClass.class.getName());
+		GradleBuild gradleBuild = this.gradleBuild.withDependencies(SPRING_CONTEXT).withConditionalOnClassAnnotation();
 		buildAndFail(gradleBuild, Task.CHECK_ARCHITECTURE_MAIN,
 				"because @ConditionalOnClass on @Bean methods is ineffective - it doesn't prevent"
 						+ " the method signature from being loaded. Such condition need to be placed"
@@ -335,9 +420,35 @@ class ArchitectureCheckTests {
 	@Test
 	void whenConditionalOnClassUsedOnBeanMethodsWithTestSourcesShouldSucceedAndWriteEmptyReport() throws IOException {
 		prepareTask(Task.CHECK_ARCHITECTURE_TEST, "conditionalonclass", "annotations");
-		GradleBuild gradleBuild = this.gradleBuild.withDependencies(SPRING_CONTEXT)
-			.withConditionalOnClassAnnotation(TestConditionalOnClass.class.getName());
+		GradleBuild gradleBuild = this.gradleBuild.withDependencies(SPRING_CONTEXT).withConditionalOnClassAnnotation();
 		build(gradleBuild, Task.CHECK_ARCHITECTURE_TEST);
+	}
+
+	@Test
+	void whenDeprecatedConfigurationPropertyIsMissingSinceShouldFailAndWriteReport() throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "configurationproperties/deprecatedsince", "annotations");
+		GradleBuild gradleBuild = this.gradleBuild.withDependencies(SPRING_CONTEXT)
+			.withDeprecatedConfigurationPropertyAnnotation();
+		buildAndFail(gradleBuild, Task.CHECK_ARCHITECTURE_MAIN,
+				"should include a non-empty 'since' attribute of @DeprecatedConfigurationProperty",
+				"DeprecatedConfigurationPropertySince.getProperty");
+	}
+
+	@Test
+	void whenCustomAssertionMethodNotReturningSelfIsAnnotatedWithCheckReturnValueShouldSucceedAndWriteEmptyReport()
+			throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "assertj/checkReturnValue");
+		build(this.gradleBuild.withDependencies(ASSERTJ_CORE, SPRING_CORE), Task.CHECK_ARCHITECTURE_MAIN);
+	}
+
+	@Test
+	void whenCustomAssertionMethodNotReturningSelfIsNotAnnotatedWithCheckReturnValueShouldFailAndWriteReport()
+			throws IOException {
+		prepareTask(Task.CHECK_ARCHITECTURE_MAIN, "assertj/noCheckReturnValue");
+		buildAndFail(this.gradleBuild.withDependencies(ASSERTJ_CORE), Task.CHECK_ARCHITECTURE_MAIN,
+				"methods that are declared in classes that implement org.assertj.core.api.Assert and "
+						+ "are public and do not have modifier BRIDGE and do not return self type should be annotated "
+						+ "with @CheckReturnValue");
 	}
 
 	private void prepareTask(Task task, String... sourceDirectories) throws IOException {
@@ -372,7 +483,12 @@ class ArchitectureCheckTests {
 		try {
 			BuildResult buildResult = gradleBuild.buildAndFail(task.toString());
 			assertThat(buildResult.taskPaths(TaskOutcome.FAILED)).as(buildResult.getOutput()).contains(":" + task);
-			assertThat(task.getFailureReport(gradleBuild.getProjectDir())).contains(messages);
+			try {
+				assertThat(task.getFailureReport(gradleBuild.getProjectDir())).contains(messages);
+			}
+			catch (NoSuchFileException ex) {
+				throw new AssertionError("Expected failure report not found\n" + buildResult.getOutput());
+			}
 		}
 		catch (UnexpectedBuildSuccess ex) {
 			throw new AssertionError("Expected build to fail but it succeeded\n" + ex.getBuildResult().getOutput(), ex);
@@ -405,7 +521,7 @@ class ArchitectureCheckTests {
 
 		@Override
 		public String toString() {
-			return "checkArchitecture" + StringUtils.capitalize(this.sourceSetName);
+			return "checkArchitecture" + StringUtils.capitalize(this.sourceSetName) + "Java";
 		}
 
 	}
@@ -415,8 +531,6 @@ class ArchitectureCheckTests {
 		private final Path projectDir;
 
 		private final Set<String> dependencies = new LinkedHashSet<>();
-
-		private NullMarkedExtension nullMarkedExtension;
 
 		private final Map<Task, TaskConfiguration> taskConfigurations = new LinkedHashMap<>();
 
@@ -436,34 +550,45 @@ class ArchitectureCheckTests {
 			return this;
 		}
 
-		GradleBuild withConditionalOnClassAnnotation(String annotationName) {
+		GradleBuild withConditionalOnClassAnnotation() {
+			configureTasks(ArchitectureCheckAnnotation.CONDITIONAL_ON_CLASS.name(),
+					TestConditionalOnClass.class.getName());
+			return this;
+		}
+
+		GradleBuild withConditionalOnMissingBeanAnnotation() {
+			configureTasks(ArchitectureCheckAnnotation.CONDITIONAL_ON_MISSING_BEAN.name(),
+					TestConditionalOnMissingBean.class.getName());
+			return this;
+		}
+
+		GradleBuild withConfigurationPropertiesAnnotation() {
+			configureTasks(ArchitectureCheckAnnotation.CONFIGURATION_PROPERTIES.name(),
+					TestConfigurationProperties.class.getName());
+			return this;
+		}
+
+		GradleBuild withConfigurationPropertiesBindingAnnotation() {
+			configureTasks(ArchitectureCheckAnnotation.CONFIGURATION_PROPERTIES_BINDING.name(),
+					TestConfigurationPropertiesBinding.class.getName());
+			return this;
+		}
+
+		GradleBuild withDeprecatedConfigurationPropertyAnnotation() {
+			configureTasks(ArchitectureCheckAnnotation.DEPRECATED_CONFIGURATION_PROPERTY.name(),
+					TestDeprecatedConfigurationProperty.class.getName());
+			return this;
+		}
+
+		private void configureTasks(String annotationName, String annotationClass) {
 			for (Task task : Task.values()) {
-				configureTask(task, (configuration) -> configuration.withConditionalOnClassAnnotation(annotationName));
+				configureTask(task, (configuration) -> configuration.withAnnotation(annotationName, annotationClass));
 			}
-			return this;
-		}
-
-		GradleBuild withNullMarkedEnabled(Boolean enabled) {
-			configureNullMarkedExtension((nullMarked) -> nullMarked.withEnabled(enabled));
-			return this;
-		}
-
-		GradleBuild withNullMarkedIgnoredPackages(String... ignorePackages) {
-			configureNullMarkedExtension((nullMarked) -> nullMarked.withIgnoredPackages(ignorePackages));
-			return this;
 		}
 
 		private void configureTask(Task task, UnaryOperator<TaskConfiguration> configurer) {
 			this.taskConfigurations.computeIfAbsent(task, (key) -> new TaskConfiguration(null, null));
 			this.taskConfigurations.compute(task, (key, value) -> configurer.apply(value));
-		}
-
-		private void configureNullMarkedExtension(UnaryOperator<NullMarkedExtension> configurer) {
-			NullMarkedExtension nullMarkedExtension = this.nullMarkedExtension;
-			if (nullMarkedExtension == null) {
-				nullMarkedExtension = new NullMarkedExtension(null, null);
-			}
-			this.nullMarkedExtension = configurer.apply(nullMarkedExtension);
 		}
 
 		GradleBuild withDependencies(String... dependencies) {
@@ -498,37 +623,20 @@ class ArchitectureCheckTests {
 				for (String dependency : this.dependencies) {
 					buildFile.append("\n    implementation ").append(StringUtils.quote(dependency));
 				}
-				buildFile.append("}\n");
+				buildFile.append("\n}\n\n");
 			}
 			this.taskConfigurations.forEach((task, configuration) -> {
 				buildFile.append(task).append(" {");
-				if (configuration.conditionalOnClassAnnotation() != null) {
-					buildFile.append("\n    conditionalOnClassAnnotation = ")
-						.append(StringUtils.quote(configuration.conditionalOnClassAnnotation()));
-				}
 				if (configuration.prohibitObjectsRequireNonNull() != null) {
 					buildFile.append("\n    prohibitObjectsRequireNonNull = ")
 						.append(configuration.prohibitObjectsRequireNonNull());
 				}
+				if (configuration.annotations() != null && !configuration.annotations().isEmpty()) {
+					buildFile.append("\n    annotationClasses = ")
+						.append(toGroovyMapString(configuration.annotations()));
+				}
 				buildFile.append("\n}\n");
 			});
-			NullMarkedExtension nullMarkedExtension = this.nullMarkedExtension;
-			if (nullMarkedExtension != null) {
-				buildFile.append("architectureCheck {");
-				buildFile.append("\n    nullMarked {");
-				if (nullMarkedExtension.enabled() != null) {
-					buildFile.append("\n        enabled = ").append(nullMarkedExtension.enabled());
-				}
-				if (!CollectionUtils.isEmpty(nullMarkedExtension.ignoredPackages())) {
-					buildFile.append("\n        ignoredPackages = ")
-						.append(nullMarkedExtension.ignoredPackages()
-							.stream()
-							.map(StringUtils::quote)
-							.collect(Collectors.joining(",", "[", "]")));
-				}
-				buildFile.append("\n     }");
-				buildFile.append("\n}\n\n");
-			}
 			Files.writeString(this.projectDir.resolve("build.gradle"), buildFile, StandardCharsets.UTF_8);
 			return GradleRunner.create()
 				.withProjectDir(this.projectDir.toFile())
@@ -536,27 +644,31 @@ class ArchitectureCheckTests {
 				.withPluginClasspath();
 		}
 
-		private record NullMarkedExtension(Boolean enabled, Set<String> ignoredPackages) {
-
-			private NullMarkedExtension withEnabled(Boolean enabled) {
-				return new NullMarkedExtension(enabled, this.ignoredPackages);
-			}
-
-			private NullMarkedExtension withIgnoredPackages(String... ignoredPackages) {
-				return new NullMarkedExtension(this.enabled, new LinkedHashSet<>(Arrays.asList(ignoredPackages)));
-			}
-
+		static String toGroovyMapString(Map<String, String> map) {
+			return map.entrySet()
+				.stream()
+				.map((entry) -> "'" + entry.getKey() + "' : '" + entry.getValue() + "'")
+				.collect(Collectors.joining(", ", "[", "]"));
 		}
 
-		private record TaskConfiguration(Boolean prohibitObjectsRequireNonNull, String conditionalOnClassAnnotation) {
+		private record TaskConfiguration(Boolean prohibitObjectsRequireNonNull, Map<String, String> annotations) {
 
-			private TaskConfiguration withConditionalOnClassAnnotation(String annotationName) {
-				return new TaskConfiguration(this.prohibitObjectsRequireNonNull, annotationName);
+			public TaskConfiguration {
+				if (annotations == null) {
+					annotations = new HashMap<>();
+				}
 			}
 
 			private TaskConfiguration withProhibitObjectsRequireNonNull(Boolean prohibitObjectsRequireNonNull) {
-				return new TaskConfiguration(prohibitObjectsRequireNonNull, this.conditionalOnClassAnnotation);
+				return new TaskConfiguration(prohibitObjectsRequireNonNull, this.annotations);
 			}
+
+			private TaskConfiguration withAnnotation(String name, String annotationClass) {
+				Map<String, String> map = new HashMap<>(this.annotations);
+				map.put(name, annotationClass);
+				return new TaskConfiguration(this.prohibitObjectsRequireNonNull, map);
+			}
+
 		}
 
 	}

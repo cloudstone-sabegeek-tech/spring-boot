@@ -61,6 +61,7 @@ import org.springframework.kafka.security.jaas.KafkaJaasLoginModuleInitializer;
 import org.springframework.kafka.support.LoggingProducerListener;
 import org.springframework.kafka.support.ProducerListener;
 import org.springframework.kafka.support.converter.RecordMessageConverter;
+import org.springframework.kafka.support.micrometer.KafkaTemplateObservationConvention;
 import org.springframework.kafka.transaction.KafkaTransactionManager;
 import org.springframework.util.StringUtils;
 import org.springframework.util.backoff.BackOff;
@@ -103,10 +104,12 @@ public final class KafkaAutoConfiguration {
 	@ConditionalOnMissingBean(KafkaTemplate.class)
 	KafkaTemplate<?, ?> kafkaTemplate(ProducerFactory<Object, Object> kafkaProducerFactory,
 			ProducerListener<Object, Object> kafkaProducerListener,
-			ObjectProvider<RecordMessageConverter> messageConverter) {
+			ObjectProvider<RecordMessageConverter> messageConverter,
+			ObjectProvider<KafkaTemplateObservationConvention> observationConvention) {
 		PropertyMapper map = PropertyMapper.get();
 		KafkaTemplate<Object, Object> kafkaTemplate = new KafkaTemplate<>(kafkaProducerFactory);
 		messageConverter.ifUnique(kafkaTemplate::setMessageConverter);
+		observationConvention.ifUnique(kafkaTemplate::setObservationConvention);
 		map.from(kafkaProducerListener).to(kafkaTemplate::setProducerListener);
 		map.from(this.properties.getTemplate().getDefaultTopic()).to(kafkaTemplate::setDefaultTopic);
 		map.from(this.properties.getTemplate().getTransactionIdPrefix()).to(kafkaTemplate::setTransactionIdPrefix);
@@ -228,7 +231,7 @@ public final class KafkaAutoConfiguration {
 
 	static BackOff getBackOff(Backoff retryTopicBackoff) {
 		PropertyMapper map = PropertyMapper.get();
-		RetryPolicy.Builder builder = RetryPolicy.builder().maxAttempts(Long.MAX_VALUE);
+		RetryPolicy.Builder builder = RetryPolicy.builder().maxRetries(Long.MAX_VALUE);
 		map.from(retryTopicBackoff.getDelay()).to(builder::delay);
 		map.from(retryTopicBackoff.getMaxDelay()).when(Predicate.not(Duration::isZero)).to(builder::maxDelay);
 		map.from(retryTopicBackoff.getMultiplier()).to(builder::multiplier);

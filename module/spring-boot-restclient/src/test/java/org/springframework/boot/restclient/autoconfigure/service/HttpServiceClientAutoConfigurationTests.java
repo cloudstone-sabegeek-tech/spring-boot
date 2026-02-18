@@ -20,9 +20,15 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Redirect;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hc.client5.http.HttpRoute;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.core5.function.Resolver;
+import org.apache.hc.core5.util.Timeout;
 import org.assertj.core.extractor.Extractors;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,12 +40,15 @@ import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.boot.http.client.HttpRedirects;
 import org.springframework.boot.http.client.autoconfigure.HttpClientAutoConfiguration;
 import org.springframework.boot.http.client.autoconfigure.imperative.ImperativeHttpClientAutoConfiguration;
+import org.springframework.boot.http.client.autoconfigure.service.HttpServiceClientPropertiesAutoConfiguration;
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClient.Builder;
@@ -60,7 +69,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Tests for {@link HttpServiceClientAutoConfiguration},
+ * Tests for {@link HttpServiceClientPropertiesAutoConfiguration},
  * {@link PropertiesRestClientHttpServiceGroupConfigurer} and
  * {@link RestClientCustomizerHttpServiceGroupConfigurer}.
  *
@@ -69,8 +78,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class HttpServiceClientAutoConfigurationTests {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-		.withConfiguration(AutoConfigurations.of(HttpServiceClientAutoConfiguration.class,
-				ImperativeHttpClientAutoConfiguration.class, RestClientAutoConfiguration.class));
+		.withConfiguration(AutoConfigurations.of(HttpServiceClientPropertiesAutoConfiguration.class,
+				HttpServiceClientAutoConfiguration.class, ImperativeHttpClientAutoConfiguration.class,
+				RestClientAutoConfiguration.class));
 
 	@Test
 	void configuresClientFromProperties() {
@@ -128,8 +138,23 @@ class HttpServiceClientAutoConfigurationTests {
 		callback.withClient(group, builder);
 		ArgumentCaptor<ClientHttpRequestFactory> requestFactoryCaptor = ArgumentCaptor.captor();
 		then(builder).should().requestFactory(requestFactoryCaptor.capture());
-		ClientHttpRequestFactory client = requestFactoryCaptor.getValue();
-		assertThat(client).extracting("connectTimeout").isEqualTo(expectedReadTimeout);
+		HttpComponentsClientHttpRequestFactory client = (HttpComponentsClientHttpRequestFactory) requestFactoryCaptor
+			.getValue();
+		assertThat(getConnectorConfig(client).getConnectTimeout())
+			.isEqualTo(Timeout.of(Duration.ofMillis(expectedReadTimeout)));
+	}
+
+	@SuppressWarnings("unchecked")
+	private ConnectionConfig getConnectorConfig(HttpComponentsClientHttpRequestFactory requestFactory) {
+		CloseableHttpClient httpClient = (CloseableHttpClient) ReflectionTestUtils.getField(requestFactory,
+				"httpClient");
+		assertThat(httpClient).isNotNull();
+		Object manager = ReflectionTestUtils.getField(httpClient, "connManager");
+		assertThat(manager).isNotNull();
+		Resolver<HttpRoute, ConnectionConfig> resolver = (Resolver<HttpRoute, ConnectionConfig>) ReflectionTestUtils
+			.getField(manager, "connectionConfigResolver");
+		assertThat(resolver).isNotNull();
+		return resolver.resolve(null);
 	}
 
 	@Test

@@ -24,16 +24,14 @@ plugins {
 
 repositories {
 	mavenCentral()
+	spring.mavenRepositoriesFor("${springFrameworkVersion}")
 	gradlePluginPortal()
+	maven { url = "https://repo.spring.io/snapshot" }
 }
 
 java {
 	sourceCompatibility = 17
 	targetCompatibility = 17
-}
-
-repositories {
-	spring.mavenRepositories("${springFrameworkVersion}".contains("-"))
 }
 
 checkstyle {
@@ -47,8 +45,8 @@ dependencies {
 	implementation(platform("com.fasterxml.jackson:jackson-bom:${jackson2Version}"))
 	implementation(platform("tools.jackson:jackson-bom:${jacksonVersion}"))
 	implementation(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	implementation("com.github.node-gradle:gradle-node-plugin:3.5.1")
-	implementation("com.gradle:develocity-gradle-plugin:3.17.2")
+	implementation("com.github.node-gradle:gradle-node-plugin:7.1.0")
+	implementation("com.gradle:develocity-gradle-plugin:4.2.2")
 	implementation("com.tngtech.archunit:archunit:1.4.1")
 	implementation("commons-codec:commons-codec:${commonsCodecVersion}")
 	implementation("de.undercouch.download:de.undercouch.download.gradle.plugin:5.5.0")
@@ -82,6 +80,8 @@ configurations.all {
 	exclude group:"org.slf4j", module:"slf4j-api"
 	exclude group:"ch.qos.logback", module:"logback-classic"
 	exclude group:"ch.qos.logback", module:"logback-core"
+
+	resolutionStrategy.cacheChangingModulesFor 0, "minutes"
 }
 
 gradlePlugin {
@@ -113,6 +113,10 @@ gradlePlugin {
 		bomPlugin {
 			id = "org.springframework.boot.bom"
 			implementationClass = "org.springframework.boot.build.bom.BomPlugin"
+		}
+		configurationMetadataPlugin {
+			id = "org.springframework.boot.configuration-metadata"
+			implementationClass = "org.springframework.boot.build.context.properties.ConfigurationMetadataPlugin"
 		}
 		configurationPropertiesPlugin {
 			id = "org.springframework.boot.configuration-properties"

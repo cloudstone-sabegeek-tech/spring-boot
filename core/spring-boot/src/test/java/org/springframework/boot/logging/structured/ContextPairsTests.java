@@ -58,7 +58,7 @@ class ContextPairsTests {
 	}
 
 	@Test
-	void flatWhenPrefixEndingWithDelimeterAppliesPrefix() {
+	void flatWhenPrefixEndingWithDelimiterAppliesPrefix() {
 		ContextPairs contextPairs = new ContextPairs(true, "the_");
 		Map<String, String> map = Map.of("spring", "boot");
 		Map<String, Object> actual = apply(contextPairs.flat("_", (pairs) -> pairs.addMapEntries((item) -> map)));
@@ -66,7 +66,7 @@ class ContextPairsTests {
 	}
 
 	@Test
-	void flatWhenPrefixAndNameStartingWithDelimeterAppliesPrefix() {
+	void flatWhenPrefixAndNameStartingWithDelimiterAppliesPrefix() {
 		ContextPairs contextPairs = new ContextPairs(true, "the");
 		Map<String, String> map = Map.of("_spring", "boot");
 		Map<String, Object> actual = apply(contextPairs.flat("_", (pairs) -> pairs.addMapEntries((item) -> map)));
@@ -117,6 +117,19 @@ class ContextPairsTests {
 		b1.put("c1", "A1B1C1");
 		b1.put("c2", "A1B1C2");
 		b2.put("c1", "A1B2C1");
+		assertThat(actual).isEqualTo(expected);
+	}
+
+	@Test
+	void nestedWhenNameEndsWithDelimiterDropsTrailingDelimiter() {
+		ContextPairs contextPairs = new ContextPairs(true, null);
+		Map<String, String> map = new LinkedHashMap<>();
+		map.put("a1.b1.", "A1B1");
+		Map<String, Object> actual = apply(contextPairs.nested((pairs) -> pairs.addMapEntries((item) -> map)));
+		Map<String, Object> expected = new LinkedHashMap<>();
+		Map<String, Object> a1 = new LinkedHashMap<>();
+		expected.put("a1", a1);
+		a1.put("b1", "A1B1");
 		assertThat(actual).isEqualTo(expected);
 	}
 

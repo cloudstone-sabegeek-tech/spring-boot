@@ -36,7 +36,7 @@ import org.springframework.boot.buildpack.platform.docker.DockerLog;
 import org.springframework.boot.buildpack.platform.docker.ImagePlatform;
 import org.springframework.boot.buildpack.platform.docker.TotalProgressPullListener;
 import org.springframework.boot.buildpack.platform.docker.configuration.DockerRegistryAuthentication;
-import org.springframework.boot.buildpack.platform.docker.transport.DockerEngineException;
+import org.springframework.boot.buildpack.platform.docker.transport.TestDockerEngineException;
 import org.springframework.boot.buildpack.platform.docker.type.Binding;
 import org.springframework.boot.buildpack.platform.docker.type.ContainerReference;
 import org.springframework.boot.buildpack.platform.docker.type.ContainerStatus;
@@ -77,6 +77,9 @@ class BuilderTests {
 	private static final ImageReference DEFAULT_BUILDER = ImageReference.of(BuildRequest.DEFAULT_BUILDER_IMAGE_REF);
 
 	private static final ImageReference BASE_CNB = ImageReference.of("docker.io/cloudfoundry/run:base-cnb");
+
+	private static final ImageReference PLATFORM_CNB = ImageReference
+		.of("docker.io/cloudfoundry/run@sha256:fb5ecb90a42b2067a859aab23fc1f5e9d9c2589d07ba285608879e7baa415aad");
 
 	@Test
 	@SuppressWarnings("NullAway") // Test null check
@@ -278,8 +281,8 @@ class BuilderTests {
 			.willAnswer(withPulledImage(builderImage));
 		given(docker.image().pull(eq(BASE_CNB), eq(ImagePlatform.from(builderImage)), any(), isNull()))
 			.willAnswer(withPulledImage(runImage));
-		given(docker.image().inspect(eq(DEFAULT_BUILDER))).willReturn(builderImage);
-		given(docker.image().inspect(eq(BASE_CNB))).willReturn(runImage);
+		given(docker.image().inspect(eq(DEFAULT_BUILDER), any())).willReturn(builderImage);
+		given(docker.image().inspect(eq(BASE_CNB), any())).willReturn(runImage);
 		Builder builder = new Builder(BuildLog.to(out), docker, null);
 		BuildRequest request = getTestRequest().withPullPolicy(PullPolicy.NEVER);
 		builder.build(request);
@@ -291,7 +294,7 @@ class BuilderTests {
 		assertThat(tag).isNotNull();
 		then(docker.image()).should().remove(tag, true);
 		then(docker.image()).should(never()).pull(any(), any(), any());
-		then(docker.image()).should(times(2)).inspect(any());
+		then(docker.image()).should(times(2)).inspect(any(), any());
 	}
 
 	@Test
@@ -330,13 +333,13 @@ class BuilderTests {
 			.willAnswer(withPulledImage(builderImage));
 		given(docker.image().pull(eq(BASE_CNB), eq(ImagePlatform.from(builderImage)), any(), isNull()))
 			.willAnswer(withPulledImage(runImage));
-		given(docker.image().inspect(eq(DEFAULT_BUILDER)))
-			.willThrow(
-					new DockerEngineException("docker://localhost/", new URI("example"), 404, "NOT FOUND", null, null))
+		given(docker.image().inspect(eq(DEFAULT_BUILDER), any()))
+			.willThrow(new TestDockerEngineException("docker://localhost/", new URI("example"), 404, "NOT FOUND", null,
+					null, null))
 			.willReturn(builderImage);
-		given(docker.image().inspect(eq(BASE_CNB)))
-			.willThrow(
-					new DockerEngineException("docker://localhost/", new URI("example"), 404, "NOT FOUND", null, null))
+		given(docker.image().inspect(eq(BASE_CNB), any()))
+			.willThrow(new TestDockerEngineException("docker://localhost/", new URI("example"), 404, "NOT FOUND", null,
+					null, null))
 			.willReturn(runImage);
 		Builder builder = new Builder(BuildLog.to(out), docker, null);
 		BuildRequest request = getTestRequest().withPullPolicy(PullPolicy.IF_NOT_PRESENT);
@@ -348,7 +351,7 @@ class BuilderTests {
 		ImageReference tag = archive.getValue().getTag();
 		assertThat(tag).isNotNull();
 		then(docker.image()).should().remove(tag, true);
-		then(docker.image()).should(times(2)).inspect(any());
+		then(docker.image()).should(times(2)).inspect(any(), any());
 		then(docker.image()).should(times(2)).pull(any(), any(), any(), isNull());
 	}
 
@@ -425,6 +428,8 @@ class BuilderTests {
 		given(docker.image().pull(eq(DEFAULT_BUILDER), eq(platform), any(), isNull()))
 			.willAnswer(withPulledImage(builderImage));
 		given(docker.image().pull(eq(BASE_CNB), eq(platform), any(), isNull())).willAnswer(withPulledImage(runImage));
+		given(docker.image().pull(eq(PLATFORM_CNB), eq(platform), any(), isNull()))
+			.willAnswer(withPulledImage(runImage));
 		Builder builder = new Builder(BuildLog.to(out), docker, null);
 		BuildRequest request = getTestRequest().withImagePlatform("linux/arm64/v1");
 		builder.build(request);
@@ -433,6 +438,7 @@ class BuilderTests {
 		ArgumentCaptor<ImageArchive> archive = ArgumentCaptor.forClass(ImageArchive.class);
 		then(docker.image()).should().pull(eq(DEFAULT_BUILDER), eq(platform), any(), isNull());
 		then(docker.image()).should().pull(eq(BASE_CNB), eq(platform), any(), isNull());
+		then(docker.image()).should().pull(eq(PLATFORM_CNB), eq(platform), any(), isNull());
 		then(docker.image()).should().load(archive.capture(), any());
 		ImageReference tag = archive.getValue().getTag();
 		assertThat(tag).isNotNull();

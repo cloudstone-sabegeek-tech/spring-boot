@@ -106,24 +106,11 @@ public class ThymeleafProperties {
 	 * Whether hidden form inputs acting as markers for checkboxes should be rendered
 	 * before the checkbox element itself.
 	 */
-	private boolean renderHiddenMarkersBeforeCheckboxes = false;
-
-	/**
-	 * Whether to enable Thymeleaf view resolution for Web frameworks.
-	 */
-	private boolean enabled = true;
+	private boolean renderHiddenMarkersBeforeCheckboxes;
 
 	private final Servlet servlet = new Servlet();
 
 	private final Reactive reactive = new Reactive();
-
-	public boolean isEnabled() {
-		return this.enabled;
-	}
-
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-	}
 
 	public boolean isCheckTemplate() {
 		return this.checkTemplate;

@@ -38,15 +38,17 @@ class JettyVirtualThreadsWebServerFactoryCustomizerTests {
 	@Test
 	@EnabledForJreRange(min = JRE.JAVA_21)
 	void shouldConfigureVirtualThreads() {
-		JettyServerProperties properties = new JettyServerProperties();
+		JettyServerProperties serverProperties = new JettyServerProperties();
+		serverProperties.getThreads().setMax(100);
 		JettyVirtualThreadsWebServerFactoryCustomizer customizer = new JettyVirtualThreadsWebServerFactoryCustomizer(
-				properties);
+				serverProperties);
 		ConfigurableJettyWebServerFactory factory = mock(ConfigurableJettyWebServerFactory.class);
 		customizer.customize(factory);
 		then(factory).should().setThreadPool(assertArg((threadPool) -> {
 			assertThat(threadPool).isInstanceOf(VirtualThreadPool.class);
 			VirtualThreadPool virtualThreadPool = (VirtualThreadPool) threadPool;
 			assertThat(virtualThreadPool.getName()).isEqualTo("jetty-");
+			assertThat(virtualThreadPool.getMaxConcurrentTasks()).isEqualTo(100);
 		}));
 	}
 

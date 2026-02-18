@@ -20,10 +20,8 @@ import java.util.Collection;
 
 import org.jspecify.annotations.Nullable;
 
-import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverters.ServerBuilder;
-import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverter;
 
 @SuppressWarnings("deprecation")
@@ -43,22 +41,16 @@ class DefaultServerHttpMessageConvertersCustomizer implements ServerHttpMessageC
 	@Override
 	public void customize(ServerBuilder builder) {
 		if (this.legacyConverters != null) {
-			this.legacyConverters.forEach(builder::customMessageConverter);
+			this.legacyConverters.forEach(builder::addCustomConverter);
 		}
 		else {
 			builder.registerDefaults();
 			this.converters.forEach((converter) -> {
-				if (converter instanceof StringHttpMessageConverter) {
-					builder.stringMessageConverter(converter);
-				}
-				else if (converter instanceof KotlinSerializationJsonHttpMessageConverter) {
-					builder.customMessageConverter(converter);
-				}
-				else if (converter.getSupportedMediaTypes().contains(MediaType.APPLICATION_JSON)) {
-					builder.jsonMessageConverter(converter);
+				if (converter instanceof KotlinSerializationJsonHttpMessageConverter) {
+					builder.withKotlinSerializationJsonConverter(converter);
 				}
 				else {
-					builder.customMessageConverter(converter);
+					builder.addCustomConverter(converter);
 				}
 			});
 		}

@@ -59,7 +59,7 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultBeanNameGenerator;
 import org.springframework.boot.Banner.Mode;
-import org.springframework.boot.SpringApplication.NativeImageRequirementsNotMetException;
+import org.springframework.boot.SpringApplication.NativeImageRequirementsException;
 import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.AvailabilityState;
 import org.springframework.boot.availability.LivenessState;
@@ -753,12 +753,31 @@ class SpringApplicationTests {
 		try {
 			SpringApplication application = new SpringApplication();
 			application.setWebApplicationType(WebApplicationType.NONE);
-			assertThatExceptionOfType(NativeImageRequirementsNotMetException.class).isThrownBy(application::run)
-				.withMessage(
-						"Native Image requirements not met, please upgrade it. Native Image must support at least Java 25");
+			assertThatExceptionOfType(NativeImageRequirementsException.class).isThrownBy(application::run)
+				.withMessage("Native Image requirements not met. "
+						+ "Native Image must support at least Java 25 but Java %d was detected"
+							.formatted(Runtime.version().feature()));
 		}
 		finally {
 			System.clearProperty("org.graalvm.nativeimage.imagecode");
+		}
+	}
+
+	@Test
+	@ForkedClassPath
+	@EnabledForJreRange(max = JRE.JAVA_24)
+	void missingAotInitializerTakesPrecedenceOverNativeImageRequirementsCheck() {
+		System.setProperty("spring.aot.enabled", "true");
+		System.setProperty("org.graalvm.nativeimage.imagecode", "true");
+		try {
+			SpringApplication application = new SpringApplication();
+			application.setWebApplicationType(WebApplicationType.NONE);
+			assertThatExceptionOfType(AotInitializerNotFoundException.class).isThrownBy(application::run)
+				.withMessageStartingWith("Startup with AOT mode enabled failed");
+		}
+		finally {
+			System.clearProperty("org.graalvm.nativeimage.imagecode");
+			System.clearProperty("spring.aot.enabled");
 		}
 	}
 

@@ -65,7 +65,7 @@ import org.apache.hc.client5.http.HttpHostConnectException;
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
-import org.apache.hc.client5.http.ssl.TlsSocketStrategy;
+import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -160,7 +160,9 @@ class TomcatServletWebServerFactoryTests extends AbstractServletWebServerFactory
 		assertThat(factory.getContextLifecycleListeners()).isEmpty();
 		TomcatWebServer tomcatWebServer = (TomcatWebServer) factory.getWebServer();
 		this.webServer = tomcatWebServer;
-		assertThat(tomcatWebServer.getTomcat().getServer().findLifecycleListeners()).isEmpty();
+		assertThat(tomcatWebServer.getTomcat().getServer().findLifecycleListeners())
+			.extracting((listener) -> listener.getClass().getSimpleName())
+			.containsExactly("CleanTempDirsListener");
 	}
 
 	@Test
@@ -169,8 +171,8 @@ class TomcatServletWebServerFactoryTests extends AbstractServletWebServerFactory
 		factory.setUseApr(true);
 		TomcatWebServer tomcatWebServer = (TomcatWebServer) factory.getWebServer();
 		this.webServer = tomcatWebServer;
-		assertThat(tomcatWebServer.getTomcat().getServer().findLifecycleListeners()).singleElement()
-			.isInstanceOf(AprLifecycleListener.class);
+		assertThat(tomcatWebServer.getTomcat().getServer().findLifecycleListeners())
+			.anyMatch(AprLifecycleListener.class::isInstance);
 	}
 
 	@Test
@@ -688,7 +690,8 @@ class TomcatServletWebServerFactoryTests extends AbstractServletWebServerFactory
 		this.webServer.start();
 		RememberingHostnameVerifier verifier = new RememberingHostnameVerifier();
 		SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
-		TlsSocketStrategy tlsSocketStrategy = new DefaultClientTlsStrategy(sslContext, verifier);
+		DefaultClientTlsStrategy tlsSocketStrategy = new DefaultClientTlsStrategy(sslContext,
+				HostnameVerificationPolicy.CLIENT, verifier);
 		HttpComponentsClientHttpRequestFactory requestFactory = createHttpComponentsRequestFactory(tlsSocketStrategy);
 		assertThat(getResponse(getLocalUrl("https", "/test.txt"), requestFactory)).isEqualTo("test");
 		assertThat(verifier.getLastPrincipal()).isEqualTo("CN=1");

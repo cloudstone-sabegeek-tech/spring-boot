@@ -52,7 +52,7 @@ import static org.assertj.core.api.Assertions.entry;
  * Tests for {@link JsonMixinModuleEntriesBeanRegistrationAotProcessor}.
  *
  * @author Stephane Nicoll
- * @deprecated since 4.0.0 for removal in 4.2.0 in favor of Jackson 3
+ * @deprecated since 4.0.0 for removal in 4.3.0 in favor of Jackson 3
  */
 @CompileWithForkedClassLoader
 @Deprecated(since = "4.0.0", forRemoval = true)
@@ -109,14 +109,17 @@ class JsonMixinModuleEntriesBeanRegistrationAotProcessorTests {
 	@SuppressWarnings("unchecked")
 	private void compile(BiConsumer<GenericApplicationContext, Compiled> result) {
 		ClassName className = processAheadOfTime();
-		TestCompiler.forSystem().with(this.generationContext).compile((compiled) -> {
-			GenericApplicationContext freshApplicationContext = new GenericApplicationContext();
-			ApplicationContextInitializer<GenericApplicationContext> initializer = compiled
-				.getInstance(ApplicationContextInitializer.class, className.toString());
-			initializer.initialize(freshApplicationContext);
-			freshApplicationContext.refresh();
-			result.accept(freshApplicationContext, compiled);
-		});
+		TestCompiler.forSystem()
+			.withCompilerOptions("-Xlint:deprecation,removal", "-Werror")
+			.with(this.generationContext)
+			.compile((compiled) -> {
+				GenericApplicationContext freshApplicationContext = new GenericApplicationContext();
+				ApplicationContextInitializer<GenericApplicationContext> initializer = compiled
+					.getInstance(ApplicationContextInitializer.class, className.toString());
+				initializer.initialize(freshApplicationContext);
+				freshApplicationContext.refresh();
+				result.accept(freshApplicationContext, compiled);
+			});
 	}
 
 	private void registerEntries(Class<?>... basePackageClasses) {

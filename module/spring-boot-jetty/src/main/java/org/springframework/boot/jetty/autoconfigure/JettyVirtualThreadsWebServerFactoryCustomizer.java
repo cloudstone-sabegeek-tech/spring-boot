@@ -18,14 +18,11 @@ package org.springframework.boot.jetty.autoconfigure;
 
 import org.eclipse.jetty.util.VirtualThreads;
 import org.eclipse.jetty.util.thread.VirtualThreadPool;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.boot.context.properties.bind.Bindable;
-import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.jetty.ConfigurableJettyWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
-import org.springframework.context.EnvironmentAware;
 import org.springframework.core.Ordered;
-import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 
 /**
@@ -36,35 +33,52 @@ import org.springframework.util.Assert;
  * @since 4.0.0
  */
 public class JettyVirtualThreadsWebServerFactoryCustomizer
-		implements WebServerFactoryCustomizer<ConfigurableJettyWebServerFactory>, Ordered, EnvironmentAware {
+		implements WebServerFactoryCustomizer<ConfigurableJettyWebServerFactory>, Ordered {
 
-	private final JettyServerProperties jettyProperties;
+	private final @Nullable JettyServerProperties serverProperties;
 
-	private final boolean bind;
+	/**
+	 * Create a new JettyVirtualThreadsWebServerFactoryCustomizer.
+	 * @deprecated since 4.0.3 for removal in 4.3.0 in favor of
+	 * {@link #JettyVirtualThreadsWebServerFactoryCustomizer(JettyServerProperties)}
+	 */
+	@Deprecated(since = "4.0.3", forRemoval = true)
+	// Suppress the null passing here as we don't want to put @Nullable on the
+	// JettyServerProperties in the other constructor
+	@SuppressWarnings("NullAway")
+	public JettyVirtualThreadsWebServerFactoryCustomizer() {
+		this(null);
+	}
 
-	public JettyVirtualThreadsWebServerFactoryCustomizer(JettyServerProperties jettyProperties) {
-		this.jettyProperties = jettyProperties;
-		this.bind = false;
+	/**
+	 * Create a new JettyVirtualThreadsWebServerFactoryCustomizer.
+	 * @param serverProperties the server properties
+	 */
+	public JettyVirtualThreadsWebServerFactoryCustomizer(JettyServerProperties serverProperties) {
+		this.serverProperties = serverProperties;
 	}
 
 	@Override
 	public void customize(ConfigurableJettyWebServerFactory factory) {
 		Assert.state(VirtualThreads.areSupported(), "Virtual threads are not supported");
-		VirtualThreadPool virtualThreadPool = new VirtualThreadPool();
+		Integer maxTasks = getMaxTasks();
+		VirtualThreadPool virtualThreadPool = (maxTasks != null) ? new VirtualThreadPool(maxTasks)
+				: new VirtualThreadPool();
 		virtualThreadPool.setName("jetty-");
 		factory.setThreadPool(virtualThreadPool);
+	}
+
+	private @Nullable Integer getMaxTasks() {
+		if (this.serverProperties == null) {
+			return null;
+		}
+		Integer maxThreads = this.serverProperties.getThreads().getMax();
+		return (maxThreads > 0) ? maxThreads : null;
 	}
 
 	@Override
 	public int getOrder() {
 		return JettyWebServerFactoryCustomizer.ORDER + 1;
-	}
-
-	@Override
-	public void setEnvironment(Environment environment) {
-		if (this.bind) {
-			Binder.get(environment).bind("server.jetty", Bindable.ofInstance(this.jettyProperties));
-		}
 	}
 
 }

@@ -29,9 +29,10 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.servlet.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.test.web.servlet.client.RestTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
+import org.springframework.test.web.servlet.client.assertj.RestTestClientResponse;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
@@ -52,10 +53,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 abstract class AbstractSpringBootTestWebServerWebEnvironmentTests {
 
 	@LocalServerPort
-	private int port = 0;
+	private int port;
 
 	@Value("${value}")
-	private int value = 0;
+	private int value;
 
 	@Autowired
 	private WebApplicationContext context;
@@ -92,7 +93,8 @@ abstract class AbstractSpringBootTestWebServerWebEnvironmentTests {
 
 	@Test
 	void injectRestTestClient() {
-		this.restClient.get().uri("/").exchange().expectBody(String.class).isEqualTo("Hello World");
+		ResponseSpec spec = this.restClient.get().uri("/").exchange();
+		assertThat(RestTestClientResponse.from(spec)).bodyText().isEqualTo("Hello World");
 	}
 
 	@Test
@@ -105,7 +107,6 @@ abstract class AbstractSpringBootTestWebServerWebEnvironmentTests {
 		assertThat(this.context).isSameAs(WebApplicationContextUtils.getWebApplicationContext(this.servletContext));
 	}
 
-	@Configuration(proxyBeanMethods = false)
 	static class AbstractConfig {
 
 		@Value("${server.port:8080}")

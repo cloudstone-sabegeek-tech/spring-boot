@@ -24,7 +24,6 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.convert.Delimiter;
 import org.springframework.core.io.Resource;
-import org.springframework.util.StringUtils;
 
 /**
  * Configuration properties for Embedded LDAP.
@@ -39,7 +38,7 @@ public class EmbeddedLdapProperties {
 	/**
 	 * Embedded LDAP port.
 	 */
-	private int port = 0;
+	private int port;
 
 	/**
 	 * Embedded LDAP credentials.
@@ -61,6 +60,11 @@ public class EmbeddedLdapProperties {
 	 * Schema validation.
 	 */
 	private final Validation validation = new Validation();
+
+	/**
+	 * SSL configuration.
+	 */
+	private final Ssl ssl = new Ssl();
 
 	public int getPort() {
 		return this.port;
@@ -98,6 +102,10 @@ public class EmbeddedLdapProperties {
 		return this.validation;
 	}
 
+	public Ssl getSsl() {
+		return this.ssl;
+	}
+
 	public static class Credential {
 
 		/**
@@ -126,8 +134,35 @@ public class EmbeddedLdapProperties {
 			this.password = password;
 		}
 
-		boolean isAvailable() {
-			return StringUtils.hasText(this.username) && StringUtils.hasText(this.password);
+	}
+
+	public static class Ssl {
+
+		/**
+		 * Whether to enable SSL support. Enabled automatically if "bundle" is provided
+		 * unless specified otherwise.
+		 */
+		private @Nullable Boolean enabled;
+
+		/**
+		 * SSL bundle name.
+		 */
+		private @Nullable String bundle;
+
+		public boolean isEnabled() {
+			return (this.enabled != null) ? this.enabled : this.bundle != null;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		public @Nullable String getBundle() {
+			return this.bundle;
+		}
+
+		public void setBundle(@Nullable String bundle) {
+			this.bundle = bundle;
 		}
 
 	}

@@ -30,10 +30,9 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.tomcat.reactive.TomcatReactiveWebServerFactory;
 import org.springframework.boot.web.context.reactive.ReactiveWebApplicationContext;
 import org.springframework.boot.web.server.reactive.ReactiveWebServerFactory;
-import org.springframework.boot.webtestclient.AutoConfigureWebTestClient;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -53,10 +52,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 abstract class AbstractSpringBootTestEmbeddedReactiveWebEnvironmentTests {
 
 	@LocalServerPort
-	private int port = 0;
+	private int port;
 
 	@Value("${value}")
-	private int value = 0;
+	private int value;
 
 	@Autowired
 	private ReactiveWebApplicationContext context;
@@ -101,7 +100,6 @@ abstract class AbstractSpringBootTestEmbeddedReactiveWebEnvironmentTests {
 		assertThat(this.value).isEqualTo(123);
 	}
 
-	@Configuration(proxyBeanMethods = false)
 	static class AbstractConfig {
 
 		@Value("${server.port:8080}")

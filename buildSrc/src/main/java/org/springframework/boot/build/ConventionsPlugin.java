@@ -43,13 +43,15 @@ public class ConventionsPlugin implements Plugin<Project> {
 
 	@Override
 	public void apply(Project project) {
+		SystemRequirementsExtension systemRequirements = project.getExtensions()
+			.create("systemRequirements", SystemRequirementsExtension.class);
 		new NoHttpConventions().apply(project);
-		new JavaConventions().apply(project);
+		new JavaConventions(systemRequirements).apply(project);
 		new MavenPublishingConventions().apply(project);
 		new AntoraConventions().apply(project);
 		new KotlinConventions().apply(project);
 		new WarConventions().apply(project);
-		new EclipseConventions().apply(project);
+		new EclipseConventions(systemRequirements).apply(project);
 		new TestFixturesConventions().apply(project);
 		RepositoryTransformersExtension.apply(project);
 	}

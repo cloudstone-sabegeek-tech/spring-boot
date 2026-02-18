@@ -42,7 +42,7 @@ public class DataRedisProperties {
 	/**
 	 * Database index used by the connection factory.
 	 */
-	private int database = 0;
+	private int database;
 
 	/**
 	 * Connection URL. Overrides host, port, username, password, and database. Example:
@@ -258,7 +258,7 @@ public class DataRedisProperties {
 		 * setting only has an effect if both it and time between eviction runs are
 		 * positive.
 		 */
-		private int minIdle = 0;
+		private int minIdle;
 
 		/**
 		 * Maximum number of connections that can be allocated by the pool at a given
@@ -558,12 +558,6 @@ public class DataRedisProperties {
 				 */
 				private @Nullable Duration period;
 
-				/**
-				 * Whether adaptive topology refreshing using all available refresh
-				 * triggers should be used.
-				 */
-				private boolean adaptive;
-
 				public boolean isDynamicRefreshSources() {
 					return this.dynamicRefreshSources;
 				}
@@ -578,14 +572,6 @@ public class DataRedisProperties {
 
 				public void setPeriod(@Nullable Duration period) {
 					this.period = period;
-				}
-
-				public boolean isAdaptive() {
-					return this.adaptive;
-				}
-
-				public void setAdaptive(boolean adaptive) {
-					this.adaptive = adaptive;
 				}
 
 			}

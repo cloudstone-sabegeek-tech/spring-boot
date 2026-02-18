@@ -294,7 +294,18 @@ This will trigger the import of a `dev.properties` file in current directory (if
 Values from the imported `dev.properties` will take precedence over the file that triggered the import.
 In the above example, the `dev.properties` could redefine `spring.application.name` to a different value.
 
-An import will only be imported once no matter how many times it is declared.
+NOTE: An import will only be imported once no matter how many times it is declared.
+
+By default, properties files are imported using the ISO-8859-1 charset. To change that, you can use the encoding attribute:
+
+[configprops,yaml]
+----
+spring:
+  config:
+    import: "classpath:import.properties[encoding=utf-8]"
+----
+
+The `import.properties` file will now be read in UTF-8 encoding.
 
 
 
@@ -392,6 +403,31 @@ You can import it from your `application.properties` using the following:
 spring:
   config:
     import: "file:/etc/config/myconfig[.yaml]"
+----
+
+This is the shorthand for:
+
+[configprops,yaml]
+----
+spring:
+  config:
+    import: "file:/etc/config/myconfig[extension=.yaml]"
+----
+
+
+
+[[features.external-config.files.attributes]]
+=== File attributes
+
+The configprop:spring.config.import[] configuration property supports file attributes, as shown when specifying the xref:features/external-config.adoc#features.external-config.files.importing[encoding] or the xref:features/external-config.adoc#features.external-config.files.importing-extensionless[extension].
+
+If you need to specify multiple attributes, you can use this syntax:
+
+[configprops,yaml]
+----
+spring:
+  config:
+    import: "file:/etc/config/myconfig[extension=.yaml][encoding=utf-8]"
 ----
 
 
@@ -545,7 +581,7 @@ You should always refer to property names in the placeholder using their canonic
 This will allow Spring Boot to use the same logic as it does when xref:features/external-config.adoc#features.external-config.typesafe-configuration-properties.relaxed-binding[relaxed binding] javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation].
 
 For example, `${demo.item-price}` will pick up `demo.item-price` and `demo.itemPrice` forms from the `application.properties` file, as well as `DEMO_ITEMPRICE` from the system environment.
-If you used `${demo.itemPrice}` instead, `demo.item-price` and `DEMO_ITEMPRICE` would not be considered.
+If you use `${demo.itemPrice}` instead, it will pick up the `demo.itemPrice` form from the `application.properties` file, as well as `DEMO_ITEMPRICE` from the system environment, but `demo.item-price` would not be considered.
 ====
 
 TIP: You can also use this technique to create "`short`" variants of existing Spring Boot properties.
@@ -642,7 +678,7 @@ myotherprop: "sometimes-set"
 == Encrypting Properties
 
 Spring Boot does not provide any built-in support for encrypting property values, however, it does provide the hook points necessary to modify values contained in the Spring javadoc:org.springframework.core.env.Environment[].
-The javadoc:org.springframework.boot.env.EnvironmentPostProcessor[] interface allows you to manipulate the javadoc:org.springframework.core.env.Environment[] before the application starts.
+The javadoc:org.springframework.boot.EnvironmentPostProcessor[] interface allows you to manipulate the javadoc:org.springframework.core.env.Environment[] before the application starts.
 See xref:how-to:application.adoc#howto.application.customize-the-environment-or-application-context[] for details.
 
 If you need a secure way to store credentials and passwords, the https://cloud.spring.io/spring-cloud-vault/[Spring Cloud Vault] project provides support for storing externalized configuration in https://www.vaultproject.io/[HashiCorp Vault].
@@ -795,12 +831,8 @@ NOTE: The properties that map to javadoc:org.springframework.boot.context.proper
 Such arrangement relies on a default empty constructor and getters and setters are usually mandatory, since binding is through standard Java Beans property descriptors, just like in Spring MVC.
 A setter may be omitted in the following cases:
 
-* Maps, as long as they are initialized, need a getter but not necessarily a setter, since they can be mutated by the binder.
-* Collections and arrays can be accessed either through an index (typically with YAML) or by using a single comma-separated value (properties).
-  In the latter case, a setter is mandatory.
-  We recommend to always add a setter for such types.
-  If you initialize a collection, make sure it is not immutable (as in the preceding example).
-* If nested POJO properties are initialized (like the `Security` field in the preceding example), a setter is not required.
+* Pre-initialized Maps and Collections, as long as they are initialized with a mutable implementation (like the `roles` field in the preceding example).
+* Pre-initialized nested POJOs (like the `Security` field in the preceding example).
   If you want the binder to create the instance on the fly by using its default constructor, you need a setter.
 
 Some people use Project Lombok to add getters and setters automatically.
@@ -1224,7 +1256,7 @@ Doing so gives a transparent upgrade path while supporting a much richer format.
 In addition to durations, Spring Boot can also work with javadoc:java.time.Period[] type.
 The following formats can be used in application properties:
 
-* An regular `int` representation (using days as the default unit unless a javadoc:org.springframework.boot.convert.PeriodUnit[format=annotation] has been specified)
+* A regular `int` representation (using days as the default unit unless a javadoc:org.springframework.boot.convert.PeriodUnit[format=annotation] has been specified)
 * The standard ISO-8601 format {apiref-openjdk}/java.base/java/time/Period.html#parse(java.lang.CharSequence)[used by javadoc:java.time.Period[]]
 * A simpler format where the value and the unit pairs are coupled (`1y3d` means 1 year and 3 days)
 
@@ -1348,7 +1380,7 @@ If you do want to use javadoc:org.springframework.beans.factory.annotation.Value
 This will allow Spring Boot to use the same logic as it does when xref:features/external-config.adoc#features.external-config.typesafe-configuration-properties.relaxed-binding[relaxed binding] javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation].
 
 For example, `@Value("${demo.item-price}")` will pick up `demo.item-price` and `demo.itemPrice` forms from the `application.properties` file, as well as `DEMO_ITEMPRICE` from the system environment.
-If you used `@Value("${demo.itemPrice}")` instead, `demo.item-price` and `DEMO_ITEMPRICE` would not be considered.
+If you use `@Value("${demo.itemPrice}")` instead, it will pickup the `demo.itemPrice` form from the `application.properties` file, as well as `DEMO_ITEMPRICE` from the system environment, but `demo.item-price` would not be considered.
 ====
 
 If you define a set of configuration keys for your own components, we recommend you group them in a POJO annotated with javadoc:org.springframework.boot.context.properties.ConfigurationProperties[format=annotation].

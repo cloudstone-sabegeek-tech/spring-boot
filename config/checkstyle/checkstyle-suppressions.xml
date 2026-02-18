@@ -46,6 +46,7 @@
 	<suppress files="SpringBootJoranConfiguratorTests\.java" checks="IllegalImport" />
 	<suppress files="LogbackMetricsAutoConfiguration\.java" checks="IllegalImport" />
 	<suppress files="RemoteUrlPropertyExtractorTests\.java" checks="IllegalImport" />
+	<suppress files="SampleLog4j2Application\.java" checks="IllegalImport" />
 	<suppress files="SampleLogbackApplication\.java" checks="IllegalImport" />
 	<suppress files="OutputCaptureRuleTests" checks="SpringJUnit5" />
 	<suppress files="[\\/]smoke-test[\\/]" checks="SpringJavadoc" message="\@since" />
@@ -70,14 +71,18 @@
 	<suppress files="ConfigurationPropertyCaching\.java" checks="SpringJavadoc" message="\@since"/>
 	<suppress files="StructuredLoggingJsonMembersCustomizer\.java" checks="SpringJavadoc" message="\@since"/>
 	<suppress files="FieldValues\.java" checks="SimplifyBooleanExpression" />
+	<suppress files="TestPrintStream\.java" id="staticAssertJ"/>
+	<suppress files="ItemMetadataAssert\.java" id="staticAssertJ"/>
+	<suppress files="SpringApplicationShutdownHookInstance\.java" id="staticAssertJ"/>
 	<!-- jspecify: https://github.com/spring-io/spring-javaformat/issues/454 -->
-	<suppress files="PemPrivateKeyParser\.java" checks="NoWhitespaceBefore" message="'...' is preceded with whitespace"/>
-	<suppress files="Bindable\.java" checks="NoWhitespaceBefore" message="'...' is preceded with whitespace"/>
-	<suppress files="LambdaSafe\.java" checks="NoWhitespaceBefore" message="'...' is preceded with whitespace"/>
-	<suppress files="ConditionMessage\.java" checks="NoWhitespaceBefore" message="'...' is preceded with whitespace"/>
-	<suppress files="EntityManagerFactoryBuilder\.java" checks="NoWhitespaceBefore" message="'...' is preceded with whitespace"/>
-	<suppress files="DockerApi\.java" checks="NoWhitespaceBefore" message="'...' is preceded with whitespace"/>
-	<suppress files="InvocationContext\.java" checks="NoWhitespaceBefore" message="'...' is preceded with whitespace"/>
+	<!-- We can't use full "'...' is preceded with whitespace" as it fails on other locales -->
+	<suppress files="PemPrivateKeyParser\.java" checks="NoWhitespaceBefore" message="'...'"/>
+	<suppress files="Bindable\.java" checks="NoWhitespaceBefore" message="'...'"/>
+	<suppress files="LambdaSafe\.java" checks="NoWhitespaceBefore" message="'...'"/>
+	<suppress files="ConditionMessage\.java" checks="NoWhitespaceBefore" message="'...'"/>
+	<suppress files="EntityManagerFactoryBuilder\.java" checks="NoWhitespaceBefore" message="'...'"/>
+	<suppress files="DockerApi\.java" checks="NoWhitespaceBefore" message="'...'"/>
+	<suppress files="InvocationContext\.java" checks="NoWhitespaceBefore" message="'...'"/>
 	<!-- https://github.com/apache/logging-log4j2/issues/2769#issuecomment-3049020222 -->
 	<suppress files="SpringProfileArbiter\.java" checks="SpringMethodVisibility"/>
 	<suppress files="StructuredLogLayout\.java" checks="SpringMethodVisibility"/>

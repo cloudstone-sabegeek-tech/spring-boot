@@ -64,6 +64,10 @@ import org.springframework.amqp.rabbit.listener.DirectMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.retry.MessageRecoverer;
+import org.springframework.amqp.rabbit.support.micrometer.RabbitListenerObservation.DefaultRabbitListenerObservationConvention;
+import org.springframework.amqp.rabbit.support.micrometer.RabbitListenerObservationConvention;
+import org.springframework.amqp.rabbit.support.micrometer.RabbitTemplateObservation.DefaultRabbitTemplateObservationConvention;
+import org.springframework.amqp.rabbit.support.micrometer.RabbitTemplateObservationConvention;
 import org.springframework.amqp.support.converter.MessageConversionException;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.amqp.support.converter.SerializerMessageConverter;
@@ -323,10 +327,19 @@ class RabbitAutoConfigurationTests {
 	}
 
 	@Test
+	void shouldConfigureRabbitTemplateObservationConvention() {
+		RabbitTemplateObservationConvention convention = new DefaultRabbitTemplateObservationConvention();
+		this.contextRunner.withBean(RabbitTemplateObservationConvention.class, () -> convention).run((context) -> {
+			RabbitTemplate rabbitTemplate = context.getBean(RabbitTemplate.class);
+			assertThat(rabbitTemplate).hasFieldOrPropertyWithValue("observationConvention", convention);
+		});
+	}
+
+	@Test
 	void testRabbitTemplateRetry() {
 		this.contextRunner.withUserConfiguration(TestConfiguration.class)
 			.withPropertyValues("spring.rabbitmq.template.retry.enabled:true",
-					"spring.rabbitmq.template.retry.max-attempts:4",
+					"spring.rabbitmq.template.retry.max-retries:4",
 					"spring.rabbitmq.template.retry.initial-interval:2000",
 					"spring.rabbitmq.template.retry.multiplier:1.5", "spring.rabbitmq.template.retry.max-interval:5000",
 					"spring.rabbitmq.template.receive-timeout:123", "spring.rabbitmq.template.reply-timeout:456")
@@ -537,7 +550,7 @@ class RabbitAutoConfigurationTests {
 		this.contextRunner
 			.withUserConfiguration(MessageConvertersConfiguration.class, MessageRecoverersConfiguration.class)
 			.withPropertyValues("spring.rabbitmq.listener.simple.retry.enabled:true",
-					"spring.rabbitmq.listener.simple.retry.max-attempts:4",
+					"spring.rabbitmq.listener.simple.retry.max-retries:4",
 					"spring.rabbitmq.listener.simple.retry.initial-interval:2000",
 					"spring.rabbitmq.listener.simple.retry.multiplier:1.5",
 					"spring.rabbitmq.listener.simple.retry.max-interval:5000",
@@ -599,6 +612,16 @@ class RabbitAutoConfigurationTests {
 	}
 
 	@Test
+	void shouldConfigureRabbitListenerObservationConvention() {
+		RabbitListenerObservationConvention convention = new DefaultRabbitListenerObservationConvention();
+		this.contextRunner.withBean(RabbitListenerObservationConvention.class, () -> convention).run((context) -> {
+			SimpleRabbitListenerContainerFactory listenerFactory = context.getBean("rabbitListenerContainerFactory",
+					SimpleRabbitListenerContainerFactory.class);
+			assertThat(listenerFactory).hasFieldOrPropertyWithValue("observationConvention", convention);
+		});
+	}
+
+	@Test
 	void testSimpleRabbitListenerContainerFactoryWithDefaultForceStop() {
 		this.contextRunner
 			.withUserConfiguration(MessageConvertersConfiguration.class, MessageRecoverersConfiguration.class)
@@ -615,7 +638,7 @@ class RabbitAutoConfigurationTests {
 			.withUserConfiguration(MessageConvertersConfiguration.class, MessageRecoverersConfiguration.class)
 			.withPropertyValues("spring.rabbitmq.listener.type:direct",
 					"spring.rabbitmq.listener.direct.retry.enabled:true",
-					"spring.rabbitmq.listener.direct.retry.max-attempts:4",
+					"spring.rabbitmq.listener.direct.retry.max-retries:4",
 					"spring.rabbitmq.listener.direct.retry.initial-interval:2000",
 					"spring.rabbitmq.listener.direct.retry.multiplier:1.5",
 					"spring.rabbitmq.listener.direct.retry.max-interval:5000",
@@ -654,7 +677,7 @@ class RabbitAutoConfigurationTests {
 	void testSimpleRabbitListenerContainerFactoryRetryWithCustomizer() {
 		this.contextRunner.withUserConfiguration(RabbitRetryTemplateCustomizerConfiguration.class)
 			.withPropertyValues("spring.rabbitmq.listener.simple.retry.enabled:true",
-					"spring.rabbitmq.listener.simple.retry.max-attempts:4")
+					"spring.rabbitmq.listener.simple.retry.max-retries:4")
 			.run((context) -> {
 				SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory = context
 					.getBean("rabbitListenerContainerFactory", SimpleRabbitListenerContainerFactory.class);
@@ -668,7 +691,7 @@ class RabbitAutoConfigurationTests {
 		this.contextRunner.withUserConfiguration(RabbitRetryTemplateCustomizerConfiguration.class)
 			.withPropertyValues("spring.rabbitmq.listener.type:direct",
 					"spring.rabbitmq.listener.direct.retry.enabled:true",
-					"spring.rabbitmq.listener.direct.retry.max-attempts:4")
+					"spring.rabbitmq.listener.direct.retry.max-retries:4")
 			.run((context) -> {
 				DirectRabbitListenerContainerFactory rabbitListenerContainerFactory = context
 					.getBean("rabbitListenerContainerFactory", DirectRabbitListenerContainerFactory.class);
@@ -1224,7 +1247,7 @@ class RabbitAutoConfigurationTests {
 	@Configuration(proxyBeanMethods = false)
 	static class RabbitRetryTemplateCustomizerConfiguration {
 
-		private final RetryPolicy retryPolicy = RetryPolicy.withMaxAttempts(1);
+		private final RetryPolicy retryPolicy = RetryPolicy.withMaxRetries(1);
 
 		@Bean
 		RabbitTemplateRetrySettingsCustomizer rabbitTemplateRetryTemplateCustomizer() {

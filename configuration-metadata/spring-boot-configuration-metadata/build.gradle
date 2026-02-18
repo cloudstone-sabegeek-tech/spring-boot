@@ -35,9 +35,6 @@ dependencies {
 	testImplementation("org.springframework:spring-core")
 }
 
-architectureCheck {
-	nullMarked {
-		enabled  = false
-		ignoredPackages = ["org.springframework.boot.configurationmetadata.json"]
-	}
+nullability {
+	requireExplicitNullMarking = false
 }
